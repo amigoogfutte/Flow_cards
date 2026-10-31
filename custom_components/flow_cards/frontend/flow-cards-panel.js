@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.4.0";
+const FC_VERSION = "0.4.1";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -1720,7 +1720,8 @@ class FlowCardsPanel extends HTMLElement {
       }
       case "pick-def": {
         const eid = el.dataset.eid || null;
-        const def = eid ? entityDefs(eid, this._hass.states[eid]).find((d) => d.id === el.dataset.def) : appDefs(this._ctx()).find((d) => d.id === el.dataset.def);
+        const cat = catOf(this._picker.section);
+        const def = (eid ? entityDefs(eid, this._hass.states[eid]) : appDefs(this._ctx())).find((d) => d.id === el.dataset.def && d.cat === cat);
         if (def) this._chooseDef(def, eid);
         break;
       }
