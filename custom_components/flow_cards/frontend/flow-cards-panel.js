@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.4.1";
+const FC_VERSION = "0.4.2";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -373,6 +373,30 @@ const nrUnits = (v, u) => num(v) * ({ milliseconds: 0.001, ms: 0.001, seconds: 1
 const nrTime = (v) => (/^\d{1,2}:\d{2}$/.test(String(v || "").trim()) ? String(v).trim().padStart(5, "0") : null);
 const nrConst = (v, t) => (t === "str" ? String(v ?? "") : t === "num" ? num(v) : t === "bool" ? String(v) === "true" : undefined);
 
+/* Render a Node-RED mustache template as far as it is known when importing.
+   Known msg values are inserted; values that only exist at runtime become Home Assistant templates. Returns null if impossible. */
+function nrMustache(str, ctx) {
+  let bad = false;
+  const val = (expr) => {
+    const e = expr.trim();
+    if (e === "payload") {
+      if (ctx.payload !== undefined) return typeof ctx.payload === "object" ? JSON.stringify(ctx.payload) : String(ctx.payload);
+      if (ctx.entity) return `{{ states('${ctx.entity}') }}`;
+      bad = true; return "";
+    }
+    let m = /^data\.(new_state|old_state)\.(.+)$/.exec(e);
+    if (m) return `{{ trigger.${m[1] === "new_state" ? "to_state" : "from_state"}.${m[2]} }}`;
+    if (e === "data.entity_id" || e === "topic" && ctx.topic === undefined && ctx.entity) return "{{ trigger.entity_id }}";
+    const key = e.replace(/^msg\./, "");
+    if (ctx.msg && ctx.msg[key] !== undefined) return String(ctx.msg[key]);
+    if (key === "topic" && ctx.topic !== undefined) return String(ctx.topic);
+    bad = true; return "";
+  };
+  const out = String(str).replace(/\{\{\{([^}]+)\}\}\}|\{\{([^}]+)\}\}/g, (_, a, b) => val(a || b));
+  return bad ? null : out;
+}
+const nrHash = (str) => { let h = 5381; for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) >>> 0; return h.toString(36); };
+
 function nrEntities(n) {
   const e = n.entities && Array.isArray(n.entities.entity) ? n.entities.entity : [];
   if (e.length) return e.filter(Boolean);
@@ -425,13 +449,27 @@ function nodeRedImport(all, tabIds) {
         return (n.links || []).flatMap((l) => resolve(l, ctx, depth + 1));
       }
       if (t === "change") {
-        const rules = n.rules || [];
-        const setPayload = rules.find((r) => r.t === "set" && r.p === "payload" && r.pt === "msg");
-        if (setPayload && rules.length === 1) {
-          const v = nrConst(setPayload.to, setPayload.tot);
-          return allOuts({ ...ctx, payload: v, entity: v === undefined ? ctx.entity : undefined });
+        const c = { ...ctx, msg: { ...(ctx.msg || {}) } };
+        for (const rule of n.rules || []) {
+          if (rule.pt !== "msg") continue;              // flow/global context is not carried over
+          const isPayload = rule.p === "payload" || rule.to === "payload";
+          if (rule.t === "set") {
+            const v = nrConst(rule.to, rule.tot);
+            if (rule.p === "payload") { c.payload = v; c.entity = undefined; }
+            else if (rule.p === "topic") { c.topic = v; c.msg.topic = v; }
+            else c.msg[rule.p] = v;
+          } else if (isPayload) { c.payload = undefined; c.entity = undefined; }
+          else delete c.msg[rule.p];
         }
-        return allOuts(rules.some((r) => r.p === "payload") ? { ...ctx, payload: undefined, entity: undefined } : ctx);
+        return allOuts(c);
+      }
+      if (t === "template") {
+        if ((n.fieldType || "msg") !== "msg" || (n.field || "payload") !== "payload" || (n.syntax && n.syntax !== "mustache")) return note(n, "skabelonen skriver til andet end msg.payload");
+        const out = nrMustache(n.template || "", ctx);
+        if (out === null) return note(n, "skabelonen bruger værdier, der først kendes, når flowet kører");
+        let payload = out;
+        if (n.output === "json") { try { payload = JSON.parse(out); } catch (e) { return note(n, "skabelonen giver ikke gyldig JSON"); } }
+        return allOuts({ ...ctx, payload, entity: undefined });
       }
       if (t === "switch") {
         const rules = n.rules || [];
@@ -515,13 +553,22 @@ function nodeRedImport(all, tabIds) {
         let ents = Array.isArray(n.entityId) ? n.entityId : n.entityId ? String(n.entityId).split(",") : [];
         ents = ents.map((x) => String(x).trim()).filter((x) => x && !/[{}]/.test(x));
         let data = {};
-        const raw = String(n.data || "").trim();
+        let raw = String(n.data || "").trim();
+        let dynamic = false;
+        if (raw && /\{\{/.test(raw) && n.dataType !== "jsonata") {
+          const m = nrMustache(raw, ctx);
+          if (m === null) return note(n, "data bruger værdier, der først kendes, når flowet kører");
+          raw = m; dynamic = true;
+        }
         if (raw) {
           try { data = JSON.parse(raw); if (typeof data !== "object" || Array.isArray(data)) throw new Error(); }
           catch (e) { data = {}; tabReport.notes.push(`${n.name || service}: data "${raw.slice(0, 40)}" er udeladt (JSONata)`); }
         }
-        const cid = add({ id: n.id, sec: "actions", kind: "service", card: "adv.service", service, entity_id: ents, data,
-          args: { service, entity_id: ents[0] || "", data: Object.keys(data).length ? JSON.stringify(data) : "" }, ...pos(n) }, n);
+        const cid0 = dynamic ? `${n.id}~${nrHash(JSON.stringify(data))}` : n.id;
+        const variants = dynamic ? nodes.filter((x) => origin[x.id] === n.id && x.id !== cid0).length : 0;
+        if (fcById.has(cid0)) return [cid0];
+        const cid = add({ id: cid0, sec: "actions", kind: "service", card: "adv.service", service, entity_id: ents, data,
+          args: { service, entity_id: ents[0] || "", data: Object.keys(data).length ? JSON.stringify(data) : "" }, ...pos(n, 0, variants * 120) }, n);
         wire(n, cid, () => "out", {});
         return [cid];
       }
@@ -637,7 +684,7 @@ function nodeRedImport(all, tabIds) {
     const NR_CONFIG = /config|^server$|^tab$|^subflow$|^global-config$|^ha-entity-config$|connection/;
     for (const n of tabNodes) {
       if (n.d || touched.has(n.id) || NR_DROP.has(n.type) || NR_PASS.has(n.type) || NR_CONFIG.test(n.type)) continue;
-      if (["change", "switch", "link out", "inject", "sun-event-inject", "server-state-changed", "trigger-state", "trigger", "delay", "api-current-state"].includes(n.type)) continue;
+      if (["change", "switch", "template", "link out", "inject", "sun-event-inject", "server-state-changed", "trigger-state", "trigger", "delay", "api-current-state"].includes(n.type)) continue;
       note(n, "kan ikke oversættes automatisk");
     }
 
@@ -1964,12 +2011,20 @@ class FlowCardsPanel extends HTMLElement {
     const nr = this._nr;
     const ids = [...nr.selected];
     if (!ids.length) { this._toast("Vælg mindst én fane", true); return; }
+    const labels = new Set(nr.tabs.filter((t) => nr.selected.has(t.id)).map((t) => t.label));
+    const old = this._flows.filter((f) => { const m = /^Importeret fra Node-RED-fanen "(.*)"$/.exec(f.description || ""); return m && labels.has(m[1]); });
+    if (old.length && !window.confirm(`${old.length} ${old.length === 1 ? "flow" : "flows"} fra en tidligere import af de valgte faner bliver erstattet. Fortsæt?`)) return;
     nr.busy = true; nr.step = "importing"; this._render();
+    const liveTabs = new Set(old.filter((f) => f.enabled).map((f) => /^Importeret fra Node-RED-fanen "(.*)"$/.exec(f.description)[1]));
+    for (const f of old) {
+      try { await this._hass.callWS({ type: `${WS}/delete`, flow_id: f.id }); } catch (e) { /* already gone */ }
+    }
     const { flows, report } = nodeRedImport(nr.all, ids);
     const created = [];
     const failed = [];
     for (const f of flows) {
       const tabId = f._nrTab; delete f._nrTab;
+      if (liveTabs.has(f.folder)) f.enabled = true;   // tab was already switched over: keep it running here
       try {
         const res = await this._hass.callWS({ type: `${WS}/save`, flow: f });
         created.push({ id: res.id, name: res.name, tab: tabId });
@@ -2016,7 +2071,7 @@ class FlowCardsPanel extends HTMLElement {
       body = `<p>Hver fane bliver en mappe. Hver selvstændig kæde i fanen bliver et <b>avanceret flow</b>. Flowene oprettes <b>slået fra</b>, så intet kører dobbelt.</p>
         <div class="nr-tabs">${nr.tabs.map((t) => `<button class="nr-tab ${nr.selected.has(t.id) ? "sel" : ""}" data-action="nr-toggle" data-tab="${esc(t.id)}" ${t.flows ? "" : "disabled"}>
           <span class="box">${nr.selected.has(t.id) ? "✓" : ""}</span>
-          <span class="t"><b>${esc(t.label)}</b><span class="s">${t.nodes} noder → ${t.flows} ${t.flows === 1 ? "flow" : "flows"}${t.notes ? ` · ${t.notes} at tjekke` : ""}${t.disabled ? " · slået fra i Node-RED" : ""}${t.already ? " · allerede importeret" : ""}</span></span></button>`).join("")}</div>`;
+          <span class="t"><b>${esc(t.label)}</b><span class="s">${t.nodes} noder → ${t.flows} ${t.flows === 1 ? "flow" : "flows"}${t.notes ? ` · ${t.notes} at tjekke` : ""}${t.disabled ? " · slået fra i Node-RED" : ""}${t.already ? " · allerede importeret (vælg for at erstatte)" : ""}</span></span></button>`).join("")}</div>`;
       foot = `<button class="btn ghost" data-action="nr-close">Annullér</button><button class="btn primary" data-action="nr-import" ${nr.selected.size ? "" : "disabled"}>Importér ${nr.selected.size} ${nr.selected.size === 1 ? "fane" : "faner"}</button>`;
     } else if (nr.step === "done") {
       const notes = nr.report.flatMap((r) => r.notes.map((x) => `<li><b>${esc(r.tab)}:</b> ${esc(x)}</li>`));
