@@ -1,0 +1,47 @@
+# Flow Cards – Homey-agtige flows i Home Assistant
+
+Et **Flows**-panel i Home Assistants sidemenu, hvor du bygger flows af kort:
+
+- **NÅR…** noget sker (knaptryk, lys tændes, bevægelse, klokkeslæt, solnedgang, en hændelse …)
+- **OG…** betingelserne passer (alle eller én af dem, og hvert kort kan vendes med **IKKE**)
+- **SÅ…** gør Home Assistant noget (tænd/dæmp lys, gardiner, beskeder, vent, start andre flows …)
+- **ELLERS…** hvis betingelserne ikke passer
+
+Flowene køres af en flow-motor inde i Home Assistant. De er altså ikke almindelige HA-automationer.
+
+## Installation
+
+1. Kopiér mappen `custom_components/flow_cards` til `/config/custom_components/flow_cards` på din Home Assistant. Det kan gøres med Samba share, File editor eller Studio Code Server.
+2. Genstart Home Assistant.
+3. Gå til **Indstillinger → Enheder og tjenester → Tilføj integration** og søg efter **Flow Cards**.
+4. Panelet **Flows** dukker op i sidemenuen (kun for administratorer). Lav en hård genindlæsning af browseren (Ctrl+F5), hvis det ikke vises.
+
+## Sådan bruges det
+
+- **Nyt flow**: Klik på *Tilføj kort* i en kolonne. Vælg derefter en enhed (grupperet efter område) eller en indbygget "app": Dato & tid, Sol, Logik, Notifikationer, Flows, Hændelser, Home Assistant eller Avanceret.
+- **Kort**: Klik på et kort for at redigere det. Træk i kortene for at ændre rækkefølgen. Under OG kan du klikke **IKKE** for at vende en betingelse om.
+- **Ved ny udløsning**: *Ignorér nye* (standard), *Genstart* eller *Kør parallelt*. *Genstart* + *Vent 3 min* + *Sluk* giver et klassisk bevægelses-timer-flow, svarende til "trigger 3min" i Node-RED.
+- **Test** gemmer og kører flowet med det samme. Kortene får ✓, ✕ eller ! efter, hvordan de gik.
+- **Historik** viser de seneste 30 kørsler pr. flow, med hvert trin, varighed og fejlbeskeder.
+- Tekstfelter i SÅ-kort kan bruge skabeloner, f.eks. `{{ trigger.description }}` eller `{{ states('sensor.x') }}`.
+
+## Avancerede flows (0.2)
+
+Tryk **Nyt flow → Avanceret flow**. Du kan også lave et almindeligt flow om med **Gør avanceret**.
+
+- **Frit lærred**: træk kortene rundt, panorér med en finger, zoom med knib, scrollhjul eller − / +, og tryk **Tilpas** for at se det hele.
+- **Ledninger**: træk fra den runde udgang på et kort over på det næste kort. På mobilen kan du også *trykke* på udgangen og derefter på kortet. Tryk på en ledning for at fjerne den.
+- **OG-kort** har to udgange: grøn ✓ (sand) og rød ✕ (falsk).
+- **SÅ-kort** har en ekstra orange **!**-udgang, der bruges, hvis kortet fejler, f.eks. hvis en lampe er utilgængelig.
+- **Logik**: *Alle* fortsætter først, når alle ledninger ind til kortet er nået frem. *Én af* fortsætter ved den første. *Note* er en gul seddel til forklaringer.
+- **▶ på et NÅR-kort** tester flowet fra netop det kort. NÅR-kortet *Flowet startes manuelt* (under Flows) bestemmer, hvor **Test** starter.
+- Grene kører samtidig. *Stop flowet* stopper alle grene. Et flow stopper efter 200 kort, så en løkke ikke kan køre for evigt.
+
+## Data
+
+- Flows gemmes i `/config/.storage/flow_cards.flows` og historik i `/config/.storage/flow_cards.history`. Begge kommer med i HA's sikkerhedskopier.
+- Du kan slå integrationen fra under Enheder og tjenester. Så stopper alle flows uden at blive slettet.
+
+## Ikke med endnu
+
+- Import af Node-RED-flows (planlagt).

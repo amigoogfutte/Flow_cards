@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="da"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;height:100%;font-family:Roboto,Arial,sans-serif}
+body{--primary-background-color:#f2f3f5;--card-background-color:#fff;--primary-color:#03a9f4;--primary-text-color:#212121;--secondary-text-color:#727272;--divider-color:rgba(0,0,0,.12)}
+body.dark{--primary-background-color:#111;--card-background-color:#1c1c1c;--primary-text-color:#e1e1e1;--secondary-text-color:#9b9b9b;--divider-color:rgba(255,255,255,.12)}
+</style>
+<script>
+// minimal ha-icon stub: draws the first letter of the icon name
+customElements.define("ha-icon", class extends HTMLElement {
+  connectedCallback() { const n = (this.getAttribute("icon") || "").replace("mdi:", ""); this.style.cssText += ";width:var(--mdc-icon-size,20px);height:var(--mdc-icon-size,20px);align-items:center;justify-content:center;font-size:11px;font-weight:700;border-radius:4px;background:currentColor;opacity:.75"; this.innerHTML = `<span style="color:#fff;mix-blend-mode:normal;filter:invert(0)">${n.slice(0,1).toUpperCase()}</span>`; }
+});
+</script>
+<script src="../custom_components/flow_cards/frontend/flow-cards-panel.js"></script>
+</head><body>
+<script>
+const st = (entity_id, state, attributes = {}) => ({ entity_id, state, attributes, last_changed: new Date().toISOString() });
+const states = {};
+[
+  st("light.kontor", "on", { friendly_name: "Kontor", supported_color_modes: ["color_temp"], min_color_temp_kelvin: 2200, max_color_temp_kelvin: 6500 }),
+  st("light.jesper_1", "off", { friendly_name: "Jesper 1", supported_color_modes: ["brightness"] }),
+  st("light.gulv_kontor", "off", { friendly_name: "Gulv kontor", supported_color_modes: ["brightness"] }),
+  st("light.rikke_computer", "unavailable", { friendly_name: "Rikke computer" }),
+  st("event.kontor_kontakt_knap_1", "2026-10-30T17:48:59.046+00:00", { friendly_name: "Kontor kontakt Knap 1", event_types: ["initial_press", "short_release", "long_press", "double_press"], event_type: "short_release" }),
+  st("event.kontor_kontakt_knap_4", "2026-10-30T17:48:59.046+00:00", { friendly_name: "Kontor kontakt Knap 4", event_types: ["initial_press", "short_release", "long_press"] }),
+  st("binary_sensor.loft_sensor_kontor", "off", { friendly_name: "Loft sensor computerværelse", device_class: "occupancy" }),
+  st("sensor.kontor_temperatur", "21.4", { friendly_name: "Kontor temperatur", unit_of_measurement: "°C", state_class: "measurement" }),
+  st("input_boolean.kontorlys", "on", { friendly_name: "Kontorlys" }),
+  st("person.jesper", "home", { friendly_name: "Jesper Fløjborg" }),
+  st("cover.gardin_sovevaerelse", "open", { friendly_name: "Gardin soveværelse" }),
+  st("lock.hovededor", "locked", { friendly_name: "Hovededør" }),
+  st("sun.sun", "below_horizon", { friendly_name: "Sun" }),
+  st("notify.rikke_mobil", "unknown", { friendly_name: "Rikke_mobil" }),
+  st("scene.kontor_jesper_ved_computer", "unknown", { friendly_name: "Kontor Jesper 1 jesper er ved computer" }),
+].forEach((s) => (states[s.entity_id] = s));
+const entities = {
+  "light.kontor": { device_id: "d1" }, "light.jesper_1": { device_id: "d2" }, "light.gulv_kontor": { device_id: "d3" },
+  "event.kontor_kontakt_knap_1": { device_id: "d4" }, "event.kontor_kontakt_knap_4": { device_id: "d4" },
+  "binary_sensor.loft_sensor_kontor": { device_id: "d5" }, "sensor.kontor_temperatur": { device_id: "d5" },
+  "cover.gardin_sovevaerelse": { device_id: "d6" }, "lock.hovededor": { device_id: "d7" },
+};
+const devices = {
+  d1: { name: "Kontor loft", area_id: "kontor" }, d2: { name: "Jesper 1", area_id: "kontor" }, d3: { name: "Gulvlampe", area_id: "kontor" },
+  d4: { name: "Kontor kontakt", area_id: "kontor" }, d5: { name: "Presson sensor Kontor", area_id: "kontor" },
+  d6: { name: "Gardin", area_id: "sove" }, d7: { name: "Aqara Smart Lock U200", area_id: "gang" },
+};
+const areas = { kontor: { name: "Kontor" }, sove: { name: "Soveværelse" }, gang: { name: "Gang" } };
+const services = { light: { turn_on: {}, turn_off: {}, toggle: {} }, notify: { mobile_app_jesper_iphone: {}, send_message: {} }, scene: { turn_on: {} }, persistent_notification: { create: {} } };
+
+// ---- fake backend
+const iso = (minAgo) => new Date(Date.now() - minAgo * 60000).toISOString();
+let flows = window.SEED || [];
+let folders = ["Kontor", "Gardiner", "Notifikationer"];
+const history = {};
+let subs = [];
+const emit = (m) => subs.forEach((cb) => cb(m));
+const id = () => Math.random().toString(16).slice(2, 14);
+function seed() {
+  flows = [
+    { id: "f1", name: "Kontor: knap 1 tænder lys", folder: "Kontor", enabled: true, mode: "restart", condition_mode: "all",
+      triggers: [{ id: "t1", card: "e.press", kind: "event_entity", entity_id: ["event.kontor_kontakt_knap_1"], args: { event_type: "short_release" }, event_type: ["short_release"] }],
+      conditions: [{ id: "c1", card: "time.between", kind: "time", args: { after: "21:00", before: "06:00" }, after: "21:00", before: "06:00" },
+        { id: "c2", card: "e.is_on", kind: "state", entity_id: ["light.kontor"], args: {}, state: ["on"], invert: true }],
+      actions: [{ id: "a1", card: "e.dim", kind: "service", service: "light.turn_on", entity_id: ["light.gulv_kontor"], args: { pct: 10 }, data: { brightness_pct: 10 } },
+        { id: "a2", card: "logic.delay", kind: "delay", args: { value: 3, unit: "min" }, seconds: 180 },
+        { id: "a3", card: "e.off", kind: "service", service: "light.turn_off", entity_id: ["light.gulv_kontor"], args: {}, data: {} }],
+      else_actions: [{ id: "e1", card: "e.dim", kind: "service", service: "light.turn_on", entity_id: ["light.kontor"], args: { pct: 100 }, data: { brightness_pct: 100 } }] },
+    { id: "f2", name: "Kontor: ingen bevægelse slukker", folder: "Kontor", enabled: true, mode: "single", condition_mode: "all",
+      triggers: [{ id: "t2", card: "e.off_for", kind: "state", entity_id: ["binary_sensor.loft_sensor_kontor"], args: { minutes: 10 }, to: "off", for: 600 }],
+      conditions: [], else_actions: [],
+      actions: [{ id: "a4", card: "e.off", kind: "service", service: "light.turn_off", entity_id: ["light.kontor"], args: {}, data: {} },
+        { id: "a5", card: "e.off", kind: "service", service: "light.turn_off", entity_id: ["light.rikke_computer"], args: {}, data: {} }] },
+    { id: "f3", name: "Gardin ned ved solnedgang", folder: "Gardiner", enabled: true, mode: "single", condition_mode: "all",
+      triggers: [{ id: "t3", card: "sun.event", kind: "sun", args: { event: "sunset", offset: -15 }, event: "sunset", offset: -15 }],
+      conditions: [{ id: "c3", card: "e.is_home", kind: "state", entity_id: ["person.jesper"], args: {}, state: ["home"] }], else_actions: [],
+      actions: [{ id: "a6", card: "e.close", kind: "service", service: "cover.close_cover", entity_id: ["cover.gardin_sovevaerelse"], args: {}, data: {} }] },
+    { id: "f4", name: "Besked når hoveddøren låses op om natten", folder: "Notifikationer", enabled: false, mode: "parallel", condition_mode: "all",
+      triggers: [{ id: "t4", card: "e.unlocked", kind: "state", entity_id: ["lock.hovededor"], args: {}, to: "unlocked" }],
+      conditions: [{ id: "c4", card: "sun.down", kind: "sun", args: {}, is: "below_horizon" }], else_actions: [],
+      actions: [{ id: "a7", card: "notify.send", kind: "notify", args: { service: "notify.mobile_app_jesper_iphone", message: "Hoveddøren blev låst op", title: "" }, service: "notify.mobile_app_jesper_iphone", message: "Hoveddøren blev låst op" }] },
+    { id: "f5", name: "Kontor: avanceret knap-flow", folder: "Kontor", type: "advanced", enabled: true, mode: "restart", condition_mode: "all",
+      triggers: [], conditions: [], actions: [], else_actions: [],
+      nodes: [
+        { id: "n1", sec: "triggers", card: "e.press", kind: "event_entity", entity_id: ["event.kontor_kontakt_knap_1"], args: { event_type: "short_release" }, event_type: ["short_release"], x: 0, y: 60 },
+        { id: "n2", sec: "conditions", card: "time.between", kind: "time", args: { after: "21:00", before: "06:00" }, after: "21:00", before: "06:00", x: 330, y: 60 },
+        { id: "n3", sec: "actions", card: "e.dim", kind: "service", service: "light.turn_on", entity_id: ["light.gulv_kontor"], args: { pct: 10 }, data: { brightness_pct: 10 }, x: 660, y: 0 },
+        { id: "n4", sec: "actions", card: "e.dim", kind: "service", service: "light.turn_on", entity_id: ["light.kontor"], args: { pct: 100 }, data: { brightness_pct: 100 }, x: 660, y: 170 },
+        { id: "n5", sec: "actions", card: "logic.delay", kind: "delay", args: { value: 3, unit: "min" }, seconds: 180, x: 990, y: 0 },
+        { id: "n6", sec: "actions", card: "e.off", kind: "service", service: "light.turn_off", entity_id: ["light.gulv_kontor"], args: {}, data: {}, x: 1320, y: 0 },
+        { id: "n7", sec: "actions", card: "notify.send", kind: "notify", args: { service: "notify.mobile_app_jesper_iphone", message: "Lyset i kontoret svarer ikke" }, service: "notify.mobile_app_jesper_iphone", message: "Lyset i kontoret svarer ikke", x: 990, y: 300 },
+        { id: "n8", sec: "logic", card: "logic.note", kind: "note", args: { text: "Om natten: dæmpet gulvlys i 3 min.\nOm dagen: fuldt loftlys." }, text: "", x: 0, y: 260 },
+      ],
+      edges: [{ from: "n1", port: "out", to: "n2" }, { from: "n2", port: "true", to: "n3" }, { from: "n2", port: "false", to: "n4" },
+        { from: "n3", port: "out", to: "n5" }, { from: "n5", port: "out", to: "n6" }, { from: "n4", port: "error", to: "n7" }] },
+  ];
+  history.f1 = [{ id: "r1", flow_id: "f1", start: iso(4), end: iso(4), trigger: "Kontor kontakt Knap 1: short_release", status: "success", branch: "else",
+    steps: [{ section: "conditions", card_id: "c1", kind: "time", status: "false", text: "Klokken er 20:14", ms: 0 }, { section: "else_actions", card_id: "e1", kind: "service", status: "success", text: "light.turn_on → Kontor", ms: 84 }] }];
+  history.f2 = [{ id: "r2", flow_id: "f2", start: iso(70), end: iso(70), trigger: "Loft sensor computerværelse: on → off (i 600 s)", status: "error", branch: "then", error: "Tjenesten light.turn_off fejlede: Rikke computer er utilgængelig",
+    steps: [{ section: "actions", card_id: "a4", kind: "service", status: "success", text: "light.turn_off → Kontor", ms: 120 }, { section: "actions", card_id: "a5", kind: "service", status: "error", error: "Rikke computer er utilgængelig", ms: 5003 }] }];
+  history.f3 = [{ id: "r3", flow_id: "f3", start: iso(60 * 26), end: iso(60 * 26), trigger: "Solnedgang", status: "success", branch: "then", steps: [] }];
+}
+seed();
+const status = (f) => { const runs = history[f.id] || []; const last = runs[0]; const le = runs.find((r) => r.status === "error");
+  return { running: 0, last_run: last && { id: last.id, start: last.start, status: last.status, trigger: last.trigger, branch: last.branch }, last_error: le && { start: le.start, error: le.error }, arm_error: null, run_count: runs.length }; };
+window.calls = [];
+const hass = {
+  states, entities, devices, areas, services, language: "da",
+  callWS: async (msg) => {
+    window.calls.push(msg);
+    const t = msg.type.split("/")[1];
+    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders };
+    if (t === "save") {
+      const f = JSON.parse(JSON.stringify(msg.flow)); delete f.status;
+      if (!f.name) throw new Error("Flowet skal have et navn");
+      if (!f.id) f.id = id();
+      const i = flows.findIndex((x) => x.id === f.id); if (i >= 0) flows[i] = f; else flows.push(f);
+      if (f.folder && !folders.includes(f.folder)) folders.push(f.folder);
+      setTimeout(() => emit({ event: "flows_changed" }), 10);
+      return { ...f, status: status(f) };
+    }
+    if (t === "delete") { flows = flows.filter((f) => f.id !== msg.flow_id); return null; }
+    if (t === "enable") { flows.find((f) => f.id === msg.flow_id).enabled = msg.enabled; return null; }
+    if (t === "folders") { folders = msg.folders; return null; }
+    if (t === "history") return { runs: history[msg.flow_id] || [] };
+    if (t === "clear_history") { history[msg.flow_id] = []; return null; }
+    if (t === "run") {
+      const f = flows.find((x) => x.id === msg.flow_id);
+      const run = { id: id(), flow_id: f.id, start: new Date().toISOString(), trigger: "Startet manuelt", status: "running", branch: "then", steps: [] };
+      (history[f.id] = history[f.id] || []).unshift(run);
+      emit({ event: "run", flow_id: f.id, run });
+      setTimeout(() => {
+        if (f.type === "advanced") {
+          run.steps = f.nodes.filter((n) => n.kind !== "note").map((n) => ({ section: n.sec, card_id: n.id, kind: n.kind, status: n.id === "n2" ? "true" : n.id === "n4" || n.id === "n7" ? "skipped" : "success", text: "ok", ms: 5 }))
+            .filter((x) => x.status !== "skipped");
+          run.status = "success"; run.end = new Date().toISOString(); emit({ event: "run", flow_id: f.id, run }); return;
+        }
+        run.steps = [...f.conditions.map((c) => ({ section: "conditions", card_id: c.id, kind: c.kind, status: "true", text: "ok", ms: 1 })),
+          ...f.actions.map((c, i) => ({ section: "actions", card_id: c.id, kind: c.kind, status: i === 1 ? "error" : "success", error: i === 1 ? "Testfejl" : null, text: "ok", ms: 40 }))];
+        run.status = f.actions.length > 1 ? "error" : "success"; run.error = run.status === "error" ? "Testfejl" : null; run.end = new Date().toISOString();
+        emit({ event: "run", flow_id: f.id, run });
+      }, 200);
+      return { run_id: run.id };
+    }
+    throw new Error("ukendt " + msg.type);
+  },
+  connection: { subscribeMessage: async (cb) => { subs.push(cb); return () => { subs = subs.filter((x) => x !== cb); }; } },
+};
+if (location.hash.includes("dark")) document.body.classList.add("dark");
+const el = document.createElement("flow-cards-panel");
+el.narrow = location.hash.includes("narrow");
+el.hass = hass;
+document.body.appendChild(el);
+window.panel = el;
+</script>
+</body></html>

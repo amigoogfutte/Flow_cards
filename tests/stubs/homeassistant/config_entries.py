@@ -1,0 +1,1 @@
+ConfigEntry = object

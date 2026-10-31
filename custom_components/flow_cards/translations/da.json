@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Flow Cards",
+        "description": "Tilføjer panelet Flows i sidemenuen, hvor du bygger NÅR / OG / SÅ-flows."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Flow Cards er allerede sat op."
+    }
+  }
+}

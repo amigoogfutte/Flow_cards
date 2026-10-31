@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Flow Cards",
+        "description": "Adds the Flows panel to the sidebar, where you build WHEN / AND / THEN flows."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Flow Cards is already set up."
+    }
+  }
+}
