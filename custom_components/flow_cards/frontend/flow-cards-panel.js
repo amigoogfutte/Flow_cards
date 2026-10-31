@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.2.3";
+const FC_VERSION = "0.3.0";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -343,6 +343,317 @@ function entityDefs(eid, st) {
   return defs;
 }
 
+/* ---- NODE-RED IMPORT START ---- */
+/* Converts Node-RED (node-red-contrib-home-assistant-websocket) tabs into advanced flows. */
+const NR_DROP = new Set(["debug", "comment", "group", "catch", "status", "complete"]);
+const NR_PASS = new Set(["link in", "junction", "rbe", "filter"]);
+const NR_SUN = { sunrise: "sunrise", sunriseEnd: "sunrise", dawn: "sunrise", nauticalDawn: "sunrise", goldenHourEnd: "sunrise",
+  sunset: "sunset", sunsetStart: "sunset", dusk: "sunset", nauticalDusk: "sunset", goldenHour: "sunset", night: "sunset" };
+const NR_DAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
+const NR_EVENTLIKE = ["event", "button", "input_button", "scene"];
+const nrUnits = (v, u) => num(v) * ({ milliseconds: 0.001, ms: 0.001, seconds: 1, s: 1, minutes: 60, min: 60, hours: 3600, hour: 3600, h: 3600, days: 86400, day: 86400 }[u] ?? 1);
+const nrTime = (v) => (/^\d{1,2}:\d{2}$/.test(String(v || "").trim()) ? String(v).trim().padStart(5, "0") : null);
+const nrConst = (v, t) => (t === "str" ? String(v ?? "") : t === "num" ? num(v) : t === "bool" ? String(v) === "true" : undefined);
+
+function nrEntities(n) {
+  const e = n.entities && Array.isArray(n.entities.entity) ? n.entities.entity : [];
+  if (e.length) return e.filter(Boolean);
+  if (n.entityidfilter && (!n.entityidfiltertype || n.entityidfiltertype === "exact")) return String(n.entityidfilter).split(",").map((x) => x.trim()).filter(Boolean);
+  if (n.entityid) return [n.entityid];
+  return [];
+}
+
+function nodeRedImport(all, tabIds) {
+  const byId = new Map(all.map((n) => [n.id, n]));
+  const flows = [];
+  const report = [];
+  for (const tabId of tabIds) {
+    const tab = byId.get(tabId);
+    if (!tab) continue;
+    const tabNodes = all.filter((n) => n.z === tabId);
+    const nodes = [];        // flow-cards nodes
+    const edges = [];
+    const origin = {};       // fc node id -> node-red id (for grouping)
+    const notes = [];
+    const fcById = new Map();
+    const restartIds = new Set();
+    const tabReport = { tab: tab.label || tabId, flows: 0, cards: 0, notes: [], skipped: 0 };
+    const pos = (n, dx = 0, dy = 0) => ({ x: Math.round((num(n.x) || 0) * 1.5 + dx), y: Math.round((num(n.y) || 0) * 1.7 + dy) });
+    const add = (fc, nr) => { if (!fcById.has(fc.id)) { nodes.push(fc); fcById.set(fc.id, fc); origin[fc.id] = nr.id; } return fc.id; };
+    const note = (n, why) => {
+      const id = `note-${n.id}`;
+      if (!fcById.has(id)) {
+        const label = n.name ? `“${n.name}”` : "";
+        add({ id, sec: "logic", kind: "note", card: "logic.note", text: "", args: { text: `Node-RED ${n.type} ${label}: ${why}` }, ...pos(n) }, n);
+        notes.push(id);
+        tabReport.notes.push(`${n.type}${n.name ? ` (${n.name})` : ""}: ${why}`);
+      }
+      return [];
+    };
+    const stateCond = (id, entity, states, invert, n, dy) => add({ id, sec: "conditions", kind: "state", card: "adv.state_c", entity_id: [entity], state: states.map(String),
+      args: { entity_id: entity, state: states.join(", ") }, ...(invert ? { invert: true } : {}), ...pos(n, 0, dy) }, n);
+
+    /* resolve: which flow-cards nodes does a message sent into node-red node `id` reach? */
+    const resolve = (id, ctx, depth = 0) => {
+      const n = byId.get(id);
+      if (!n || n.d || depth > 40) return [];
+      const outs = (i, c = ctx) => (n.wires && n.wires[i] ? n.wires[i].flatMap((t) => resolve(t, c, depth + 1)) : []);
+      const allOuts = (c = ctx) => (n.wires || []).flatMap((_, i) => outs(i, c));
+      const t = n.type;
+      if (NR_DROP.has(t)) return [];
+      if (NR_PASS.has(t)) return allOuts();
+      if (t === "link out") {
+        if (n.mode === "return") return [];
+        return (n.links || []).flatMap((l) => resolve(l, ctx, depth + 1));
+      }
+      if (t === "change") {
+        const rules = n.rules || [];
+        const setPayload = rules.find((r) => r.t === "set" && r.p === "payload" && r.pt === "msg");
+        if (setPayload && rules.length === 1) {
+          const v = nrConst(setPayload.to, setPayload.tot);
+          return allOuts({ ...ctx, payload: v, entity: v === undefined ? ctx.entity : undefined });
+        }
+        return allOuts(rules.some((r) => r.p === "payload") ? { ...ctx, payload: undefined, entity: undefined } : ctx);
+      }
+      if (t === "switch") {
+        const rules = n.rules || [];
+        if (n.property !== "payload" || n.propertyType !== "msg") return note(n, "skifter på andet end msg.payload");
+        const firstOnly = String(n.checkall) === "false";
+        if (ctx.payload !== undefined) {
+          const hits = [];
+          for (let i = 0; i < rules.length; i++) {
+            const r = rules[i]; const v = nrConst(r.v, r.vt);
+            const ok = r.t === "eq" ? String(ctx.payload) === String(v) : r.t === "neq" ? String(ctx.payload) !== String(v)
+              : r.t === "else" ? !hits.length : r.t === "true" ? ctx.payload === true || ctx.payload === "true" : r.t === "false" ? ctx.payload === false || ctx.payload === "false" : null;
+            if (ok === null) return note(n, `regel "${r.t}" kan ikke oversættes`);
+            if (ok) { hits.push(i); if (firstOnly) break; }
+          }
+          return hits.flatMap((i) => outs(i, ctx));
+        }
+        if (ctx.entity && rules.every((r) => ["eq", "neq", "else"].includes(r.t))) {
+          const eqs = rules.filter((r) => r.t === "eq").map((r) => String(r.v));
+          return rules.flatMap((r, i) => {
+            const cid = `${n.id}~${ctx.entity}~${i}`;
+            if (!fcById.has(cid)) {
+              const states = r.t === "else" ? eqs : [String(r.v)];
+              stateCond(cid, ctx.entity, states.length ? states : [""], r.t !== "eq", n, i * 120);
+              outs(i, { entity: ctx.entity }).forEach((to) => edges.push({ from: cid, port: "true", to }));
+            }
+            return [cid];
+          });
+        }
+        return note(n, "afhænger af en værdi, der ikke kendes på forhånd");
+      }
+      if (t === "api-current-state") {
+        const e = n.entity_id || (nrEntities(n)[0]);
+        if (!e) return note(n, "ingen entitet");
+        if (n.halt_if === "" || n.halt_if === undefined) return allOuts({ entity: e, payload: undefined });
+        if (!["is", "is_not"].includes(n.halt_if_compare || "is")) return note(n, `sammenligning "${n.halt_if_compare}" kan ikke oversættes`);
+        const cid = stateCond(n.id, e, [String(n.halt_if)], n.halt_if_compare === "is_not", n, 0);
+        wire(n, cid, (i) => (i === 0 ? "true" : "false"), { entity: e });
+        return [cid];
+      }
+      if (t === "time-range-switch") {
+        const a = nrTime(n.startTime), b = nrTime(n.endTime);
+        let cid;
+        if (a && b) cid = add({ id: n.id, sec: "conditions", kind: "time", card: "time.between", after: a, before: b, args: { after: a, before: b }, ...pos(n) }, n);
+        else if (NR_SUN[n.startTime] === "sunset" && NR_SUN[n.endTime] === "sunrise") cid = add({ id: n.id, sec: "conditions", kind: "sun", card: "sun.down", is: "below_horizon", args: {}, ...pos(n) }, n);
+        else if (NR_SUN[n.startTime] === "sunrise" && NR_SUN[n.endTime] === "sunset") cid = add({ id: n.id, sec: "conditions", kind: "sun", card: "sun.up", is: "above_horizon", args: {}, ...pos(n) }, n);
+        else return note(n, `tidsrum ${n.startTime}–${n.endTime} kan ikke oversættes`);
+        wire(n, cid, (i) => (i === 0 ? "true" : "false"), ctx);
+        return [cid];
+      }
+      if (t === "weekday-gate") {
+        const days = (n.weekdays || []).map((d) => NR_DAYS[Number(d)]).filter(Boolean);
+        if (!days.length) return note(n, "ingen ugedage valgt");
+        const cid = add({ id: n.id, sec: "conditions", kind: "time", card: "time.days", weekdays: days, args: { weekdays: days }, ...pos(n) }, n);
+        wire(n, cid, () => "true", ctx);
+        return [cid];
+      }
+      if (t === "delay") {
+        if (n.pauseType !== "delay" && n.pauseType !== "delayv") return allOuts();
+        const sec = nrUnits(n.timeout, n.timeoutUnits);
+        if (!(sec > 0)) return allOuts();
+        const cid = add({ id: n.id, sec: "actions", kind: "delay", card: "logic.delay", seconds: sec, args: { value: sec, unit: "s" }, ...pos(n) }, n);
+        wire(n, cid, () => "out", ctx);
+        return [cid];
+      }
+      if (t === "trigger") {
+        const sec = nrUnits(Math.abs(num(n.duration) || 0), n.units === "ms" ? "ms" : n.units === "s" ? "s" : n.units === "min" ? "min" : n.units === "hr" ? "h" : n.units);
+        if (n.extend) restartIds.add(n.id);
+        const first = n.op1type === "nul" ? [] : outs(0, { ...ctx, payload: n.op1type === "pay" ? ctx.payload : nrConst(n.op1, n.op1type) });
+        if (n.op2type === "nul" || !(sec > 0) || num(n.duration) < 0) return first;
+        const did = `${n.id}~delay`;
+        if (!fcById.has(did)) {
+          add({ id: did, sec: "actions", kind: "delay", card: "logic.delay", seconds: sec, args: { value: sec, unit: "s" }, ...pos(n, 0, 110) }, n);
+          outs(0, { ...ctx, payload: n.op2type === "pay" || n.op2type === "payl" ? ctx.payload : nrConst(n.op2, n.op2type) })
+            .forEach((to) => edges.push({ from: did, port: "out", to }));
+        }
+        return [...first, did];
+      }
+      if (t === "api-call-service") {
+        const service = n.action || (n.domain && n.service ? `${n.domain}.${n.service}` : "");
+        if (!service.includes(".") || /[{}]/.test(service)) return note(n, "tjenesten er dynamisk");
+        let ents = Array.isArray(n.entityId) ? n.entityId : n.entityId ? String(n.entityId).split(",") : [];
+        ents = ents.map((x) => String(x).trim()).filter((x) => x && !/[{}]/.test(x));
+        let data = {};
+        const raw = String(n.data || "").trim();
+        if (raw) {
+          try { data = JSON.parse(raw); if (typeof data !== "object" || Array.isArray(data)) throw new Error(); }
+          catch (e) { data = {}; tabReport.notes.push(`${n.name || service}: data "${raw.slice(0, 40)}" er udeladt (JSONata)`); }
+        }
+        const cid = add({ id: n.id, sec: "actions", kind: "service", card: "adv.service", service, entity_id: ents, data,
+          args: { service, entity_id: ents[0] || "", data: Object.keys(data).length ? JSON.stringify(data) : "" }, ...pos(n) }, n);
+        wire(n, cid, () => "out", {});
+        return [cid];
+      }
+      return note(n, "kan ikke oversættes automatisk");
+    };
+
+    /* wire every output of a converted node-red node to whatever it reaches */
+    const wired = new Set();
+    function wire(n, fcId, portOf, ctx) {
+      const key = `${fcId}`;
+      if (wired.has(key)) return;
+      wired.add(key);
+      (n.wires || []).forEach((targets, i) => {
+        const port = portOf(i);
+        if (!port) return;
+        targets.flatMap((t) => resolve(t, ctx)).forEach((to) => edges.push({ from: fcId, port, to }));
+      });
+    }
+
+    /* triggers */
+    for (const n of tabNodes) {
+      if (n.d) continue;
+      const t = n.type;
+      const mk = (fc, ctx, outputs = [0], k = 0) => {
+        const id = add({ ...fc, sec: "triggers", ...pos(n, 0, k * 120) }, n);
+        outputs.forEach((o) => (n.wires && n.wires[o] ? n.wires[o] : []).flatMap((x) => resolve(x, ctx)).forEach((to) => edges.push({ from: id, port: "out", to })));
+      };
+      if (t === "server-state-changed" || t === "trigger-state") {
+        const ents = nrEntities(n);
+        if (!ents.length) { note(n, "bruger mønster/regex i stedet for faste entiteter"); continue; }
+        const forS = n.for && num(n.for) > 0 ? nrUnits(n.for, n.forUnits || "minutes") : 0;
+        ents.forEach((e, k) => {
+          const dom = e.split(".")[0];
+          if (NR_EVENTLIKE.includes(dom)) {
+            mk({ id: `${n.id}~${k}`, kind: "event_entity", card: "e.press_any", entity_id: [e], event_type: [], args: {} }, { entity: e }, [0], k);
+            return;
+          }
+          if (t === "trigger-state") {
+            mk({ id: `${n.id}~${k}`, kind: "state", card: "adv.state", entity_id: [e], args: { entity_id: e } }, { entity: e }, [0], k);
+            (n.customOutputs || []).forEach((co, j) => {
+              if (co.comparatorPropertyValue === "new_state.state" && co.comparatorType === "is") {
+                mk({ id: `${n.id}~${k}~c${j}`, kind: "state", card: "adv.state", entity_id: [e], to: String(co.comparatorValue), args: { entity_id: e, to: String(co.comparatorValue) } },
+                  { entity: e, payload: String(co.comparatorValue) }, [2 + j], k + j + 1);
+              }
+            });
+            if ((n.constraints || []).length) tabReport.notes.push(`${n.name || e}: betingelser i trigger-state er ikke overført`);
+            return;
+          }
+          const to = n.ifState && (n.ifStateOperator || "is") === "is" ? String(n.ifState) : undefined;
+          const base = { kind: "state", card: "adv.state", entity_id: [e], ...(to ? { to } : {}), ...(forS ? { for: forS } : {}),
+            args: { entity_id: e, ...(to ? { to } : {}), ...(forS ? { minutes: Math.round((forS / 60) * 100) / 100 } : {}) } };
+          mk({ id: `${n.id}~${k}`, ...base }, { entity: e, payload: to }, [0], k);
+          if (to && n.wires && n.wires[1] && n.wires[1].length) {
+            const tid = `${n.id}~${k}~else`;
+            mk({ id: tid, kind: "state", card: "adv.state", entity_id: [e], args: { entity_id: e } }, { entity: e }, [], k + 1);
+            const cid = stateCond(`${tid}~c`, e, [to], true, n, (k + 1) * 120 + 60);
+            edges.push({ from: tid, port: "out", to: cid });
+            n.wires[1].flatMap((x) => resolve(x, { entity: e })).forEach((dst) => edges.push({ from: cid, port: "true", to: dst }));
+          }
+          if (n.ifState && !to) tabReport.notes.push(`${n.name || e}: "hvis tilstand ${n.ifStateOperator} ${n.ifState}" er ikke overført`);
+        });
+      } else if (t === "inject") {
+        const ctx = { payload: nrConst(n.payload, n.payloadType) };
+        const cron = String(n.crontab || "").trim().split(/\s+/);
+        if (cron.length >= 5 && /^\d+$/.test(cron[0]) && /^\d+$/.test(cron[1])) {
+          const at = `${cron[1].padStart(2, "0")}:${cron[0].padStart(2, "0")}`;
+          const days = cron[4] === "*" ? [] : cron[4].split(",").flatMap((d) => (d.includes("-") ? (() => { const [a, b] = d.split("-").map(Number); return Array.from({ length: b - a + 1 }, (_, i) => a + i); })() : [Number(d)])).map((d) => NR_DAYS[d % 7]).filter(Boolean);
+          mk({ id: n.id, kind: "time", card: "time.at", at, weekdays: days, args: { at, weekdays: days } }, ctx);
+        } else if (num(n.repeat) > 0) {
+          const minutes = Math.max(1, Math.round(num(n.repeat) / 60));
+          mk({ id: n.id, kind: "interval", card: "time.interval", minutes, args: { minutes } }, ctx);
+          if (num(n.repeat) < 60) tabReport.notes.push(`${n.name || "inject"}: gentagelse hvert ${n.repeat}. sekund er sat til hvert minut`);
+        } else if (n.once) {
+          mk({ id: n.id, kind: "start", card: "system.start", args: {} }, ctx);
+        } else if (cron[0]) {
+          note(n, `tidsplanen "${n.crontab}" kan ikke oversættes`);
+        } else {
+          mk({ id: n.id, kind: "manual", card: "system.manual", args: {} }, ctx);
+        }
+      } else if (t === "sun-event-inject") {
+        const ev = NR_SUN[n.event];
+        if (!ev) { note(n, `solhændelsen "${n.event}" kendes ikke`); continue; }
+        const offset = Math.round(num(n.offset) || 0);
+        mk({ id: n.id, kind: "sun", card: `sun.${ev}`, event: ev, offset, args: { offset } }, {});
+        if (ev !== n.event) tabReport.notes.push(`${n.name || n.event}: "${n.event}" er sat til ${ev === "sunset" ? "solnedgang" : "solopgang"}`);
+      } else if (t === "ha-device" && n.deviceType === "trigger") {
+        note(n, "enheds-trigger: vælg den tilsvarende knap eller sensor som NÅR-kort");
+      } else if (["server-events", "poll-state", "ha-webhook", "ha-time", "zone", "ha-tag", "ha-sentence", "http in", "mqtt in"].includes(t)) {
+        note(n, "denne type start kan ikke oversættes endnu");
+      }
+    }
+
+    /* anything left that does real work but was never converted becomes a note, so nothing silently disappears */
+    const touched = new Set(Object.values(origin));
+    const NR_CONFIG = /config|^server$|^tab$|^subflow$|^global-config$|^ha-entity-config$|connection/;
+    for (const n of tabNodes) {
+      if (n.d || touched.has(n.id) || NR_DROP.has(n.type) || NR_PASS.has(n.type) || NR_CONFIG.test(n.type)) continue;
+      if (["change", "switch", "link out", "inject", "sun-event-inject", "server-state-changed", "trigger-state", "trigger", "delay", "api-current-state"].includes(n.type)) continue;
+      note(n, "kan ikke oversættes automatisk");
+    }
+
+    /* group into independent chains (node-red wiring + link nodes) */
+    const parent = {};
+    const find = (x) => (parent[x] === undefined || parent[x] === x ? (parent[x] = x) : (parent[x] = find(parent[x])));
+    const union = (a, b) => { parent[find(a)] = find(b); };
+    for (const n of tabNodes) {
+      (n.wires || []).flat().forEach((t) => byId.has(t) && union(n.id, t));
+      if (n.type === "link out") (n.links || []).forEach((l) => byId.has(l) && byId.get(l).z === tabId && union(n.id, l));
+    }
+    const groups = new Map();
+    for (const fc of nodes) {
+      const key = find(origin[fc.id]);
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(fc);
+    }
+    const sorted = [...groups.values()].sort((a, b) => Math.min(...a.map((x) => x.y)) - Math.min(...b.map((x) => x.y)));
+    const multi = sorted.filter((g) => g.some((x) => x.sec === "triggers")).length > 1;
+    sorted.forEach((group, gi) => {
+      const ids = new Set(group.map((x) => x.id));
+      const triggers = group.filter((x) => x.sec === "triggers");
+      if (!triggers.length) { tabReport.skipped += group.filter((x) => x.kind !== "note").length; return; }
+      const minX = Math.min(...group.map((x) => x.x)), minY = Math.min(...group.map((x) => x.y));
+      const gNodes = group.map((x) => ({ ...x, x: x.x - minX + 40, y: x.y - minY + 40 }));
+      const seen = new Set();
+      const gEdges = edges.filter((e) => ids.has(e.from) && ids.has(e.to) && !notes.includes(e.to)).filter((e) => {
+        const k = `${e.from}|${e.port}|${e.to}`; if (seen.has(k)) return false; seen.add(k); return true;
+      });
+      const firstNr = byId.get(origin[triggers[0].id]);
+      const label = (firstNr && firstNr.name) || "";
+      flows.push({
+        type: "advanced",
+        name: multi ? `${tab.label}: ${label || `kæde ${gi + 1}`}` : tab.label || "Node-RED",
+        folder: tab.label || "Node-RED",
+        enabled: false,
+        mode: group.some((x) => restartIds.has(origin[x.id])) ? "restart" : "parallel",
+        condition_mode: "all",
+        description: `Importeret fra Node-RED-fanen "${tab.label}"`,
+        triggers: [], conditions: [], actions: [], else_actions: [],
+        nodes: gNodes, edges: gEdges,
+        _nrTab: tabId,
+      });
+      tabReport.flows += 1;
+      tabReport.cards += gNodes.filter((x) => x.kind !== "note").length;
+    });
+    report.push(tabReport);
+  }
+  return { flows, report };
+}
+/* ---- NODE-RED IMPORT END ---- */
+
 /* Convert a standard (column) flow into an advanced (canvas) flow. */
 function toAdvanced(f) {
   const nodes = [];
@@ -511,6 +822,15 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .step .msg{flex:1;min-width:0;word-break:break-word}
 .step .msg .e{color:var(--fc-err)}
 .step .ms{color:var(--fc-muted);font-size:11px;white-space:nowrap}
+.nr-tabs{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.nr-tab{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:12px;border:1px solid var(--fc-line);text-align:left;width:100%}
+.nr-tab.sel{border-color:var(--fc-accent);background:color-mix(in srgb,var(--fc-accent) 10%,transparent)}
+.nr-tab:disabled{opacity:.45;cursor:default}
+.nr-tab .box{width:22px;height:22px;border-radius:6px;border:2px solid var(--fc-line);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;flex:none}
+.nr-tab.sel .box{background:var(--fc-accent);border-color:var(--fc-accent)}
+.nr-tab .t{display:flex;flex-direction:column}.nr-tab .s{font-size:12px;color:var(--fc-muted)}
+.nr-notes{margin:0;padding-left:20px;font-size:13px;line-height:1.6;color:var(--fc-muted)}
+.spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .chip.unsaved{background:var(--fc-warn);color:#fff;font-weight:600}
 .chip[hidden]{display:none}
 .stash{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--fc-warn) 16%,var(--fc-card));border-left:4px solid var(--fc-warn)}
@@ -612,7 +932,7 @@ class FlowCardsPanel extends HTMLElement {
     this.shadowRoot.addEventListener("pointercancel", (e) => this._cvUp(e, true));
     this.shadowRoot.addEventListener("wheel", (e) => this._cvWheel(e), { passive: false });
     this.shadowRoot.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && (this._picker || this._historyFor || this._newChooser || this._connect)) { this._picker = null; this._historyFor = null; this._newChooser = false; this._connect = null; this._render(); }
+      if (e.key === "Escape" && (this._picker || this._historyFor || this._newChooser || this._connect || (this._nr && !this._nr.busy))) { this._picker = null; this._historyFor = null; this._newChooser = false; this._connect = null; if (this._nr && !this._nr.busy) this._nr = null; this._render(); }
     });
   }
 
@@ -794,7 +1114,7 @@ class FlowCardsPanel extends HTMLElement {
     if (!this._loaded) return;
     this._stashDraft();
     const body = this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
-    const modal = this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : "";
+    const modal = this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : this._nr ? this._renderNodeRed() : "";
     const toast = this._toastMsg ? `<div class="toast ${this._toastMsg.error ? "error" : ""}">${esc(this._toastMsg.msg)}</div>` : "";
     const scroll = this.shadowRoot.querySelector(".content");
     const top = scroll ? scroll.scrollTop : 0;
@@ -849,7 +1169,7 @@ class FlowCardsPanel extends HTMLElement {
     const empty = this._flows.length
       ? `<div class="empty"><p>Ingen flows her.</p></div>`
       : `<div class="empty"><ha-icon icon="mdi:graph-outline"></ha-icon><p><b>Ingen flows endnu</b></p><p>Et flow består af kort: <b>NÅR</b> noget sker, <b>OG</b> betingelserne passer, <b>SÅ</b> gør Home Assistant noget.</p><button class="btn primary" data-action="new">Opret dit første flow</button></div>`;
-    return `${this._topBar(`<h1>Flows</h1><div class="grow"></div><button class="btn primary" data-action="new"><ha-icon icon="mdi:plus"></ha-icon><span class="hide-sm">Nyt flow</span></button>`)}
+    return `${this._topBar(`<h1>Flows</h1><div class="grow"></div><button class="btn ghost" data-action="nr-open" title="Hent flows fra Node-RED"><ha-icon icon="mdi:import"></ha-icon><span class="hide-sm">Importér fra Node-RED</span></button><button class="btn primary" data-action="new"><ha-icon icon="mdi:plus"></ha-icon><span class="hide-sm">Nyt flow</span></button>`)}
       <div class="layout">${side}<div class="main">${folderSelect}
         ${(() => { const st = this._readStash(); return st ? `<div class="stash"><ha-icon icon="mdi:content-save-alert-outline"></ha-icon><span>Du har ikke-gemte ændringer i <b>${esc(st.draft.name || "et flow")}</b> fra ${esc(this._when(new Date(st.at).toISOString()))}.</span><span class="grow"></span><button class="btn primary" data-action="restore-draft">Fortsæt redigering</button><button class="btn ghost" data-action="discard-draft">Kassér</button></div>` : ""; })()}
         <input class="search" type="search" placeholder="Søg i flows…" data-field="search" value="${esc(this._search)}">
@@ -1158,7 +1478,7 @@ class FlowCardsPanel extends HTMLElement {
     const a = el.dataset.action;
     const id = el.dataset.id;
     if (a === "scrim") {
-      if (e.composedPath()[0] === el) { this._picker = null; this._historyFor = null; this._newChooser = false; this._render(); }
+      if (e.composedPath()[0] === el) { this._picker = null; this._historyFor = null; this._newChooser = false; if (this._nr && !this._nr.busy) this._nr = null; this._render(); }
       return;
     }
     e.stopPropagation();
@@ -1306,6 +1626,18 @@ class FlowCardsPanel extends HTMLElement {
       }
       case "confirm-card":
         this._confirmCard(); break;
+      case "nr-open": this._nrOpen(); break;
+      case "nr-close": if (!this._nr || !this._nr.busy) { this._nr = null; this._render(); } break;
+      case "nr-paste-mode": this._nr = { step: "paste", paste: "" }; this._render(); break;
+      case "nr-parse": this._nrParse(); break;
+      case "nr-toggle": {
+        const t = el.dataset.tab; const sel = this._nr.selected;
+        if (sel.has(t)) sel.delete(t); else sel.add(t);
+        this._keepScroll = true; this._render(); break;
+      }
+      case "nr-import": this._nrImport(); break;
+      case "nr-switch": this._nrSwitch(true); break;
+      case "nr-revert": this._nrSwitch(false); break;
       case "to-advanced":
         if (!window.confirm("Lav flowet om til et avanceret flow? Det kan ikke laves tilbage igen.")) return;
         this._draft = toAdvanced(this._draft); this._tf = null; this._dirty = true; this._render(); break;
@@ -1319,6 +1651,7 @@ class FlowCardsPanel extends HTMLElement {
     const field = t.dataset && t.dataset.field;
     if (field === "search") { this._search = t.value; this._renderListOnly(); return; }
     if (field === "new-name") { this._newOpts.name = t.value; return; }
+    if (field === "nr-paste") { this._nr.paste = t.value; return; }
     if (field === "new-folder-name") { this._newOpts.newFolder = t.value; return; }
     if (field === "name") { this._draft.name = t.value; this._markDirty(); return; }
     if (field === "picker-search") {
@@ -1435,6 +1768,140 @@ class FlowCardsPanel extends HTMLElement {
     this._dirty = true;
     this._render();
   }
+  /* ================================================================ Node-RED import */
+
+  async _nrApi(method, path, body) {
+    if (!this._nrBase) {
+      const sup = (endpoint, m = "get") => this._hass.callWS({ type: "supervisor/api", endpoint, method: m });
+      const addons = await sup("/addons");
+      const list = (addons && addons.addons) || [];
+      const a = list.find((x) => /(^|_)nodered$/.test(x.slug)) || list.find((x) => /node-?red/i.test(x.name || ""));
+      if (!a) throw new Error("Node-RED-appen blev ikke fundet");
+      const info = await sup(`/addons/${a.slug}/info`);
+      if (info.state && info.state !== "started") throw new Error("Node-RED kører ikke lige nu");
+      if (!info.ingress_url) throw new Error("Node-RED har ikke ingress slået til");
+      const sess = await sup("/ingress/session", "post");
+      document.cookie = `ingress_session=${sess.session};path=/api/hassio_ingress/;SameSite=Strict${location.protocol === "https:" ? ";Secure" : ""}`;
+      this._nrBase = info.ingress_url.replace(/\/$/, "");
+    }
+    const headers = { "Node-RED-API-Version": "v2" };
+    if (body) { headers["Content-Type"] = "application/json"; headers["Node-RED-Deployment-Type"] = "flows"; }
+    const res = await fetch(`${this._nrBase}${path}`, { method, headers, body: body ? JSON.stringify(body) : undefined, credentials: "same-origin" });
+    if (!res.ok) { this._nrBase = null; throw new Error(`Node-RED svarede med fejl ${res.status}`); }
+    const txt = await res.text();
+    return txt ? JSON.parse(txt) : {};
+  }
+
+  async _nrOpen() {
+    this._nr = { step: "loading", busy: true };
+    this._render();
+    try {
+      const res = await this._nrApi("GET", "/flows");
+      this._nrLoaded(Array.isArray(res) ? res : res.flows || [], true);
+    } catch (err) {
+      this._nr = { step: "paste", paste: "", error: `Kunne ikke hente direkte fra Node-RED (${err.message || err}). Du kan indsætte en eksport i stedet.` };
+      this._render();
+    }
+  }
+
+  _nrParse() {
+    try {
+      const v = JSON.parse(this._nr.paste || "");
+      const arr = Array.isArray(v) ? v : v && Array.isArray(v.flows) ? v.flows : null;
+      if (!arr || !arr.length) throw new Error();
+      this._nrLoaded(arr, false);
+    } catch (e) {
+      this._nr.error = "Det indsatte er ikke en gyldig Node-RED-eksport (JSON).";
+      this._render();
+    }
+  }
+
+  _nrLoaded(all, auto) {
+    const tabs = all.filter((n) => n.type === "tab");
+    const imported = new Set(this._flows.map((f) => (/^Importeret fra Node-RED-fanen "(.*)"$/.exec(f.description || "") || [])[1]).filter(Boolean));
+    const info = tabs.map((t) => {
+      const { flows, report } = nodeRedImport(all, [t.id]);
+      return { id: t.id, label: t.label || t.id, disabled: !!t.disabled, nodes: all.filter((n) => n.z === t.id).length, flows: flows.length, notes: report[0].notes.length, already: imported.has(t.label) };
+    });
+    const selected = new Set(info.filter((t) => !t.disabled && t.flows && !t.already).map((t) => t.id));
+    this._nr = { step: "pick", all, auto, tabs: info, selected };
+    this._render();
+  }
+
+  async _nrImport() {
+    const nr = this._nr;
+    const ids = [...nr.selected];
+    if (!ids.length) { this._toast("Vælg mindst én fane", true); return; }
+    nr.busy = true; nr.step = "importing"; this._render();
+    const { flows, report } = nodeRedImport(nr.all, ids);
+    const created = [];
+    const failed = [];
+    for (const f of flows) {
+      const tabId = f._nrTab; delete f._nrTab;
+      try {
+        const res = await this._hass.callWS({ type: `${WS}/save`, flow: f });
+        created.push({ id: res.id, name: res.name, tab: tabId });
+      } catch (err) { failed.push(`${f.name}: ${err.message || err}`); }
+    }
+    await this._load();
+    this._nr = { step: "done", auto: nr.auto, report, created, failed, tabs: ids, switched: false };
+    this._render();
+  }
+
+  async _nrSwitch(on) {
+    const nr = this._nr;
+    const n = nr.tabs.length;
+    const q = on ? `Slå ${n} ${n === 1 ? "fane" : "faner"} fra i Node-RED og de importerede flows til her?` : "Slå fanerne til igen i Node-RED og de importerede flows fra her?";
+    if (!window.confirm(q)) return;
+    nr.busy = true; this._render();
+    try {
+      const cur = await this._nrApi("GET", "/flows");
+      const flows = Array.isArray(cur) ? cur : cur.flows;
+      for (const node of flows) if (node.type === "tab" && nr.tabs.includes(node.id)) node.disabled = on;
+      await this._nrApi("POST", "/flows", Array.isArray(cur) ? flows : { rev: cur.rev, flows });
+      for (const c of nr.created) await this._hass.callWS({ type: `${WS}/enable`, flow_id: c.id, enabled: on });
+      await this._load();
+      nr.switched = on;
+      this._toast(on ? "Skiftet over: Node-RED-fanerne er slået fra, og flowene kører her" : "Node-RED-fanerne er slået til igen");
+    } catch (err) {
+      this._toast(`Kunne ikke ændre Node-RED: ${err.message || err}`, true);
+    }
+    nr.busy = false; this._render();
+  }
+
+  _renderNodeRed() {
+    const nr = this._nr;
+    let body = "";
+    let foot = "";
+    if (nr.step === "loading" || nr.step === "importing") {
+      body = `<div class="empty"><ha-icon icon="mdi:loading" class="spin"></ha-icon><p>${nr.step === "loading" ? "Henter flows fra Node-RED…" : "Opretter flows…"}</p></div>`;
+    } else if (nr.step === "paste") {
+      body = `${nr.error ? `<div class="error-box">${esc(nr.error)}</div>` : ""}
+        <p>I Node-RED: <b>☰ menu → Export → All flows → JSON → Copy to clipboard</b>. Indsæt det herunder.</p>
+        <textarea class="mono" style="min-height:200px" data-field="nr-paste" placeholder='[{"id": "...", "type": "tab", ...}]'>${esc(nr.paste || "")}</textarea>`;
+      foot = `<button class="btn ghost" data-action="nr-close">Annullér</button><button class="btn primary" data-action="nr-parse">Fortsæt</button>`;
+    } else if (nr.step === "pick") {
+      body = `<p>Hver fane bliver en mappe. Hver selvstændig kæde i fanen bliver et <b>avanceret flow</b>. Flowene oprettes <b>slået fra</b>, så intet kører dobbelt.</p>
+        <div class="nr-tabs">${nr.tabs.map((t) => `<button class="nr-tab ${nr.selected.has(t.id) ? "sel" : ""}" data-action="nr-toggle" data-tab="${esc(t.id)}" ${t.flows ? "" : "disabled"}>
+          <span class="box">${nr.selected.has(t.id) ? "✓" : ""}</span>
+          <span class="t"><b>${esc(t.label)}</b><span class="s">${t.nodes} noder → ${t.flows} ${t.flows === 1 ? "flow" : "flows"}${t.notes ? ` · ${t.notes} at tjekke` : ""}${t.disabled ? " · slået fra i Node-RED" : ""}${t.already ? " · allerede importeret" : ""}</span></span></button>`).join("")}</div>`;
+      foot = `<button class="btn ghost" data-action="nr-close">Annullér</button><button class="btn primary" data-action="nr-import" ${nr.selected.size ? "" : "disabled"}>Importér ${nr.selected.size} ${nr.selected.size === 1 ? "fane" : "faner"}</button>`;
+    } else if (nr.step === "done") {
+      const notes = nr.report.flatMap((r) => r.notes.map((x) => `<li><b>${esc(r.tab)}:</b> ${esc(x)}</li>`));
+      body = `<div class="lastrun success"><ha-icon icon="mdi:check-circle"></ha-icon><span><b>${nr.created.length} flows oprettet</b> i ${nr.report.length} ${nr.report.length === 1 ? "mappe" : "mapper"}. De er slået fra indtil videre.</span></div>
+        ${nr.failed.length ? `<div class="error-box" style="margin-top:12px">${nr.failed.map(esc).join("<br>")}</div>` : ""}
+        ${notes.length ? `<div class="sub">Skal tjekkes (vist som gule noter på lærredet)</div><ul class="nr-notes">${notes.join("")}</ul>` : ""}
+        <div class="sub">Næste skridt</div>
+        <p>Åbn flowene og se dem igennem. Når de ser rigtige ud, flytter <b>Skift over</b> styringen hertil: fanerne slås fra i Node-RED, og flowene slås til her. Det kan fortrydes med samme knap.</p>
+        ${nr.auto ? "" : "<p>Du indsatte en eksport, så fanerne skal slås fra i Node-RED i hånden: dobbeltklik på fanen → <b>Disabled</b> → Deploy.</p>"}`;
+      foot = `<button class="btn ghost" data-action="nr-close">Luk</button>${nr.auto ? (nr.switched
+        ? `<button class="btn ghost" data-action="nr-revert" ${nr.busy ? "disabled" : ""}>Fortryd: tilbage til Node-RED</button>`
+        : `<button class="btn primary" data-action="nr-switch" ${nr.busy || !nr.created.length ? "disabled" : ""}>Skift over</button>`) : ""}`;
+    }
+    return `<div class="scrim" data-action="scrim"><div class="modal wide"><header><ha-icon icon="mdi:import"></ha-icon><h3>Importér fra Node-RED</h3>${nr.busy ? "" : `<button class="icon-btn" data-action="nr-close"><ha-icon icon="mdi:close"></ha-icon></button>`}</header>
+      <div class="content">${body}</div>${foot ? `<footer>${nr.step === "pick" && nr.auto ? `<button class="btn ghost" data-action="nr-paste-mode" style="margin-right:auto">Indsæt eksport i stedet</button>` : ""}${foot}</footer>` : ""}</div></div>`;
+  }
+
   /* ================================================================ advanced flows (canvas) */
 
   _newName(fallback) { return ((this._newOpts && this._newOpts.name) || "").trim() || fallback; }

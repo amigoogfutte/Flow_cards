@@ -1,7 +1,7 @@
 """Constants for Flow Cards."""
 
 DOMAIN = "flow_cards"
-VERSION = "0.2.3"
+VERSION = "0.3.0"
 
 STORAGE_VERSION = 1
 STORAGE_KEY_FLOWS = f"{DOMAIN}.flows"

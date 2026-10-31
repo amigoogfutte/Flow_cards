@@ -101,6 +101,25 @@ function seed() {
 seed();
 const status = (f) => { const runs = history[f.id] || []; const last = runs[0]; const le = runs.find((r) => r.status === "error");
   return { running: 0, last_run: last && { id: last.id, start: last.start, status: last.status, trigger: last.trigger, branch: last.branch }, last_error: le && { start: le.start, error: le.error }, arm_error: null, run_count: runs.length }; };
+
+// ---- fake Supervisor + Node-RED (ingress) for the import test
+window.NR = { rev: "r1", posts: [], flows: [
+  { id: "T1", type: "tab", label: "Hjælper" }, { id: "T2", type: "tab", label: "Lys" }, { id: "T9", type: "tab", label: "Vejr" },
+  { id: "sun", z: "T1", type: "sun-event-inject", name: "Sol op", event: "sunrise", offset: "0", x: 100, y: 100, wires: [["on"]] },
+  { id: "on", z: "T1", type: "api-call-service", name: "Daytime", action: "input_boolean.turn_on", entityId: ["input_boolean.nat"], x: 300, y: 100, wires: [[]] },
+  { id: "btn", z: "T2", type: "server-state-changed", name: "Knap", entities: { entity: ["event.kontor_kontakt_knap_1"] }, x: 100, y: 100, wires: [["lon"]] },
+  { id: "lon", z: "T2", type: "api-call-service", action: "light.turn_on", entityId: ["light.kontor"], x: 300, y: 100, wires: [[]] },
+  { id: "fn", z: "T2", type: "function", name: "magi", x: 300, y: 200, wires: [["lon"]] },
+] };
+const _origFetch = window.fetch;
+window.fetch = async (url, opts = {}) => {
+  if (String(url).startsWith("/api/hassio_ingress/abc/flows")) {
+    if ((opts.method || "GET") === "POST") { const b = JSON.parse(opts.body); NR.posts.push(b); NR.flows = b.flows; NR.rev = "r2"; return new Response(JSON.stringify({ rev: "r2" }), { status: 200 }); }
+    return new Response(JSON.stringify({ rev: NR.rev, flows: NR.flows }), { status: 200 });
+  }
+  return _origFetch(url, opts);
+};
+
 window.calls = [];
 const hass = {
   states, entities, devices, areas, services, language: "da",
@@ -139,6 +158,11 @@ const hass = {
         emit({ event: "run", flow_id: f.id, run });
       }, 200);
       return { run_id: run.id };
+    }
+    if (msg.type === "supervisor/api") {
+      if (msg.endpoint === "/addons") return { addons: [{ slug: "a0d7b954_nodered", name: "Node-RED" }] };
+      if (msg.endpoint.endsWith("/info")) return { state: "started", ingress_url: "/api/hassio_ingress/abc/" };
+      if (msg.endpoint === "/ingress/session") return { session: "s1" };
     }
     throw new Error("ukendt " + msg.type);
   },

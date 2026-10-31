@@ -37,6 +37,14 @@ Tryk **Nyt flow → Avanceret flow**. Du kan også lave et almindeligt flow om m
 - **▶ på et NÅR-kort** tester flowet fra netop det kort. NÅR-kortet *Flowet startes manuelt* (under Flows) bestemmer, hvor **Test** starter.
 - Grene kører samtidig. *Stop flowet* stopper alle grene. Et flow stopper efter 200 kort, så en løkke ikke kan køre for evigt.
 
+## Importér fra Node-RED (0.3)
+
+Knappen **Importér fra Node-RED** henter fanerne direkte fra Node-RED-appen. Du kan også indsætte en eksport.
+- Hver fane bliver en mappe, og hver selvstændig kæde bliver et avanceret flow med samme layout som i Node-RED.
+- Tilstandsændringer, knapper, tidspunkter (cron), interval, sol, aktuel tilstand, switch, tidsrum, ugedage, delay, trigger-noder, link-noder og tjenestekald bliver oversat.
+- Noder, der ikke kan oversættes (function, gate, template, ha-device osv.), bliver til gule noter på lærredet.
+- Flowene oprettes slået fra. **Skift over** slår fanerne fra i Node-RED og flowene til her, og samme knap kan fortryde det igen.
+
 ## Data
 
 - Flows gemmes i `/config/.storage/flow_cards.flows` og historik i `/config/.storage/flow_cards.history`. Begge kommer med i HA's sikkerhedskopier.
@@ -44,4 +52,3 @@ Tryk **Nyt flow → Avanceret flow**. Du kan også lave et almindeligt flow om m
 
 ## Ikke med endnu
 
-- Import af Node-RED-flows (planlagt).
