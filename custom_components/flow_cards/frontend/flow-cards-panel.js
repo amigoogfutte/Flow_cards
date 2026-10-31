@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.2.1";
+const FC_VERSION = "0.2.2";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -511,6 +511,9 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .step .msg{flex:1;min-width:0;word-break:break-word}
 .step .msg .e{color:var(--fc-err)}
 .step .ms{color:var(--fc-muted);font-size:11px;white-space:nowrap}
+.chip.unsaved{background:var(--fc-warn);color:#fff;font-weight:600}
+.chip[hidden]{display:none}
+.stash{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--fc-warn) 16%,var(--fc-card));border-left:4px solid var(--fc-warn)}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:10px;z-index:30;font-size:14px;max-width:90vw;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .toast.error{background:var(--fc-err)}
 .narrow .side{display:none}
@@ -622,8 +625,14 @@ class FlowCardsPanel extends HTMLElement {
   set narrow(v) { const c = this._narrow !== !!v; this._narrow = !!v; if (c && this._loaded) this._render(); }
   set panel(v) { this._panel = v; }
 
-  connectedCallback() { if (this._hass && this._loaded) this._render(); }
+  connectedCallback() {
+    this._beforeUnload = this._beforeUnload || ((e) => { if (this._dirty && this._view === "edit") { this._stashDraft(); e.preventDefault(); e.returnValue = ""; } });
+    window.addEventListener("beforeunload", this._beforeUnload);
+    if (this._hass && this._loaded) this._render();
+  }
   disconnectedCallback() {
+    if (this._beforeUnload) window.removeEventListener("beforeunload", this._beforeUnload);
+    this._stashDraft();
     if (this._unsub) { this._unsub.then((u) => u && u()).catch(() => {}); this._unsub = null; }
     this._wasDisconnected = true;
   }
@@ -783,6 +792,7 @@ class FlowCardsPanel extends HTMLElement {
   _render() {
     this._pending = false;
     if (!this._loaded) return;
+    this._stashDraft();
     const body = this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
     const modal = this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : "";
     const toast = this._toastMsg ? `<div class="toast ${this._toastMsg.error ? "error" : ""}">${esc(this._toastMsg.msg)}</div>` : "";
@@ -841,6 +851,7 @@ class FlowCardsPanel extends HTMLElement {
       : `<div class="empty"><ha-icon icon="mdi:graph-outline"></ha-icon><p><b>Ingen flows endnu</b></p><p>Et flow består af kort: <b>NÅR</b> noget sker, <b>OG</b> betingelserne passer, <b>SÅ</b> gør Home Assistant noget.</p><button class="btn primary" data-action="new">Opret dit første flow</button></div>`;
     return `${this._topBar(`<h1>Flows</h1><div class="grow"></div><button class="btn primary" data-action="new"><ha-icon icon="mdi:plus"></ha-icon><span class="hide-sm">Nyt flow</span></button>`)}
       <div class="layout">${side}<div class="main">${folderSelect}
+        ${(() => { const st = this._readStash(); return st ? `<div class="stash"><ha-icon icon="mdi:content-save-alert-outline"></ha-icon><span>Du har ikke-gemte ændringer i <b>${esc(st.draft.name || "et flow")}</b> fra ${esc(this._when(new Date(st.at).toISOString()))}.</span><span class="grow"></span><button class="btn primary" data-action="restore-draft">Fortsæt redigering</button><button class="btn ghost" data-action="discard-draft">Kassér</button></div>` : ""; })()}
         <input class="search" type="search" placeholder="Søg i flows…" data-field="search" value="${esc(this._search)}">
         <div class="list">${rows || empty}</div></div></div>`;
   }
@@ -876,6 +887,7 @@ class FlowCardsPanel extends HTMLElement {
         <input class="name-input" data-field="name" value="${esc(f.name)}" placeholder="Navn på flow">
         <button class="switch ${f.enabled ? "on" : ""}" data-action="draft-toggle" title="${f.enabled ? "Flowet er slået til" : "Flowet er slået fra"}"></button>
         <button class="btn ghost" data-action="test" title="Gem og kør flowet nu"><ha-icon icon="mdi:play"></ha-icon><span class="hide-sm">Test</span></button>
+        <span class="chip unsaved" ${this._dirty ? "" : "hidden"}>Ikke gemt</span>
         <button class="btn primary" data-action="save" ${this._dirty || !f.id ? "" : "disabled"}><ha-icon icon="mdi:content-save"></ha-icon><span class="hide-sm">Gem</span></button>`)}
       <div class="meta">
         <label>Mappe <select data-field="draft-folder"><option value="">Ingen</option>${this._folders.map((fo) => `<option ${f.folder === fo ? "selected" : ""}>${esc(fo)}</option>`).join("")}</select></label>
@@ -1133,6 +1145,7 @@ class FlowCardsPanel extends HTMLElement {
     const res = await this._ws({ type: `${WS}/save`, flow: d });
     this._draft = clone(res);
     this._dirty = false;
+    this._clearStash();
     const i = this._flows.findIndex((f) => f.id === res.id);
     if (i >= 0) this._flows[i] = res; else this._flows.push(res);
     if (res.folder && !this._folders.includes(res.folder)) this._folders.push(res.folder);
@@ -1211,7 +1224,16 @@ class FlowCardsPanel extends HTMLElement {
         this._runs[this._historyFor] = []; delete this._latestRun[this._historyFor]; this._render(); break;
       case "back":
         if (!this._confirmLeave()) return;
+        this._clearStash();
         this._view = "list"; this._draft = null; this._dirty = false; this._render(); break;
+      case "restore-draft": {
+        const st = this._readStash();
+        if (!st) return;
+        this._draft = st.draft; this._tf = null; this._dirty = true; this._view = "edit"; this._render(); break;
+      }
+      case "discard-draft":
+        if (!window.confirm("Kassér de ikke-gemte ændringer?")) return;
+        this._clearStash(); this._render(); break;
       case "save":
         if (await this._saveDraft()) { this._toast("Flowet er gemt"); this._render(); }
         break;
@@ -1225,6 +1247,7 @@ class FlowCardsPanel extends HTMLElement {
         if (!window.confirm(`Slet flowet "${this._draft.name}"? Det kan ikke fortrydes.`)) return;
         await this._ws({ type: `${WS}/delete`, flow_id: this._draft.id });
         this._flows = this._flows.filter((f) => f.id !== this._draft.id);
+        this._clearStash();
         this._view = "list"; this._draft = null; this._dirty = false; this._render(); break;
       case "draft-toggle":
         this._draft.enabled = !this._draft.enabled; this._dirty = true; this._render(); break;
@@ -1325,10 +1348,25 @@ class FlowCardsPanel extends HTMLElement {
   }
 
   _markDirty() {
-    if (this._dirty) return;
     this._dirty = true;
     const b = this.shadowRoot.querySelector("[data-action=save]");
     if (b) b.disabled = false;
+    const c = this.shadowRoot.querySelector(".chip.unsaved");
+    if (c) c.hidden = false;
+    this._stashDraft();
+  }
+
+  /* ---- unsaved work survives navigation, reloads and restarts (per browser) */
+  _stashDraft() {
+    if (this._view !== "edit" || !this._dirty || !this._draft) return;
+    const d = this._draft;
+    const empty = !(d.nodes || []).length && !["triggers", "conditions", "actions", "else_actions"].some((k) => (d[k] || []).length);
+    if (!d.id && empty) return;
+    try { localStorage.setItem("flow_cards_draft", JSON.stringify({ at: Date.now(), draft: this._draft })); } catch (e) { /* storage unavailable */ }
+  }
+  _clearStash() { try { localStorage.removeItem("flow_cards_draft"); } catch (e) { /* ignore */ } }
+  _readStash() {
+    try { const v = JSON.parse(localStorage.getItem("flow_cards_draft") || "null"); return v && v.draft ? v : null; } catch (e) { return null; }
   }
 
   _updatePreview() {
@@ -1438,6 +1476,7 @@ class FlowCardsPanel extends HTMLElement {
         <input class="name-input" data-field="name" value="${esc(f.name)}" placeholder="Navn på flow">
         <button class="switch ${f.enabled ? "on" : ""}" data-action="draft-toggle" title="${f.enabled ? "Flowet er slået til" : "Flowet er slået fra"}"></button>
         <button class="btn ghost" data-action="test" title="Gem og kør flowet nu"><ha-icon icon="mdi:play"></ha-icon><span class="hide-sm">Test</span></button>
+        <span class="chip unsaved" ${this._dirty ? "" : "hidden"}>Ikke gemt</span>
         <button class="btn primary" data-action="save" ${this._dirty || !f.id ? "" : "disabled"}><ha-icon icon="mdi:content-save"></ha-icon><span class="hide-sm">Gem</span></button>`)}
       <div class="cv-tools">
         <button class="tb when" data-action="cv-add" data-sec="triggers"><ha-icon icon="mdi:plus"></ha-icon>NÅR</button>
