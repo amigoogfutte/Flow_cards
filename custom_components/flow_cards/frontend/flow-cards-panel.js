@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.4.2";
+const FC_VERSION = "0.4.3";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -917,6 +917,9 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .ents{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
 .ent{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:999px;background:rgba(127,127,127,.14);font-size:13px}
 .ent small{color:var(--fc-muted)}.ent button{width:20px;height:20px;border-radius:50%;font-size:11px}.ent button:hover{background:rgba(127,127,127,.25)}
+.ver{font-size:11px;color:var(--fc-muted);white-space:nowrap;padding:2px 8px;border-radius:999px;border:1px solid var(--fc-line);flex:none}
+.ver.warn{color:#fff;background:var(--fc-warn);border-color:var(--fc-warn)}
+@media (max-width:600px){.ver:not(.warn){display:none}}
 .chip.unsaved{background:var(--fc-warn);color:#fff;font-weight:600}
 .chip[hidden]{display:none}
 .stash{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--fc-warn) 16%,var(--fc-card));border-left:4px solid var(--fc-warn)}
@@ -1064,6 +1067,7 @@ class FlowCardsPanel extends HTMLElement {
     const res = await this._hass.callWS({ type: `${WS}/list` });
     this._flows = res.flows || [];
     this._folders = res.folders || [];
+    this._serverVersion = res.version || null;
   }
 
   _onEvent(msg) {
@@ -1195,8 +1199,16 @@ class FlowCardsPanel extends HTMLElement {
     this.shadowRoot.innerHTML = `<style>${STYLE}</style>${this._topBar(`<h1>Flows</h1>`)}<div class="empty"><p>${text}</p></div>`;
   }
 
+  _versionChip() {
+    const sv = this._serverVersion;
+    const cmp = (a, b) => { const x = String(a).split(".").map(Number), y = String(b).split(".").map(Number); for (let i = 0; i < 3; i++) { if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); } return 0; };
+    if (sv && cmp(sv, FC_VERSION) > 0) return `<span class="ver warn" title="Home Assistant kører ${esc(sv)}, men siden viser ${FC_VERSION}">v${FC_VERSION} · tryk Ctrl+F5 for v${esc(sv)}</span>`;
+    if (sv && cmp(sv, FC_VERSION) < 0) return `<span class="ver warn" title="Filerne er opdateret til ${FC_VERSION}, men Home Assistant kører stadig ${esc(sv)}">v${FC_VERSION} · genstart HA (kører v${esc(sv)})</span>`;
+    return `<span class="ver" title="Flow Cards version">v${FC_VERSION}</span>`;
+  }
+
   _topBar(inner) {
-    return `<div class="top">${this._narrow ? `<button class="icon-btn" data-action="menu" title="Menu"><ha-icon icon="mdi:menu"></ha-icon></button>` : ""}${inner}</div>`;
+    return `<div class="top">${this._narrow ? `<button class="icon-btn" data-action="menu" title="Menu"><ha-icon icon="mdi:menu"></ha-icon></button>` : ""}${inner}${this._loaded || this._serverVersion ? this._versionChip() : ""}</div>`;
   }
 
   _render() {

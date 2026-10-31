@@ -10,7 +10,7 @@ from homeassistant.components import websocket_api
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.exceptions import HomeAssistantError
 
-from .const import DOMAIN
+from .const import DOMAIN, VERSION
 from .logic import FlowValidationError
 
 
@@ -38,7 +38,9 @@ def _guard(connection, msg_id: int, err: Exception) -> None:
 @callback
 def ws_list(hass: HomeAssistant, connection, msg: dict[str, Any]) -> None:
     m = _manager(hass)
-    connection.send_result(msg["id"], {"flows": m.list_flows(), "folders": m.folders})
+    connection.send_result(
+        msg["id"], {"flows": m.list_flows(), "folders": m.folders, "version": VERSION}
+    )
 
 
 @websocket_api.websocket_command(
