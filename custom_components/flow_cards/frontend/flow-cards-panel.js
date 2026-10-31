@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.5.5";
+const FC_VERSION = "0.5.6";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -73,6 +73,31 @@ const EVENT_LABELS = {
   button_double_press: "Dobbelt-tryk", button_triple_press: "Tredobbelt tryk", remote_button_short_press: "Kort tryk",
   remote_button_long_press: "Langt tryk", remote_button_double_press: "Dobbelt-tryk", remote_button_short_release: "Slippes",
   remote_button_long_release: "Slippes efter langt tryk",
+};
+// Zigbee2MQTT only tells Home Assistant about a button's press types after each has been used once.
+// For the usual click family we offer the missing ones too; MQTT waits for them to show up.
+const PRESS_FAMILY = ["single", "double", "triple", "quadruple", "hold", "release", "long"];
+const devTrigVariants = (own) => {
+  const have = new Set(own.map((t) => `${t.domain}|${t.type}|${t.subtype}`));
+  const out = [];
+  for (const t of own) {
+    if (t.domain !== "mqtt" || typeof t.subtype !== "string") continue;
+    const m = t.subtype.match(new RegExp(`^(.*?)(${PRESS_FAMILY.join("|")})(.*)$`));
+    if (!m) continue;
+    for (const kind of PRESS_FAMILY) {
+      const sub = `${m[1]}${kind}${m[3]}`;
+      const key = `${t.domain}|${t.type}|${sub}`;
+      if (have.has(key)) continue;
+      have.add(key);
+      const c = { ...t, subtype: sub };
+      if (typeof t.discovery_id === "string") {
+        const i = t.discovery_id.lastIndexOf(t.subtype);
+        c.discovery_id = i >= 0 ? t.discovery_id.slice(0, i) + sub + t.discovery_id.slice(i + t.subtype.length) : `${t.discovery_id}_${sub}`;
+      }
+      out.push(c);
+    }
+  }
+  return out;
 };
 const eventLabel = (t, short) => {
   const base = EVENT_LABELS[t] || String(t).replace(/_/g, " ");
@@ -881,6 +906,8 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .defs{display:flex;flex-direction:column;gap:8px}
 .def.cur{outline:2px solid var(--fc-accent,#ff8a00);outline-offset:-2px}
 .def .curtag{font-size:11px;opacity:.75;margin-left:6px}
+.def .unseen{font-size:11px;opacity:.6;margin-left:6px;font-style:italic}
+p.dthint{font-size:12px;color:var(--fc-muted);margin:8px 4px 4px;line-height:1.4}
 .def{border-radius:12px;border:1px solid var(--fc-line);border-left:4px solid var(--c);padding:12px 14px;text-align:left;width:100%;font-size:15px}
 .def:hover{background:rgba(127,127,127,.08)}
 .field{margin-bottom:14px}
@@ -1414,7 +1441,7 @@ class FlowCardsPanel extends HTMLElement {
         if (p.source.deviceId && cat === "t") {
           const dt = p.devTriggers;
           const devHtml = dt === undefined ? `<div class="empty" style="padding:16px">Henter enhedens knapper og hændelser…</div>`
-            : dt.length ? `<div class="sub">${p.current ? "Vælg en anden knap eller hændelse" : "Enhedens knapper og hændelser"}</div><div class="defs">${dt.map((t, i) => { const cur = p.current && p.current === JSON.stringify(t.config); return `<button class="def${cur ? " cur" : ""}" style="${color}" data-action="pick-devtrig" data-i="${i}">${esc(t.label)}${cur ? ` <span class="curtag">valgt nu</span>` : ""}</button>`; }).join("")}</div>` : "";
+            : dt.length ? `<div class="sub">${p.current ? "Vælg en anden knap eller hændelse" : "Enhedens knapper og hændelser"}</div><div class="defs">${dt.map((t, i) => { const cur = p.current && p.current === JSON.stringify(t.config); return `<button class="def${cur ? " cur" : ""}" style="${color}" data-action="pick-devtrig" data-i="${i}">${esc(t.label)}${t.unseen ? ` <span class="unseen">ikke brugt endnu</span>` : ""}${cur ? ` <span class="curtag">valgt nu</span>` : ""}</button>`; }).join("")}</div>${dt.some((t) => t.unseen) ? `<p class="dthint">“Ikke brugt endnu”: knappen har aldrig sendt den slags tryk, så Home Assistant kender det ikke endnu. Du kan godt vælge det – første gang du trykker sådan på knappen, lærer Home Assistant det, og fra næste tryk virker flowet.</p>` : ""}` : "";
           p._devHtml = devHtml;
         } else p._devHtml = "";
         groups = p.source.entities.map((eid) => ({ name: this._entityName(eid), eid, defs: entityDefs(eid, this._hass.states[eid]).filter((d) => d.cat === cat && !d.hidden) })).filter((g) => g.defs.length);
@@ -1510,6 +1537,7 @@ class FlowCardsPanel extends HTMLElement {
         res = (tr && tr.resources) || {};
       } catch (e) { /* translations are optional */ }
       list = own.map((t) => ({ config: t, label: this._devTrigLabel(t, res) }));
+      for (const t of devTrigVariants(own)) list.push({ config: t, label: this._devTrigLabel(t, res), unseen: true });
     } catch (err) {
       list = [];
     }

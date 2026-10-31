@@ -45,7 +45,7 @@ const entities = {
 const devices = {
   d1: { name: "Kontor loft", area_id: "kontor" }, d2: { name: "Jesper 1", area_id: "kontor" }, d3: { name: "Gulvlampe", area_id: "kontor" },
   d4: { name: "Kontor kontakt", area_id: "kontor" }, d5: { name: "Presson sensor Kontor", area_id: "kontor" },
-  d6: { name: "Gardin", area_id: "sove" }, d8: { name: "Ikea puk soveværelse", area_id: "sove" }, d7: { name: "Aqara Smart Lock U200", area_id: "gang" },
+  d6: { name: "Gardin", area_id: "sove" }, d8: { name: "Ikea puk soveværelse", area_id: "sove" }, d9: { name: "Knap Jesper computer", area_id: "kontor" }, d7: { name: "Aqara Smart Lock U200", area_id: "gang" },
 };
 const areas = { kontor: { name: "Kontor" }, sove: { name: "Soveværelse" }, gang: { name: "Gang" } };
 const services = { light: { turn_on: {}, turn_off: {}, toggle: {} }, notify: { mobile_app_jesper_iphone: {}, send_message: {} }, scene: { turn_on: {} }, persistent_notification: { create: {} } };
@@ -132,7 +132,7 @@ const hass = {
   callWS: async (msg) => {
     window.calls.push(msg);
     const t = msg.type.split("/")[1];
-    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.5.5" };
+    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.5.6" };
     if (t === "save") {
       const f = JSON.parse(JSON.stringify(msg.flow)); delete f.status;
       if (!f.name) throw new Error("Flowet skal have et navn");
@@ -169,7 +169,8 @@ const hass = {
       { platform: "device", domain: "mqtt", device_id: "d8", type: "action", subtype: "on", metadata: {} },
       { platform: "device", domain: "mqtt", device_id: "d8", type: "action", subtype: "off", metadata: {} },
       { platform: "device", domain: "mqtt", device_id: "d8", type: "action", subtype: "brightness_move_up", metadata: {} },
-      { platform: "device", domain: "sensor", device_id: "d8", entity_id: "sensor.x", type: "battery_level", metadata: {} }] : [];
+      { platform: "device", domain: "sensor", device_id: "d8", entity_id: "sensor.x", type: "battery_level", metadata: {} }]
+      : msg.device_id === "d9" ? [{ platform: "device", domain: "mqtt", device_id: "d9", type: "action", subtype: "single", discovery_id: "0x00158d00079a70f5 action_single", metadata: {} }] : [];
     if (msg.type === "frontend/get_translations") return { resources: {} };
     if (msg.type === "supervisor/api") {
       if (msg.endpoint === "/addons") return { addons: [{ slug: "a0d7b954_nodered", name: "Node-RED" }] };
