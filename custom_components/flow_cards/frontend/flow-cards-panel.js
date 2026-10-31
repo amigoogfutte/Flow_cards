@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.2.2";
+const FC_VERSION = "0.2.3";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -1190,16 +1190,19 @@ class FlowCardsPanel extends HTMLElement {
         await this._load(); this._folder = "__all"; this._render(); break;
       }
       case "new":
-        this._newChooser = true; this._render(); break;
+        this._newOpts = { name: "", folder: ["__all", "__none"].includes(this._folder) ? "" : this._folder, newFolder: "" };
+        this._newChooser = true; this._render();
+        setTimeout(() => { const n = this.shadowRoot.querySelector("[data-field=new-name]"); if (n) n.focus(); }, 0);
+        break;
       case "new-advanced":
         this._newChooser = false;
-        this._draft = { type: "advanced", name: "Nyt avanceret flow", folder: ["__all", "__none"].includes(this._folder) ? "" : this._folder, enabled: true, mode: "single", condition_mode: "all", triggers: [], conditions: [], actions: [], else_actions: [], nodes: [], edges: [] };
+        this._draft = { type: "advanced", name: this._newName("Nyt avanceret flow"), folder: this._newFolder(), enabled: true, mode: "single", condition_mode: "all", triggers: [], conditions: [], actions: [], else_actions: [], nodes: [], edges: [] };
         this._tf = null; this._dirty = true; this._view = "edit"; this._render(); break;
       case "close-new":
         this._newChooser = false; this._render(); break;
       case "new-standard":
         this._newChooser = false;
-        this._draft = { name: "Nyt flow", folder: ["__all", "__none"].includes(this._folder) ? "" : this._folder, enabled: true, mode: "single", condition_mode: "all", triggers: [], conditions: [], actions: [], else_actions: [] };
+        this._draft = { name: this._newName("Nyt flow"), folder: this._newFolder(), enabled: true, mode: "single", condition_mode: "all", triggers: [], conditions: [], actions: [], else_actions: [] };
         this._dirty = true; this._view = "edit"; this._render();
         setTimeout(() => { const n = this.shadowRoot.querySelector("[data-field=name]"); if (n) { n.focus(); n.select(); } }, 0);
         break;
@@ -1315,6 +1318,8 @@ class FlowCardsPanel extends HTMLElement {
     const t = e.composedPath()[0];
     const field = t.dataset && t.dataset.field;
     if (field === "search") { this._search = t.value; this._renderListOnly(); return; }
+    if (field === "new-name") { this._newOpts.name = t.value; return; }
+    if (field === "new-folder-name") { this._newOpts.newFolder = t.value; return; }
     if (field === "name") { this._draft.name = t.value; this._markDirty(); return; }
     if (field === "picker-search") {
       this._picker.search = t.value;
@@ -1337,6 +1342,11 @@ class FlowCardsPanel extends HTMLElement {
     const t = e.composedPath()[0];
     const field = t.dataset && t.dataset.field;
     if (field === "folder-select") { this._folder = t.value; this._render(); return; }
+    if (field === "new-folder") {
+      this._newOpts.folder = t.value; this._render();
+      if (t.value === "__new") setTimeout(() => { const n = this.shadowRoot.querySelector("[data-field=new-folder-name]"); if (n) n.focus(); }, 0);
+      return;
+    }
     if (field === "draft-folder") { this._draft.folder = t.value; this._markDirty(); return; }
     if (field === "draft-mode") { this._draft.mode = t.value; this._markDirty(); return; }
     if (field === "picker-unavail") { this._picker.showUnavailable = t.checked; this._render(); return; }
@@ -1427,10 +1437,28 @@ class FlowCardsPanel extends HTMLElement {
   }
   /* ================================================================ advanced flows (canvas) */
 
+  _newName(fallback) { return ((this._newOpts && this._newOpts.name) || "").trim() || fallback; }
+  _newFolder() {
+    const o = this._newOpts || {};
+    if (o.folder === "__new") {
+      const name = (o.newFolder || "").trim();
+      if (name && !this._folders.includes(name)) this._folders = [...this._folders, name];
+      return name;
+    }
+    return o.folder || "";
+  }
+
   _renderNewChooser() {
     const opt = (action, icon, title, text) => `<button class="choice" data-action="${action}"><span class="ic"><ha-icon icon="${icon}"></ha-icon></span><span><b>${title}</b><br><span class="s">${text}</span></span></button>`;
+    const o = this._newOpts;
+    const folderOpts = `<option value="">Ingen mappe</option>${this._folders.map((fo) => `<option value="${esc(fo)}" ${o.folder === fo ? "selected" : ""}>${esc(fo)}</option>`).join("")}<option value="__new" ${o.folder === "__new" ? "selected" : ""}>+ Ny mappe…</option>`;
     return `<div class="scrim" data-action="scrim"><div class="modal"><header><h3>Nyt flow</h3><button class="icon-btn" data-action="close-new"><ha-icon icon="mdi:close"></ha-icon></button></header>
-      <div class="content"><div class="choices">
+      <div class="content">
+        <div class="field"><label for="nf-name">Navn</label><input id="nf-name" data-field="new-name" value="${esc(o.name)}" placeholder="F.eks. Kontor: lys ved knaptryk" autofocus></div>
+        <div class="field"><label for="nf-folder">Mappe</label><select id="nf-folder" data-field="new-folder">${folderOpts}</select></div>
+        ${o.folder === "__new" ? `<div class="field"><label for="nf-newfolder">Navn på ny mappe</label><input id="nf-newfolder" data-field="new-folder-name" value="${esc(o.newFolder)}" placeholder="F.eks. Gardiner"></div>` : ""}
+        <div class="sub">Vælg type</div>
+        <div class="choices">
         ${opt("new-standard", "mdi:view-column-outline", "Flow", "Enkelt flow med kolonnerne NÅR, OG, SÅ og ELLERS.")}
         ${opt("new-advanced", "mdi:vector-polyline", "Avanceret flow", "Frit lærred: placér kort og forbind dem med ledninger. Flere grene, ✓/✗-udgange, fejlhåndtering og logikkort.")}
       </div></div></div></div>`;
