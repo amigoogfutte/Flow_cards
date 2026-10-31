@@ -42,6 +42,7 @@ class FlowCardsUpdate(UpdateEntity):
     _attr_title = "Flow Cards"
     _attr_unique_id = "flow_cards_update"
     _attr_supported_features = UpdateEntityFeature.INSTALL | UpdateEntityFeature.PROGRESS
+    _attr_should_poll = False
     _attr_release_url = f"https://github.com/{REPO}/commits/main"
 
     def __init__(self) -> None:
@@ -55,7 +56,15 @@ class FlowCardsUpdate(UpdateEntity):
             async_track_time_interval(self.hass, self._async_check, CHECK_EVERY)
         )
 
+    async def async_update(self) -> None:
+        """Called by homeassistant.update_entity ("tjek nu")."""
+        await self._async_fetch()
+
     async def _async_check(self, _now: Any = None) -> None:
+        await self._async_fetch()
+        self.async_write_ha_state()
+
+    async def _async_fetch(self) -> None:
         try:
             session = async_get_clientsession(self.hass)
             async with session.get(
@@ -68,7 +77,6 @@ class FlowCardsUpdate(UpdateEntity):
                 self._attr_latest_version = latest
         except Exception as err:  # noqa: BLE001
             _LOGGER.debug("Kunne ikke tjekke for ny Flow Cards-version: %s", err)
-        self.async_write_ha_state()
 
     async def async_install(self, version: str | None, backup: bool, **kwargs: Any) -> None:
         self._attr_in_progress = True

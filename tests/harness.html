@@ -132,7 +132,7 @@ const hass = {
   callWS: async (msg) => {
     window.calls.push(msg);
     const t = msg.type.split("/")[1];
-    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.5.2" };
+    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.5.3" };
     if (t === "save") {
       const f = JSON.parse(JSON.stringify(msg.flow)); delete f.status;
       if (!f.name) throw new Error("Flowet skal have et navn");
