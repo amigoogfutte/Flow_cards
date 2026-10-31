@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.2.0";
+const FC_VERSION = "0.2.1";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -61,6 +61,17 @@ const APPS = [
   { id: "advanced", name: "Avanceret", icon: "mdi:tune-variant" },
 ];
 
+const EVENT_LABELS = {
+  initial_press: "Trykkes ned", short_release: "Kort tryk", press: "Trykkes", pressed: "Trykkes", single: "Enkelt tryk",
+  double: "Dobbelt-tryk", double_press: "Dobbelt-tryk", triple: "Tredobbelt tryk", triple_press: "Tredobbelt tryk",
+  quadruple: "Firdobbelt tryk", quadruple_press: "Firdobbelt tryk", long_press: "Langt tryk", long: "Langt tryk",
+  hold: "Holdes inde", repeat: "Holdes inde (gentages)", long_release: "Slippes efter langt tryk", release: "Slippes",
+  rotate_left: "Drejes til venstre", rotate_right: "Drejes til højre", shake: "Rystes", tap: "Bankes på",
+};
+const eventLabel = (t, short) => {
+  const base = EVENT_LABELS[t] || String(t).replace(/_/g, " ");
+  return short ? base : `${base.charAt(0).toUpperCase()}${base.slice(1)}${EVENT_LABELS[t] ? "" : ""}`;
+};
 const ON_OFF = ["light", "switch", "fan", "input_boolean", "siren", "humidifier", "remote"];
 const MOTION = ["motion", "occupancy", "presence", "moving"];
 const OPENING = ["door", "window", "opening", "garage_door"];
@@ -71,7 +82,7 @@ const unitShort = { s: "sek", min: "min", h: "t" };
 /* ------------------------------------------------------------------ card catalog */
 
 function appDefs(ctx) {
-  const fname = (id) => (ctx.flows.find((f) => f.id === id) || {}).name || "(slettet flow)";
+  const fname = (id) => (id ? (ctx.flows.find((f) => f.id === id) || {}).name || "(slettet flow)" : "");
   const ename = (e) => ctx.entityName(e);
   return [
     // Dato & tid
@@ -88,7 +99,15 @@ function appDefs(ctx) {
       fields: [{ key: "weekdays", label: "Ugedage", type: "weekdays", required: true, default: ["mon", "tue", "wed", "thu", "fri"] }],
       build: (a) => ({ kind: "time", weekdays: a.weekdays }) },
     // Sol
-    { id: "sun.event", app: "sun", cat: "t",
+    { id: "sun.sunset", app: "sun", cat: "t",
+      text: (a) => `Solen går ned${num(a.offset) ? ` ${pill(`${Math.abs(num(a.offset))} min ${num(a.offset) < 0 ? "før" : "efter"}`)}` : ""}`,
+      fields: [{ key: "offset", label: "Forskydning i minutter (negativ = før solnedgang, positiv = efter)", type: "number", default: 0 }],
+      build: (a) => ({ kind: "sun", event: "sunset", offset: num(a.offset) || 0 }) },
+    { id: "sun.sunrise", app: "sun", cat: "t",
+      text: (a) => `Solen står op${num(a.offset) ? ` ${pill(`${Math.abs(num(a.offset))} min ${num(a.offset) < 0 ? "før" : "efter"}`)}` : ""}`,
+      fields: [{ key: "offset", label: "Forskydning i minutter (negativ = før solopgang, positiv = efter)", type: "number", default: 0 }],
+      build: (a) => ({ kind: "sun", event: "sunrise", offset: num(a.offset) || 0 }) },
+    { id: "sun.event", app: "sun", cat: "t", hidden: true,
       text: (a) => `${a.event === "sunrise" ? "Solen står op" : "Solen går ned"}${num(a.offset) ? ` ${pill(`${num(a.offset) > 0 ? "+" : ""}${num(a.offset)} min`)}` : ""}`,
       fields: [{ key: "event", label: "Hændelse", type: "select", options: [["sunset", "Solnedgang"], ["sunrise", "Solopgang"]], default: "sunset" },
         { key: "offset", label: "Forskydning i minutter (negativ = før)", type: "number", default: 0 }],
@@ -117,7 +136,13 @@ function appDefs(ctx) {
     { id: "flows.run", app: "flows", cat: "a", text: (a) => `Start flowet ${pill(fname(a.flow_id))}`,
       fields: [{ key: "flow_id", label: "Flow", type: "flow", required: true }, { key: "skip_conditions", label: "Spring flowets OG-kort over", type: "toggle" }],
       build: (a) => ({ kind: "flow_run", flow_id: a.flow_id, skip_conditions: !!a.skip_conditions }) },
-    { id: "flows.enable", app: "flows", cat: "a", text: (a) => `Slå flowet ${pill(fname(a.flow_id))} ${a.enabled === "off" ? "fra" : "til"}`,
+    { id: "flows.enable_on", app: "flows", cat: "a", text: (a) => `Slå flowet ${pill(fname(a.flow_id))} til`,
+      fields: [{ key: "flow_id", label: "Flow", type: "flow", required: true }],
+      build: (a) => ({ kind: "flow_enable", flow_id: a.flow_id, enabled: true }) },
+    { id: "flows.enable_off", app: "flows", cat: "a", text: (a) => `Slå flowet ${pill(fname(a.flow_id))} fra`,
+      fields: [{ key: "flow_id", label: "Flow", type: "flow", required: true }],
+      build: (a) => ({ kind: "flow_enable", flow_id: a.flow_id, enabled: false }) },
+    { id: "flows.enable", app: "flows", cat: "a", hidden: true, text: (a) => `Slå flowet ${pill(fname(a.flow_id))} ${a.enabled === "off" ? "fra" : "til"}`,
       fields: [{ key: "flow_id", label: "Flow", type: "flow", required: true }, { key: "enabled", label: "Handling", type: "select", options: [["on", "Slå til"], ["off", "Slå fra"]], default: "on" }],
       build: (a) => ({ kind: "flow_enable", flow_id: a.flow_id, enabled: a.enabled !== "off" }) },
     // Hændelser
@@ -190,9 +215,14 @@ function entityDefs(eid, st) {
     T("on_for", (a) => `${on.includes("bevægelse") ? "Har registreret bevægelse" : "Har været aktiv"} i ${pill(`${a.minutes} min`)}`, (a) => toState("on", a), forField);
   } else if (d === "event") {
     const types = at.event_types || [];
-    T("press", (a) => (a.event_type ? `Trykkes: ${pill(a.event_type)}` : "Trykkes (alle typer)"),
+    for (const t of types) {
+      T(`press_${t}`, () => eventLabel(t), () => ({ kind: "event_entity", event_type: [t] }));
+    }
+    T("press_any", () => (types.length ? "Trykkes på en hvilken som helst måde" : "Trykkes"), () => ({ kind: "event_entity", event_type: [] }));
+    T("press", (a) => (a.event_type ? `Trykkes: ${pill(eventLabel(a.event_type, true))}` : "Trykkes (alle typer)"),
       (a) => ({ kind: "event_entity", event_type: a.event_type ? [a.event_type] : [] }),
-      [{ key: "event_type", label: "Type", type: "select", options: [["", "Alle typer"], ...types.map((t) => [t, t])], default: ["short_release", "single", "press", "pressed", "initial_press"].find((x) => types.includes(x)) || types[0] || "" }]);
+      [{ key: "event_type", label: "Type", type: "select", options: [["", "Alle typer"], ...types.map((t) => [t, eventLabel(t, true)])], default: types[0] || "" }]);
+    defs[defs.length - 1].hidden = true;
   } else if (d === "button" || d === "input_button") {
     T("press", () => "Trykkes", () => ({ kind: "event_entity" }));
   } else if (d === "cover") {
@@ -901,7 +931,7 @@ class FlowCardsPanel extends HTMLElement {
     let back = false;
 
     if (p.step === "source") {
-      const apps = APPS.filter((a) => appDefs(this._ctx()).some((d) => d.app === a.id && d.cat === cat));
+      const apps = APPS.filter((a) => appDefs(this._ctx()).some((d) => d.app === a.id && d.cat === cat && !d.hidden));
       const sources = this._sources(cat);
       const shown = sources.slice(0, 250);
       let lastArea = null;
@@ -921,13 +951,13 @@ class FlowCardsPanel extends HTMLElement {
       if (p.source.type === "app") {
         const app = APPS.find((a) => a.id === p.source.id);
         title = app.name;
-        groups = [{ name: "", defs: appDefs(this._ctx()).filter((d) => d.app === app.id && d.cat === cat), eid: null }];
+        groups = [{ name: "", defs: appDefs(this._ctx()).filter((d) => d.app === app.id && d.cat === cat && !d.hidden), eid: null }];
       } else {
         title = p.source.name;
-        groups = p.source.entities.map((eid) => ({ name: this._entityName(eid), eid, defs: entityDefs(eid, this._hass.states[eid]).filter((d) => d.cat === cat) })).filter((g) => g.defs.length);
+        groups = p.source.entities.map((eid) => ({ name: this._entityName(eid), eid, defs: entityDefs(eid, this._hass.states[eid]).filter((d) => d.cat === cat && !d.hidden) })).filter((g) => g.defs.length);
       }
       content = groups.map((g) => `${groups.length > 1 || g.eid && g.name !== title ? `<div class="sub">${esc(g.name)}</div>` : ""}<div class="defs">${g.defs.map((d) => {
-        let txt; try { txt = d.text(Object.fromEntries((d.fields || []).map((fl) => [fl.key, ""]))); } catch (e) { txt = d.id; }
+        let txt; try { txt = d.text(Object.fromEntries((d.fields || []).map((fl) => [fl.key, fl.type === "select" || fl.type === "number" || fl.type === "range" ? fl.default ?? "" : ""]))); } catch (e) { txt = d.id; }
         return `<button class="def" style="${color}" data-action="pick-def" data-def="${esc(d.id)}" data-eid="${esc(g.eid || "")}">${txt}</button>`;
       }).join("")}</div>`).join("");
     } else if (p.step === "config") {
@@ -1227,7 +1257,7 @@ class FlowCardsPanel extends HTMLElement {
         const g = this._sources(catOf(this._picker.section)).find((x) => x.key === el.dataset.key);
         if (!g) return;
         if (g.entities.length === 1) {
-          const defs = entityDefs(g.entities[0], this._hass.states[g.entities[0]]).filter((d) => d.cat === catOf(this._picker.section));
+          const defs = entityDefs(g.entities[0], this._hass.states[g.entities[0]]).filter((d) => d.cat === catOf(this._picker.section) && !d.hidden);
           Object.assign(this._picker, { step: "cards", source: { type: "device", name: g.name, entities: g.entities } });
           if (defs.length === 1) { this._chooseDef(defs[0], g.entities[0]); return; }
         } else {
