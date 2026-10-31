@@ -1,7 +1,8 @@
 """Constants for Flow Cards."""
 
 DOMAIN = "flow_cards"
-VERSION = "0.4.3"
+VERSION = "0.5.0"
+REPO = "amigoogfutte/Flow_cards"
 
 STORAGE_VERSION = 1
 STORAGE_KEY_FLOWS = f"{DOMAIN}.flows"

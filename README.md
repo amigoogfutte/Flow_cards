@@ -9,6 +9,10 @@ Et **Flows**-panel i Home Assistants sidemenu, hvor du bygger flows af kort:
 
 Flowene køres af en flow-motor inde i Home Assistant. De er altså ikke almindelige HA-automationer.
 
+## Opdateringer
+
+Fra version 0.5 finder Home Assistant selv nye versioner. De dukker op under **Indstillinger → Opdateringer** som "Flow Cards". Tryk **Installér**, og genstart derefter Home Assistant. Øverst i Flows kan du se, hvilken version du kører, og om der mangler en genstart.
+
 ## Installation
 
 1. Kopiér mappen `custom_components/flow_cards` til `/config/custom_components/flow_cards` på din Home Assistant. Det kan gøres med Samba share, File editor eller Studio Code Server.
