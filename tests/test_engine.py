@@ -60,3 +60,17 @@ async def main():
     await m.async_delete_flow(k["id"]); await m.async_unload()
     print("events sent:", len(events)); print("ALL ENGINE TESTS PASSED")
 asyncio.run(main())
+
+# --- regression: unreadable flows must survive a load + save cycle
+async def _keep_unreadable():
+    hass = HomeAssistant()
+    m = FlowManager(hass)
+    m._store.data = {"flows": {"bad": {"id": "bad", "name": "Fra fremtiden", "type": "quantum"},
+                               "ok": {"id": "ok", "name": "Godt", "triggers": [], "actions": []}}, "folders": []}
+    await m.async_load()
+    assert list(m.flows) == ["ok"] and "bad" in m._unreadable
+    assert m._backup_store.data["flows"]["bad"]["type"] == "quantum"
+    await m.async_save_flow({"name": "Nyt"})
+    assert m._store.data["flows"]["bad"]["type"] == "quantum", "unreadable flow was lost"
+    print("UNREADABLE FLOWS KEPT")
+asyncio.run(_keep_unreadable())

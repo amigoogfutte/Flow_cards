@@ -74,6 +74,8 @@ class FlowManager:
         self.hass = hass
         self._store: Store = Store(hass, STORAGE_VERSION, STORAGE_KEY_FLOWS)
         self._hist_store: Store = Store(hass, STORAGE_VERSION, STORAGE_KEY_HISTORY)
+        self._backup_store: Store = Store(hass, STORAGE_VERSION, f"{STORAGE_KEY_FLOWS}_backup")
+        self._unreadable: dict[str, Any] = {}
         self.flows: dict[str, dict] = {}
         self.folders: list[str] = []
         self.history: dict[str, list[dict]] = {}
@@ -86,12 +88,19 @@ class FlowManager:
 
     async def async_load(self) -> None:
         data = await self._store.async_load() or {}
+        if data.get("flows"):
+            # keep a copy of exactly what was on disk before this version touches it
+            await self._backup_store.async_save(data)
         self.flows = {}
-        for raw in (data.get("flows") or {}).values():
+        self._unreadable = {}
+        for key, raw in (data.get("flows") or {}).items():
             try:
                 flow = logic.validate_flow(raw)
-            except logic.FlowValidationError as err:
-                _LOGGER.warning("Springer ugyldigt flow over (%s): %s", raw.get("name"), err)
+            except Exception as err:  # noqa: BLE001
+                # never drop a flow we cannot read: keep it untouched so it is saved back as-is
+                _LOGGER.warning("Flowet '%s' kunne ikke indlæses og er sat på pause: %s",
+                                raw.get("name") if isinstance(raw, dict) else key, err)
+                self._unreadable[str(key)] = raw
                 continue
             self.flows[flow["id"]] = flow
         self.folders = [str(f) for f in data.get("folders") or []]
@@ -116,7 +125,9 @@ class FlowManager:
         await self._hist_store.async_save(self._history_data())
 
     async def _save(self) -> None:
-        await self._store.async_save({"flows": self.flows, "folders": self.folders})
+        await self._store.async_save(
+            {"flows": {**self._unreadable, **self.flows}, "folders": self.folders}
+        )
 
     def _history_data(self) -> dict:
         return {"history": self.history}
