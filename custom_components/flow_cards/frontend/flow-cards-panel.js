@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.5.6";
+const FC_VERSION = "0.5.7";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -906,6 +906,10 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .defs{display:flex;flex-direction:column;gap:8px}
 .def.cur{outline:2px solid var(--fc-accent,#ff8a00);outline-offset:-2px}
 .def .curtag{font-size:11px;opacity:.75;margin-left:6px}
+.swap{margin-bottom:12px}.swap .sub{margin:0 2px 6px}
+.swap-row{display:flex;flex-wrap:wrap;gap:6px}
+.swap-def{border-radius:999px;border:1px solid var(--fc-line);border-left:4px solid var(--c);padding:6px 12px;font-size:13px;text-align:left}
+.swap-def.cur{outline:2px solid var(--fc-accent,#ff8a00);outline-offset:-2px;font-weight:600}
 .def .unseen{font-size:11px;opacity:.6;margin-left:6px;font-style:italic}
 p.dthint{font-size:12px;color:var(--fc-muted);margin:8px 4px 4px;line-height:1.4}
 .def{border-radius:12px;border:1px solid var(--fc-line);border-left:4px solid var(--c);padding:12px 14px;text-align:left;width:100%;font-size:15px}
@@ -1455,7 +1459,18 @@ class FlowCardsPanel extends HTMLElement {
       const def = p.def;
       title = p.eid ? this._entityName(p.eid) : (APPS.find((a) => a.id === def.app) || {}).name || "Kort";
       let preview; try { preview = def.text(p.args); } catch (e) { preview = ""; }
-      content = `${p.error ? `<div class="error-box">${esc(p.error)}</div>` : ""}<div class="preview" style="${color}" data-preview>${preview}</div>
+      // editing: offer the card's siblings (sunrise <-> sunset, on <-> off, ...) so the choice can be changed
+      let swap = "";
+      if (p.editIdx !== undefined) {
+        const sib = (p.eid ? entityDefs(p.eid, this._hass.states[p.eid]) : appDefs(this._ctx()).filter((d) => d.app === def.app)).filter((d) => d.cat === cat && !d.hidden);
+        if (sib.length > 1) {
+          swap = `<div class="swap"><div class="sub">Skift til et andet kort</div><div class="swap-row">${sib.map((d) => {
+            let txt; try { txt = d.text(this._swapArgs(d, p.args)); } catch (e) { txt = d.id; }
+            return `<button class="swap-def${d.id === def.id ? " cur" : ""}" style="${color}" data-action="swap-def" data-def="${esc(d.id)}">${txt}</button>`;
+          }).join("")}</div></div>`;
+        }
+      }
+      content = `${p.error ? `<div class="error-box">${esc(p.error)}</div>` : ""}${swap}<div class="preview" style="${color}" data-preview>${preview}</div>
         ${(def.fields || []).map((fl) => this._renderField(fl, p.args[fl.key])).join("")}
         ${cat === "a" ? `<label class="check field"><input type="checkbox" data-field="card-disabled" ${p.disabled ? "checked" : ""}>Slå kortet fra (springes over)</label>` : ""}`;
       footer = `<footer><button class="btn ghost" data-action="close-picker">Annullér</button><button class="btn primary" data-action="confirm-card">${p.editIdx === undefined ? "Tilføj" : "Gem kort"}</button></footer>`;
@@ -1582,6 +1597,16 @@ class FlowCardsPanel extends HTMLElement {
       this._picker = { section, step: "source", search: "", showUnavailable: false };
     }
     this._render();
+  }
+
+  _swapArgs(def, old) {
+    const args = {};
+    for (const fl of def.fields || []) {
+      if (old && old[fl.key] !== undefined && old[fl.key] !== "") args[fl.key] = clone(old[fl.key]);
+      else if (fl.default !== undefined) args[fl.key] = clone(fl.default);
+      else if (fl.type === "select" || fl.type === "number" || fl.type === "range") args[fl.key] = "";
+    }
+    return args;
   }
 
   _chooseDef(def, eid, preset) {
@@ -1858,6 +1883,16 @@ class FlowCardsPanel extends HTMLElement {
         const p = this._picker; const k = el.dataset.key;
         const l = Array.isArray(p.args[k]) ? p.args[k] : p.args[k] ? [p.args[k]] : [];
         l.splice(Number(el.dataset.i), 1); p.args[k] = l; this._keepScroll = true; this._render(); break;
+      }
+      case "swap-def": {
+        const p = this._picker;
+        const cat = catOf(p.section);
+        const def = (p.eid ? entityDefs(p.eid, this._hass.states[p.eid]) : appDefs(this._ctx())).find((d) => d.id === el.dataset.def && d.cat === cat);
+        if (!def || def.id === p.def.id) break;
+        const args = this._swapArgs(def, p.args);
+        for (const k of Object.keys(args)) if (args[k] === "" && !(def.fields || []).find((f) => f.key === k && f.default === "")) delete args[k];
+        Object.assign(p, { def, args, error: null });
+        this._keepScroll = true; this._render(); break;
       }
       case "pick-devtrig": {
         const p = this._picker;
