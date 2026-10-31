@@ -34,6 +34,7 @@ const states = {};
   st("tts.google_translate_en_com", "unknown", { friendly_name: "Google Translate" }),
   st("tts.home_assistant_cloud", "unknown", { friendly_name: "Home Assistant Cloud" }),
   st("media_player.kokken", "off", { friendly_name: "Køkken højttaler" }),
+  st("sensor.vaskemaskine_power", "1.2", { friendly_name: "Vaskemaskine stik effekt", device_class: "power", unit_of_measurement: "W", state_class: "measurement" }),
 ].forEach((s) => (states[s.entity_id] = s));
 const entities = {
   "light.kontor": { device_id: "d1" }, "light.jesper_1": { device_id: "d2" }, "light.gulv_kontor": { device_id: "d3" },
@@ -124,12 +125,14 @@ window.fetch = async (url, opts = {}) => {
 };
 
 window.calls = [];
+window.HAEV = {};
+window.emitHA = (type, data) => (window.HAEV[type] || []).forEach((cb) => cb({ event_type: type, data }));
 const hass = {
   states, entities, devices, areas, services, language: "da",
   callWS: async (msg) => {
     window.calls.push(msg);
     const t = msg.type.split("/")[1];
-    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.5.0" };
+    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.5.1" };
     if (t === "save") {
       const f = JSON.parse(JSON.stringify(msg.flow)); delete f.status;
       if (!f.name) throw new Error("Flowet skal have et navn");
@@ -175,7 +178,10 @@ const hass = {
     }
     throw new Error("ukendt " + msg.type);
   },
-  connection: { subscribeMessage: async (cb) => { subs.push(cb); return () => { subs = subs.filter((x) => x !== cb); }; } },
+  connection: {
+    subscribeMessage: async (cb) => { subs.push(cb); return () => { subs = subs.filter((x) => x !== cb); }; },
+    subscribeEvents: async (cb, type) => { (window.HAEV[type] = window.HAEV[type] || []).push(cb); return () => { window.HAEV[type] = window.HAEV[type].filter((x) => x !== cb); }; },
+  },
 };
 if (location.hash.includes("dark")) document.body.classList.add("dark");
 const el = document.createElement("flow-cards-panel");

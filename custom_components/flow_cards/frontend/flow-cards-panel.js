@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.5.0";
+const FC_VERSION = "0.5.1";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -920,6 +920,15 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .ver{font-size:11px;color:var(--fc-muted);white-space:nowrap;padding:2px 8px;border-radius:999px;border:1px solid var(--fc-line);flex:none}
 .ver.warn{color:#fff;background:var(--fc-warn);border-color:var(--fc-warn)}
 @media (max-width:600px){.ver:not(.warn){display:none}}
+.tb.listen{background:#4b5563}.tb.listen.on,.btn.on{background:var(--fc-err);color:#fff;border-color:var(--fc-err)}
+.listen-box{position:fixed;left:16px;bottom:16px;z-index:15;width:min(380px,calc(100vw - 32px));max-height:60vh;overflow:auto;background:var(--fc-card);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.35);padding:10px 12px}
+.listen-box .lh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.listen-box .grow{flex:1}
+.listen-box .lp{color:var(--fc-muted);font-size:13px;margin:4px 2px 8px}
+.pulse{width:10px;height:10px;border-radius:50%;background:var(--fc-err);animation:pulse 1s infinite}
+.heard{display:flex;align-items:center;gap:10px;padding:8px 4px;border-top:1px solid var(--fc-line)}
+.heard .ic{width:34px;height:34px;border-radius:10px;background:rgba(127,127,127,.12);display:flex;align-items:center;justify-content:center;flex:none}
+.heard .t{flex:1;min-width:0;display:flex;flex-direction:column;font-size:13px}.heard .t span{color:var(--fc-muted)}
+.heard .btn{padding:6px 12px}
 .chip.unsaved{background:var(--fc-warn);color:#fff;font-weight:600}
 .chip[hidden]{display:none}
 .stash{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--fc-warn) 16%,var(--fc-card));border-left:4px solid var(--fc-warn)}
@@ -1040,6 +1049,7 @@ class FlowCardsPanel extends HTMLElement {
     if (this._hass && this._loaded) this._render();
   }
   disconnectedCallback() {
+    this._stopListen();
     if (this._beforeUnload) window.removeEventListener("beforeunload", this._beforeUnload);
     this._stashDraft();
     if (this._unsub) { this._unsub.then((u) => u && u()).catch(() => {}); this._unsub = null; }
@@ -1216,11 +1226,12 @@ class FlowCardsPanel extends HTMLElement {
     if (!this._loaded) return;
     this._stashDraft();
     const body = this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
+    const listen = this._listen && this._view === "edit" && !this._picker ? this._renderListen() : "";
     const modal = this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : this._nr ? this._renderNodeRed() : "";
     const toast = this._toastMsg ? `<div class="toast ${this._toastMsg.error ? "error" : ""}">${esc(this._toastMsg.msg)}</div>` : "";
     const scroll = this.shadowRoot.querySelector(".content");
     const top = scroll ? scroll.scrollTop : 0;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><div class="${this._narrow ? "narrow" : ""}" style="min-height:100vh;background:var(--fc-bg)">${body}${modal}${toast}</div>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><div class="${this._narrow ? "narrow" : ""}" style="min-height:100vh;background:var(--fc-bg)">${body}${listen}${modal}${toast}</div>`;
     const sc = this.shadowRoot.querySelector(".content");
     if (sc && this._keepScroll) sc.scrollTop = top;
     this._keepScroll = false;
@@ -1315,6 +1326,7 @@ class FlowCardsPanel extends HTMLElement {
         <label>Mappe <select data-field="draft-folder"><option value="">Ingen</option>${this._folders.map((fo) => `<option ${f.folder === fo ? "selected" : ""}>${esc(fo)}</option>`).join("")}</select></label>
         <label>Ved ny udløsning <select data-field="draft-mode">${MODES.map(([k, l]) => `<option value="${k}" ${f.mode === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <span class="grow"></span>
+        <button class="btn ghost ${this._listen ? "on" : ""}" data-action="listen" title="Tryk på en knap, tænd noget eller sæt noget i stikket – så foreslår Flows et NÅR-kort"><ha-icon icon="mdi:ear-hearing"></ha-icon><span class="hide-sm">${this._listen ? "Lytter…" : "Lyt"}</span></button>
         <button class="btn ghost" data-action="to-advanced" title="Lav flowet om til et avanceret flow med frit lærred"><ha-icon icon="mdi:vector-polyline"></ha-icon><span class="hide-sm">Gør avanceret</span></button>
         ${f.id ? `<button class="btn danger" data-action="delete-flow"><ha-icon icon="mdi:delete-outline"></ha-icon><span class="hide-sm">Slet flow</span></button>` : ""}
       </div>
@@ -1712,6 +1724,7 @@ class FlowCardsPanel extends HTMLElement {
         this._runs[this._historyFor] = []; delete this._latestRun[this._historyFor]; this._render(); break;
       case "back":
         if (!this._confirmLeave()) return;
+        this._stopListen();
         this._clearStash();
         this._view = "list"; this._draft = null; this._dirty = false; this._render(); break;
       case "restore-draft": {
@@ -1793,6 +1806,11 @@ class FlowCardsPanel extends HTMLElement {
       }
       case "confirm-card":
         this._confirmCard(); break;
+      case "listen":
+        if (this._listen) this._stopListen(); else this._startListen();
+        this._render(); break;
+      case "listen-use": this._useHeard(Number(el.dataset.i)); break;
+      case "listen-clear": this._listen.items = []; this._render(); break;
       case "ent-del": {
         const p = this._picker; const k = el.dataset.key;
         const l = Array.isArray(p.args[k]) ? p.args[k] : p.args[k] ? [p.args[k]] : [];
@@ -1959,6 +1977,123 @@ class FlowCardsPanel extends HTMLElement {
     this._dirty = true;
     this._render();
   }
+  /* ================================================================ listen: "do something, get a card" */
+
+  _startListen() {
+    const conn = this._hass.connection;
+    this._listen = { items: [], unsubs: [], started: Date.now() };
+    const L = this._listen;
+    const sub = (type, cb) => L.unsubs.push(conn.subscribeEvents(cb, type));
+    sub("state_changed", (ev) => this._heardState(ev.data || {}));
+    for (const t of ["zha_event", "deconz_event"]) sub(t, (ev) => this._heardEvent(t, ev.data || {}));
+  }
+
+  _stopListen() {
+    if (!this._listen) return;
+    for (const u of this._listen.unsubs) Promise.resolve(u).then((f) => f && f()).catch(() => {});
+    this._listen = null;
+  }
+
+  _heard(item) {
+    const L = this._listen;
+    if (!L) return;
+    const i = L.items.findIndex((x) => x.key === item.key);
+    if (i >= 0) L.items.splice(i, 1);
+    L.items.unshift({ ...item, at: Date.now() });
+    L.items.length = Math.min(L.items.length, 8);
+    clearTimeout(this._listenT);
+    this._listenT = setTimeout(() => this._safeRender(), 150);
+  }
+
+  _heardState(d) {
+    const eid = d.entity_id || "";
+    const o = d.old_state, n = d.new_state;
+    if (!n || !o) return;
+    const dom = eid.split(".")[0];
+    const reg = (this._hass.entities || {})[eid] || {};
+    if (reg.hidden || reg.entity_category) return;
+    const bad = ["unavailable", "unknown"];
+    const name = (n.attributes && n.attributes.friendly_name) || eid;
+    const st = this._hass.states[eid] || n;
+    if (dom === "event") {
+      if (bad.includes(n.state) || o.state === n.state) return;
+      const t = n.attributes.event_type;
+      const types = n.attributes.event_types || [];
+      this._heard({ key: `${eid}|${t}`, eid, name, text: t ? eventLabel(t) : "Trykket", icon: "mdi:gesture-tap-button", def: types.includes(t) ? `e.press_${t}` : "e.press_any", args: {} });
+      return;
+    }
+    if (dom === "button" || dom === "input_button") {
+      if (bad.includes(n.state) || o.state === n.state) return;
+      this._heard({ key: eid, eid, name, text: "Trykket", icon: "mdi:gesture-tap-button", def: "e.press", args: {} });
+      return;
+    }
+    if (o.state === n.state || bad.includes(n.state) || bad.includes(o.state)) return;
+    if (["sensor"].includes(dom)) {
+      const dc = n.attributes.device_class;
+      if (!["power", "current", "apparent_power"].includes(dc)) return;
+      const a = Number(o.state), b = Number(n.state);
+      if (!isFinite(a) || !isFinite(b)) return;
+      const unit = n.attributes.unit_of_measurement || "";
+      const min = dc === "current" ? 0.05 : 5;
+      if (Math.abs(b - a) < min || Math.abs(b - a) < Math.max(Math.abs(a), Math.abs(b)) * 0.5) return;
+      const mid = Math.round(((a + b) / 2) * (dc === "current" ? 100 : 1)) / (dc === "current" ? 100 : 1);
+      const up = b > a;
+      this._heard({ key: `${eid}|${up}`, eid, name, icon: "mdi:flash", text: `${up ? "Steg" : "Faldt"} fra ${a} til ${b} ${unit}`,
+        def: up ? "e.above" : "e.below", args: up ? { above: mid } : { below: mid } });
+      return;
+    }
+    if (["sun", "weather", "update", "zone", "automation", "script", "device_tracker", "calendar", "todo", "image", "camera", "number", "text", "input_text", "input_number", "input_datetime", "time", "date", "tts", "stt", "conversation", "sensor", "select"].includes(dom)) return;
+    const defs = entityDefs(eid, st);
+    const pick = (id) => defs.find((x) => x.id === id && x.cat === "t");
+    let def = null; let args = {};
+    if (ON_OFF.includes(dom) || dom === "binary_sensor") def = pick(n.state === "on" ? "e.on" : n.state === "off" ? "e.off" : "");
+    else if (dom === "cover") def = pick(n.state === "open" ? "e.open" : n.state === "closed" ? "e.closed" : "");
+    else if (dom === "lock") def = pick(n.state === "locked" ? "e.locked" : n.state === "unlocked" ? "e.unlocked" : "");
+    else if (dom === "person") def = pick(n.state === "home" ? "e.home" : o.state === "home" ? "e.leave" : "");
+    else if (dom === "media_player") def = pick(n.state === "playing" ? "e.play" : o.state === "playing" ? "e.stop" : "");
+    if (!def) { def = pick("e.to"); args = { to: n.state }; }
+    if (!def) return;
+    let text; try { text = stripHtml(def.text(args)); } catch (e) { text = n.state; }
+    this._heard({ key: `${eid}|${def.id}`, eid, name, text, icon: this._entityIcon(eid), def: def.id, args });
+  }
+
+  _heardEvent(type, data) {
+    const dev = (this._hass.devices || {})[data.device_id];
+    const name = dev ? dev.name_by_user || dev.name : data.device_ieee || data.unique_id || type;
+    const what = data.command || data.event || data.id || "hændelse";
+    const match = {};
+    if (data.device_id) match.device_id = data.device_id;
+    if (data.command) match.command = data.command;
+    if (data.event !== undefined) match.event = data.event;
+    this._heard({ key: `${type}|${JSON.stringify(match)}`, eid: null, name, icon: "mdi:remote", text: `Sender “${eventLabel(String(what))}”`,
+      def: "events.event", args: { event_type: type, event_data: JSON.stringify(match) } });
+  }
+
+  _useHeard(i) {
+    const L = this._listen;
+    const h = L && L.items[i];
+    if (!h) return;
+    const defs = h.eid ? entityDefs(h.eid, this._hass.states[h.eid]) : appDefs(this._ctx());
+    const def = defs.find((d) => d.id === h.def && d.cat === "t");
+    if (!def) { this._toast("Kortet kunne ikke laves", true); return; }
+    const args = {};
+    for (const fl of def.fields || []) if (fl.default !== undefined) args[fl.key] = clone(fl.default);
+    Object.assign(args, h.args);
+    this._picker = { section: "triggers", step: "config", def, eid: h.eid, args, disabled: false };
+    this._confirmCard();
+    this._toast(`Tilføjet: ${h.name} – ${h.text}`);
+  }
+
+  _renderListen() {
+    const L = this._listen;
+    const ago = (t) => { const s = Math.round((Date.now() - t) / 1000); return s < 5 ? "lige nu" : s < 60 ? `${s} sek siden` : `${Math.round(s / 60)} min siden`; };
+    const rows = L.items.map((h, i) => `<div class="heard"><span class="ic"><ha-icon icon="${esc(h.icon)}"></ha-icon></span>
+      <span class="t"><b>${esc(h.name)}</b><span>${esc(h.text)} · ${ago(h.at)}</span></span>
+      <button class="btn primary" data-action="listen-use" data-i="${i}">Brug</button></div>`).join("");
+    return `<div class="listen-box"><div class="lh"><span class="pulse"></span><b>Lytter…</b><span class="grow"></span>${L.items.length ? `<button class="btn ghost" data-action="listen-clear">Ryd</button>` : ""}<button class="icon-btn" data-action="listen" title="Stop"><ha-icon icon="mdi:close"></ha-icon></button></div>
+      ${rows || `<p class="lp">Tryk på en knap, tænd eller sluk noget, åbn en dør – eller sæt noget i et stik med strømmåler. Det dukker op her, og du kan bruge det som NÅR-kort.</p>`}</div>`;
+  }
+
   /* ================================================================ Node-RED import */
 
   async _nrApi(method, path, body) {
@@ -2177,6 +2312,7 @@ class FlowCardsPanel extends HTMLElement {
         <button class="tb and" data-action="cv-add" data-sec="conditions"><ha-icon icon="mdi:plus"></ha-icon>OG</button>
         <button class="tb then" data-action="cv-add" data-sec="actions"><ha-icon icon="mdi:plus"></ha-icon>SÅ</button>
         <button class="tb logic" data-action="cv-add" data-sec="logic"><ha-icon icon="mdi:plus"></ha-icon>Logik</button>
+        <button class="tb listen ${this._listen ? "on" : ""}" data-action="listen" title="Tryk på en knap, tænd noget eller sæt noget i stikket – så foreslår Flows et NÅR-kort"><ha-icon icon="mdi:ear-hearing"></ha-icon>${this._listen ? "Lytter…" : "Lyt"}</button>
         <span class="grow"></span>
         <select data-field="draft-folder" title="Mappe"><option value="">Ingen mappe</option>${this._folders.map((fo) => `<option ${f.folder === fo ? "selected" : ""}>${esc(fo)}</option>`).join("")}</select>
         <select data-field="draft-mode" title="Ved ny udløsning">${MODES.map(([k, l]) => `<option value="${k}" ${f.mode === k ? "selected" : ""}>${l}</option>`).join("")}</select>
