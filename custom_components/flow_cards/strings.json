@@ -9,5 +9,18 @@
     "abort": {
       "single_instance_allowed": "Flow Cards is already set up."
     }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Restart required for Flow Cards {version}",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Restart Home Assistant",
+            "description": "Flow Cards {version} is installed. Press Submit to restart Home Assistant now and start using it."
+          }
+        }
+      }
+    }
   }
 }

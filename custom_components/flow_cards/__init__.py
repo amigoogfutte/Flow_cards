@@ -8,6 +8,7 @@ from homeassistant.components import frontend, panel_custom
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import issue_registry as ir
 
 from . import websocket
 from .const import (
@@ -26,6 +27,9 @@ PLATFORMS = ["update"]
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     domain_data = hass.data.setdefault(DOMAIN, {})
+
+    # a fresh start means any pending restart is done
+    ir.async_delete_issue(hass, DOMAIN, "restart_required")
 
     manager = FlowManager(hass)
     await manager.async_load()

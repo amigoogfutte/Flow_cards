@@ -9,5 +9,18 @@
     "abort": {
       "single_instance_allowed": "Flow Cards er allerede sat op."
     }
+  },
+  "issues": {
+    "restart_required": {
+      "title": "Genstart påkrævet for Flow Cards {version}",
+      "fix_flow": {
+        "step": {
+          "confirm": {
+            "title": "Genstart Home Assistant",
+            "description": "Flow Cards {version} er installeret. Tryk Indsend for at genstarte Home Assistant nu og tage den i brug."
+          }
+        }
+      }
+    }
   }
 }

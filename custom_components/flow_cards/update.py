@@ -15,11 +15,12 @@ from homeassistant.components.update import UpdateEntity, UpdateEntityFeature
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import HomeAssistantError
+from homeassistant.helpers import issue_registry as ir
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.event import async_track_time_interval
 
-from .const import REPO, VERSION
+from .const import DOMAIN, REPO, VERSION
 from .installer import install_zip
 
 _LOGGER = logging.getLogger(__name__)
@@ -95,10 +96,14 @@ class FlowCardsUpdate(UpdateEntity):
             self._attr_in_progress = False
         self._attr_installed_version = new_version
         self.async_write_ha_state()
-        persistent_notification.async_create(
+        persistent_notification.async_dismiss(self.hass, "flow_cards_restart")
+        ir.async_create_issue(
             self.hass,
-            f"Flow Cards {new_version} er installeret. Genstart Home Assistant "
-            "(Indstillinger → System → Genstart) for at tage den i brug.",
-            title="Flow Cards opdateret",
-            notification_id="flow_cards_restart",
+            DOMAIN,
+            "restart_required",
+            is_fixable=True,
+            is_persistent=False,
+            severity=ir.IssueSeverity.WARNING,
+            translation_key="restart_required",
+            translation_placeholders={"version": new_version},
         )
