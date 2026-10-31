@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.5.1";
+const FC_VERSION = "0.5.2";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -923,6 +923,7 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .tb.listen{background:#4b5563}.tb.listen.on,.btn.on{background:var(--fc-err);color:#fff;border-color:var(--fc-err)}
 .listen-box{position:fixed;left:16px;bottom:16px;z-index:15;width:min(380px,calc(100vw - 32px));max-height:60vh;overflow:auto;background:var(--fc-card);border-radius:16px;box-shadow:0 8px 30px rgba(0,0,0,.35);padding:10px 12px}
 .listen-box .lh{display:flex;align-items:center;gap:8px;margin-bottom:6px}.listen-box .grow{flex:1}
+.listen-box .ls{font-size:11px;color:var(--fc-muted);margin:-4px 2px 6px}
 .listen-box .lp{color:var(--fc-muted);font-size:13px;margin:4px 2px 8px}
 .pulse{width:10px;height:10px;border-radius:50%;background:var(--fc-err);animation:pulse 1s infinite}
 .heard{display:flex;align-items:center;gap:10px;padding:8px 4px;border-top:1px solid var(--fc-line)}
@@ -1986,7 +1987,39 @@ class FlowCardsPanel extends HTMLElement {
     const sub = (type, cb) => L.unsubs.push(conn.subscribeEvents(cb, type));
     sub("state_changed", (ev) => this._heardState(ev.data || {}));
     for (const t of ["zha_event", "deconz_event"]) sub(t, (ev) => this._heardEvent(t, ev.data || {}));
+    this._listenDevices(L);
   }
+
+  /* Buttons that only exist as device triggers (e.g. Zigbee2MQTT remotes without an action entity):
+     subscribe to each device trigger directly, like Home Assistant automations do. */
+  async _listenDevices(L) {
+    const devs = Object.entries(this._hass.devices || {}).filter(([, d]) => d.entry_type !== "service" && !d.disabled_by).map(([id]) => id);
+    this._devTrigCache = this._devTrigCache || {};
+    L.preparing = true;
+    L.buttons = 0;
+    const work = async () => {
+      while (devs.length && this._listen === L) {
+        const id = devs.shift();
+        let trigs = this._devTrigCache[id];
+        if (!trigs) {
+          try { trigs = await this._hass.callWS({ type: "device_automation/trigger/list", device_id: id }); } catch (e) { trigs = []; }
+          this._devTrigCache[id] = trigs || [];
+        }
+        for (const t of (trigs || []).filter((x) => !x.entity_id)) {
+          if (this._listen !== L) return;
+          const d = this._hass.devices[id] || {};
+          const name = d.name_by_user || d.name || "Enhed";
+          const label = this._devTrigLabel(t, {});
+          const item = { key: `dev|${JSON.stringify(t)}`, eid: null, name, text: label, icon: "mdi:gesture-tap-button", def: "dev.trigger", args: { label, full: `${name}: ${label}`, config: t } };
+          L.buttons += 1;
+          L.unsubs.push(this._hass.connection.subscribeMessage(() => this._heard(item), { type: "subscribe_trigger", trigger: t }).catch(() => null));
+        }
+      }
+    };
+    await Promise.all(Array.from({ length: 8 }, work));
+    if (this._listen === L) { L.preparing = false; this._safeRender(); }
+  }
+
 
   _stopListen() {
     if (!this._listen) return;
@@ -2090,7 +2123,10 @@ class FlowCardsPanel extends HTMLElement {
     const rows = L.items.map((h, i) => `<div class="heard"><span class="ic"><ha-icon icon="${esc(h.icon)}"></ha-icon></span>
       <span class="t"><b>${esc(h.name)}</b><span>${esc(h.text)} · ${ago(h.at)}</span></span>
       <button class="btn primary" data-action="listen-use" data-i="${i}">Brug</button></div>`).join("");
-    return `<div class="listen-box"><div class="lh"><span class="pulse"></span><b>Lytter…</b><span class="grow"></span>${L.items.length ? `<button class="btn ghost" data-action="listen-clear">Ryd</button>` : ""}<button class="icon-btn" data-action="listen" title="Stop"><ha-icon icon="mdi:close"></ha-icon></button></div>
+    const left = Math.max(16, Math.round(this.getBoundingClientRect().left) + 16);
+    const status = L.preparing ? "Finder knapper og fjernbetjeninger…" : `Lytter efter alle enheder${L.buttons ? ` og ${L.buttons} knap-hændelser` : ""}`;
+    return `<div class="listen-box" style="left:${left}px"><div class="lh"><span class="pulse"></span><b>Lytter…</b><span class="grow"></span>${L.items.length ? `<button class="btn ghost" data-action="listen-clear">Ryd</button>` : ""}<button class="icon-btn" data-action="listen" title="Stop"><ha-icon icon="mdi:close"></ha-icon></button></div>
+      <div class="ls">${esc(status)}</div>
       ${rows || `<p class="lp">Tryk på en knap, tænd eller sluk noget, åbn en dør – eller sæt noget i et stik med strømmåler. Det dukker op her, og du kan bruge det som NÅR-kort.</p>`}</div>`;
   }
 

@@ -16,6 +16,6 @@
   "integration_type": "service",
   "requirements": [],
   "single_config_entry": true,
-  "version": "0.5.1",
+  "version": "0.5.2",
   "issue_tracker": "https://github.com/amigoogfutte/flow_cards/issues"
 }

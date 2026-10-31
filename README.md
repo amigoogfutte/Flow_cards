@@ -58,9 +58,11 @@ Knappen **Importér fra Node-RED** henter fanerne direkte fra Node-RED-appen. Du
 - **Højttalere:** "Sig …" på enhver medieafspiller via tekst-til-tale.
 - **Node-RED-import:** ha-device-knapper, "mindre/større end"-triggere og store entitetslister bliver nu oversat.
 
-## Lyt (0.5.1)
+## Lyt (0.5.2)
 
 Tryk **Lyt** i editoren, og gør noget fysisk: tryk på en knap, tænd en lampe, åbn en dør eller sæt noget i et stik med strømmåler. Det, Home Assistant opfanger, dukker op i en liste. Tryk **Brug**, og det bliver et NÅR-kort, du kan bygge videre på. Små ændringer og sensorer, der hele tiden ændrer sig, bliver filtreret fra.
+
+Den lytter også på knapper og fjernbetjeninger, der ikke har deres egen entitet (fx Zigbee2MQTT-knapper, der kun sender en hændelse).
 
 ## Data
 

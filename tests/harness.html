@@ -132,7 +132,7 @@ const hass = {
   callWS: async (msg) => {
     window.calls.push(msg);
     const t = msg.type.split("/")[1];
-    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.5.1" };
+    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.5.2" };
     if (t === "save") {
       const f = JSON.parse(JSON.stringify(msg.flow)); delete f.status;
       if (!f.name) throw new Error("Flowet skal have et navn");
@@ -179,7 +179,10 @@ const hass = {
     throw new Error("ukendt " + msg.type);
   },
   connection: {
-    subscribeMessage: async (cb) => { subs.push(cb); return () => { subs = subs.filter((x) => x !== cb); }; },
+    subscribeMessage: async (cb, msg) => {
+      if (msg && msg.type === "subscribe_trigger") { const k = "trigger|" + JSON.stringify(msg.trigger); (window.HAEV[k] = window.HAEV[k] || []).push(cb); return () => { window.HAEV[k] = window.HAEV[k].filter((x) => x !== cb); }; }
+      subs.push(cb); return () => { subs = subs.filter((x) => x !== cb); };
+    },
     subscribeEvents: async (cb, type) => { (window.HAEV[type] = window.HAEV[type] || []).push(cb); return () => { window.HAEV[type] = window.HAEV[type].filter((x) => x !== cb); }; },
   },
 };
