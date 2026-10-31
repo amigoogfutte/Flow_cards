@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.5.4";
+const FC_VERSION = "0.5.5";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -879,6 +879,8 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .dev .t{flex:1;min-width:0}.dev .t div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dev .t .s{font-size:12px;color:var(--fc-muted)}
 .defs{display:flex;flex-direction:column;gap:8px}
+.def.cur{outline:2px solid var(--fc-accent,#ff8a00);outline-offset:-2px}
+.def .curtag{font-size:11px;opacity:.75;margin-left:6px}
 .def{border-radius:12px;border:1px solid var(--fc-line);border-left:4px solid var(--c);padding:12px 14px;text-align:left;width:100%;font-size:15px}
 .def:hover{background:rgba(127,127,127,.08)}
 .field{margin-bottom:14px}
@@ -1412,7 +1414,7 @@ class FlowCardsPanel extends HTMLElement {
         if (p.source.deviceId && cat === "t") {
           const dt = p.devTriggers;
           const devHtml = dt === undefined ? `<div class="empty" style="padding:16px">Henter enhedens knapper og hændelser…</div>`
-            : dt.length ? `<div class="sub">Enhedens knapper og hændelser</div><div class="defs">${dt.map((t, i) => `<button class="def" style="${color}" data-action="pick-devtrig" data-i="${i}">${esc(t.label)}</button>`).join("")}</div>` : "";
+            : dt.length ? `<div class="sub">${p.current ? "Vælg en anden knap eller hændelse" : "Enhedens knapper og hændelser"}</div><div class="defs">${dt.map((t, i) => { const cur = p.current && p.current === JSON.stringify(t.config); return `<button class="def${cur ? " cur" : ""}" style="${color}" data-action="pick-devtrig" data-i="${i}">${esc(t.label)}${cur ? ` <span class="curtag">valgt nu</span>` : ""}</button>`; }).join("")}</div>` : "";
           p._devHtml = devHtml;
         } else p._devHtml = "";
         groups = p.source.entities.map((eid) => ({ name: this._entityName(eid), eid, defs: entityDefs(eid, this._hass.states[eid]).filter((d) => d.cat === cat && !d.hidden) })).filter((g) => g.defs.length);
@@ -1524,6 +1526,18 @@ class FlowCardsPanel extends HTMLElement {
   }
 
   _openPicker(section, editIdx, nodeId) {
+    const devCard = nodeId ? this._draft.nodes.find((n) => n.id === nodeId) : editIdx !== undefined && section !== "logic" ? (this._draft[section] || [])[editIdx] : null;
+    if (devCard && devCard.card === "dev.trigger" && (devCard.config || {}).device_id) {
+      // a device button: show all of the device's buttons/events so another one can be picked
+      const deviceId = devCard.config.device_id;
+      const d = (this._hass.devices || {})[deviceId] || {};
+      const entities = Object.values(this._hass.entities || {}).filter((e) => e.device_id === deviceId && !e.hidden && !e.entity_category && this._hass.states[e.entity_id]).map((e) => e.entity_id);
+      this._picker = { section: nodeId ? devCard.sec : section, step: "cards", source: { type: "device", name: d.name_by_user || d.name || "Enhed", entities, deviceId },
+        editIdx: nodeId ? -1 : editIdx, nodeId: nodeId || undefined, disabled: !!devCard.disabled, current: JSON.stringify(devCard.config) };
+      this._loadDeviceTriggers(deviceId);
+      this._render();
+      return;
+    }
     if (nodeId) {
       const card = this._draft.nodes.find((n) => n.id === nodeId);
       const def = card && this._findDef(card, card.sec);
