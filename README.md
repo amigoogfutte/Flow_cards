@@ -45,6 +45,15 @@ Knappen **Importér fra Node-RED** henter fanerne direkte fra Node-RED-appen. Du
 - Noder, der ikke kan oversættes (function, gate, template, ha-device osv.), bliver til gule noter på lærredet.
 - Flowene oprettes slået fra. **Skift over** slår fanerne fra i Node-RED og flowene til her, og samme knap kan fortryde det igen.
 
+## Nyt i 0.4
+
+- **Enhedskort:** Vælg en enhed, f.eks. en IKEA-puk, under NÅR, og få dens knapper og hændelser som kort ("Sender “Tænd”", "Lysstyrke op (hold)" …). Det bruger Home Assistants egne enheds-triggere, så det virker med Zigbee2MQTT, ZHA, BTHome osv.
+- **Tal-kort med varighed:** "Bliver under 30 % *i 10 min*".
+- **Flere entiteter i ét NÅR-kort:** Avanceret → "ændrer tilstand", f.eks. 46 enheder, der bliver *unavailable* i 10 min.
+- **Lys:** "Gør lysere med X %" og "Gør mørkere med X %".
+- **Højttalere:** "Sig …" på enhver medieafspiller via tekst-til-tale.
+- **Node-RED-import:** ha-device-knapper, "mindre/større end"-triggere og store entitetslister bliver nu oversat.
+
 ## Data
 
 - Flows gemmes i `/config/.storage/flow_cards.flows` og historik i `/config/.storage/flow_cards.history`. Begge kommer med i HA's sikkerhedskopier.

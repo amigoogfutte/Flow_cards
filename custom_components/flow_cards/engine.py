@@ -304,7 +304,9 @@ class FlowManager:
                 if kind == "event_entity" and new is not None:
                     info["event_type"] = new.attributes.get("event_type")
                 if not ok:
-                    if kind != "event_entity":
+                    if kind == "state" or (
+                        kind == "numeric" and not logic.numeric_condition(card, new_v)
+                    ):
                         _cancel(entity_id)
                     return
                 if for_s <= 0 or kind == "event_entity":
@@ -316,7 +318,10 @@ class FlowManager:
                 @callback
                 def _held(_now: Any) -> None:
                     pending.pop(entity_id, None)
-                    if _value(hass.states.get(entity_id), attribute) == target_v:
+                    current = _value(hass.states.get(entity_id), attribute)
+                    still = (logic.numeric_condition(card, current) if kind == "numeric"
+                             else current == target_v)
+                    if still:
                         info["description"] += f" (i {int(for_s)} s)"
                         fire(info)
 
@@ -394,6 +399,50 @@ class FlowManager:
                     remove()
 
             return [_unsub_start]
+
+        if kind == "device":
+            # any Home Assistant device trigger (Zigbee2MQTT / ZHA / deCONZ buttons, BTHome, ...)
+            from homeassistant.helpers.trigger import (  # noqa: PLC0415
+                async_initialize_triggers,
+                async_validate_trigger_config,
+            )
+
+            config = dict(card["config"])
+            label = str(card.get("label") or (card.get("args") or {}).get("label") or "Enhed")
+            holder: dict[str, Any] = {"unsub": None, "stopped": False}
+
+            async def _action(run_variables: dict | None = None, context: Any = None) -> None:
+                trig = (run_variables or {}).get("trigger") or {}
+                fire({"kind": "device", "description": label, "data": trig})
+
+            def _log(level: int, msg: str, **_kw: Any) -> None:
+                _LOGGER.log(level, "Enhedskort '%s': %s", label, msg)
+
+            async def _setup() -> None:
+                try:
+                    conf = await async_validate_trigger_config(hass, [config])
+                    unsub = await async_initialize_triggers(
+                        hass, conf, _action, "flow_cards", f"flow_cards {flow_id}", _log
+                    )
+                except Exception as err:  # noqa: BLE001
+                    _LOGGER.warning("Enhedskort '%s' kunne ikke aktiveres: %s", label, err)
+                    self.arm_errors[flow_id] = f"Enhedskortet '{label}' kunne ikke aktiveres: {err}"
+                    self._notify({"event": "flows_changed"})
+                    return
+                if holder["stopped"]:
+                    if unsub:
+                        unsub()
+                    return
+                holder["unsub"] = unsub
+
+            hass.async_create_task(_setup())
+
+            def _stop() -> None:
+                holder["stopped"] = True
+                if holder["unsub"]:
+                    holder["unsub"]()
+
+            return [_stop]
 
         raise HomeAssistantError(f"Ukendt NÅR-kort {kind}")
 
@@ -713,7 +762,9 @@ class FlowManager:
     async def _run_action(self, card: dict, variables: dict, context: Context, depth: int) -> str:
         kind = card["kind"]
         if kind == "service":
-            entity_ids = logic.as_list(self._render(card.get("entity_id"), variables))
+            entity_ids = logic.as_list(
+                self._render(card.get("target_entity_id") or card.get("entity_id"), variables)
+            )
             target = {"entity_id": entity_ids} if entity_ids else None
             data = self._render(card.get("data") or {}, variables)
             if not isinstance(data, dict):

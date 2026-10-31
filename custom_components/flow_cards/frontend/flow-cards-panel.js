@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.3.0";
+const FC_VERSION = "0.4.0";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -67,6 +67,12 @@ const EVENT_LABELS = {
   quadruple: "Firdobbelt tryk", quadruple_press: "Firdobbelt tryk", long_press: "Langt tryk", long: "Langt tryk",
   hold: "Holdes inde", repeat: "Holdes inde (gentages)", long_release: "Slippes efter langt tryk", release: "Slippes",
   rotate_left: "Drejes til venstre", rotate_right: "Drejes til højre", shake: "Rystes", tap: "Bankes på",
+  on: "Tænd", off: "Sluk", toggle: "Skift", brightness_move_up: "Lysstyrke op (hold)", brightness_move_down: "Lysstyrke ned (hold)",
+  brightness_stop: "Lysstyrke stop", brightness_up_click: "Lysstyrke op (klik)", brightness_down_click: "Lysstyrke ned (klik)",
+  arrow_left_click: "Pil venstre", arrow_right_click: "Pil højre", button_short_press: "Kort tryk", button_long_press: "Langt tryk",
+  button_double_press: "Dobbelt-tryk", button_triple_press: "Tredobbelt tryk", remote_button_short_press: "Kort tryk",
+  remote_button_long_press: "Langt tryk", remote_button_double_press: "Dobbelt-tryk", remote_button_short_release: "Slippes",
+  remote_button_long_release: "Slippes efter langt tryk",
 };
 const eventLabel = (t, short) => {
   const base = EVENT_LABELS[t] || String(t).replace(/_/g, " ");
@@ -159,17 +165,20 @@ function appDefs(ctx) {
     { id: "logic.any", app: "logic", cat: "l", text: () => "Fortsæt ved det <b>første</b> input", build: () => ({ kind: "any" }) },
     { id: "logic.note", app: "logic", cat: "l", text: (a) => esc(a.text || "Note"),
       fields: [{ key: "text", label: "Note", type: "textarea", required: true }], build: (a) => ({ kind: "note", text: a.text }) },
+    // Enheder (HA device triggers, e.g. Zigbee buttons)
+    { id: "dev.trigger", app: "device", cat: "t", hidden: true, text: (a) => esc(a.label || "Enhedshændelse"),
+      build: (a) => ({ kind: "device", label: a.full || a.label, config: a.config }) },
     // Avanceret
     { id: "adv.state", app: "advanced", cat: "t",
-      text: (a) => `${pill(ename(a.entity_id))} ændrer tilstand${a.from ? ` fra ${pill(a.from)}` : ""}${a.to ? ` til ${pill(a.to)}` : ""}${num(a.minutes) ? ` i ${pill(`${a.minutes} min`)}` : ""}`,
-      fields: [{ key: "entity_id", label: "Entitet", type: "entity", required: true }, { key: "from", label: "Fra tilstand (valgfri)", type: "text" },
+      text: (a) => { const l = Array.isArray(a.entity_id) ? a.entity_id : a.entity_id ? [a.entity_id] : []; return `${pill(l.length ? ename(l[0]) : "")}${l.length > 1 ? ` ${pill(`+${l.length - 1} flere`)}` : ""} ændrer tilstand${a.from ? ` fra ${pill(a.from)}` : ""}${a.to ? ` til ${pill(a.to)}` : ""}${num(a.minutes) ? ` i ${pill(`${a.minutes} min`)}` : ""}`; },
+      fields: [{ key: "entity_id", label: "Entiteter (én eller flere)", type: "entities", required: true }, { key: "from", label: "Fra tilstand (valgfri)", type: "text" },
         { key: "to", label: "Til tilstand (valgfri)", type: "text" }, { key: "attribute", label: "Attribut (valgfri)", type: "text" },
         { key: "minutes", label: "I mindst (minutter, valgfri)", type: "number", min: 0 }],
-      build: (a) => ({ kind: "state", entity_id: [a.entity_id], from: a.from || undefined, to: a.to || undefined, attribute: a.attribute || undefined, for: num(a.minutes) ? num(a.minutes) * 60 : undefined }) },
+      build: (a) => ({ kind: "state", entity_id: Array.isArray(a.entity_id) ? a.entity_id : [a.entity_id], from: a.from || undefined, to: a.to || undefined, attribute: a.attribute || undefined, for: num(a.minutes) ? num(a.minutes) * 60 : undefined }) },
     { id: "adv.numeric", app: "advanced", cat: "t",
-      text: (a) => `${pill(ename(a.entity_id))}${a.attribute ? ` (${esc(a.attribute)})` : ""} bliver${a.above !== undefined && a.above !== "" ? ` over ${pill(a.above)}` : ""}${a.below !== undefined && a.below !== "" ? ` under ${pill(a.below)}` : ""}`,
-      fields: [{ key: "entity_id", label: "Entitet", type: "entity", required: true }, { key: "above", label: "Over", type: "number" }, { key: "below", label: "Under", type: "number" }, { key: "attribute", label: "Attribut (valgfri)", type: "text" }],
-      build: (a) => ({ kind: "numeric", entity_id: [a.entity_id], above: num(a.above), below: num(a.below), attribute: a.attribute || undefined }) },
+      text: (a) => `${pill(ename(a.entity_id))}${a.attribute ? ` (${esc(a.attribute)})` : ""} bliver${a.above !== undefined && a.above !== "" ? ` over ${pill(a.above)}` : ""}${a.below !== undefined && a.below !== "" ? ` under ${pill(a.below)}` : ""}${num(a.minutes) ? ` i ${pill(`${a.minutes} min`)}` : ""}`,
+      fields: [{ key: "entity_id", label: "Entitet", type: "entity", required: true }, { key: "above", label: "Over", type: "number" }, { key: "below", label: "Under", type: "number" }, { key: "attribute", label: "Attribut (valgfri)", type: "text" }, { key: "minutes", label: "I mindst (minutter, valgfri)", type: "number", min: 0 }],
+      build: (a) => ({ kind: "numeric", entity_id: [a.entity_id], above: num(a.above), below: num(a.below), attribute: a.attribute || undefined, for: num(a.minutes) ? num(a.minutes) * 60 : undefined }) },
     { id: "adv.state_c", app: "advanced", cat: "c", text: (a) => `${pill(ename(a.entity_id))} er ${pill(a.state)}`,
       fields: [{ key: "entity_id", label: "Entitet", type: "entity", required: true }, { key: "state", label: "Tilstand (flere adskilt med komma)", type: "text", required: true }, { key: "attribute", label: "Attribut (valgfri)", type: "text" }],
       build: (a) => ({ kind: "state", entity_id: [a.entity_id], state: a.state.split(",").map((s) => s.trim()).filter(Boolean), attribute: a.attribute || undefined }) },
@@ -247,8 +256,11 @@ function entityDefs(eid, st) {
     T("t_below", (a) => `Temperaturen bliver under ${pill(`${a.below}°`)}`, (a) => ({ kind: "numeric", attribute: "current_temperature", below: num(a.below) }), belowF);
   }
   if (isNum) {
-    T("above", (a) => `Bliver over ${pill(`${a.above}${unit}`)}`, (a) => ({ kind: "numeric", above: num(a.above) }), aboveF);
-    T("below", (a) => `Bliver under ${pill(`${a.below}${unit}`)}`, (a) => ({ kind: "numeric", below: num(a.below) }), belowF);
+    const forF = { key: "minutes", label: "Og har været det i mindst (minutter, valgfri)", type: "number", min: 0 };
+    const forTxt = (a) => (num(a.minutes) ? ` i ${pill(`${a.minutes} min`)}` : "");
+    const forVal = (a) => (num(a.minutes) ? num(a.minutes) * 60 : undefined);
+    T("above", (a) => `Bliver over ${pill(`${a.above}${unit}`)}${forTxt(a)}`, (a) => ({ kind: "numeric", above: num(a.above), for: forVal(a) }), [...aboveF, forF]);
+    T("below", (a) => `Bliver under ${pill(`${a.below}${unit}`)}${forTxt(a)}`, (a) => ({ kind: "numeric", below: num(a.below), for: forVal(a) }), [...belowF, forF]);
   }
   if (!["event", "button", "input_button"].includes(d)) {
     T("to", (a) => `Tilstanden ændres til ${pill(a.to)}`, (a) => ({ kind: "state", to: a.to }), [{ key: "to", label: "Tilstand", type: "text", required: true, default: st ? st.state : "" }]);
@@ -283,6 +295,10 @@ function entityDefs(eid, st) {
     A("dim", (a) => `Sæt lysstyrke til ${pill(`${a.pct} %`)}${num(a.transition) ? ` over ${pill(`${a.transition} sek`)}` : ""}`,
       (a) => ({ kind: "service", service: "light.turn_on", data: { brightness_pct: num(a.pct), ...(num(a.transition) ? { transition: num(a.transition) } : {}) } }),
       [{ key: "pct", label: "Lysstyrke (%)", type: "range", min: 1, max: 100, required: true, default: 50 }, { key: "transition", label: "Overgang i sekunder (valgfri)", type: "number", min: 0 }]);
+    A("brighter", (a) => `Gør lysere med ${pill(`${a.pct} %`)}`, (a) => ({ kind: "service", service: "light.turn_on", data: { brightness_step_pct: num(a.pct) } }),
+      [{ key: "pct", label: "Hvor meget lysere (%)", type: "range", min: 1, max: 100, required: true, default: 10 }]);
+    A("darker", (a) => `Gør mørkere med ${pill(`${a.pct} %`)}`, (a) => ({ kind: "service", service: "light.turn_on", data: { brightness_step_pct: -num(a.pct) } }),
+      [{ key: "pct", label: "Hvor meget mørkere (%)", type: "range", min: 1, max: 100, required: true, default: 10 }]);
     if ((at.supported_color_modes || []).some((m) => ["color_temp", "hs", "xy", "rgb", "rgbw", "rgbww"].includes(m))) {
       A("ct", (a) => `Sæt farvetemperatur til ${pill(`${a.kelvin} K`)}`, (a) => ({ kind: "service", service: "light.turn_on", data: { color_temp_kelvin: num(a.kelvin) } }),
         [{ key: "kelvin", label: "Kelvin", type: "range", min: at.min_color_temp_kelvin || 2000, max: at.max_color_temp_kelvin || 6500, required: true, default: 2700 }]);
@@ -315,6 +331,8 @@ function entityDefs(eid, st) {
       [{ key: "vol", label: "Lydstyrke (%)", type: "range", min: 0, max: 100, required: true, default: 30 }]);
     A("on", () => "Tænd", svc("media_player.turn_on"));
     A("off", () => "Sluk", svc("media_player.turn_off"));
+    A("say", (a) => `Sig ${pill(a.message)}`, (a) => ({ kind: "service", service: "tts.speak", target_entity_id: [a.tts], data: { media_player_entity_id: eid, message: a.message } }),
+      [{ key: "message", label: "Tekst (skabeloner er tilladt)", type: "textarea", required: true }, { key: "tts", label: "Stemme", type: "tts", required: true }]);
   } else if (d === "lock") {
     A("lock", () => "Lås", svc("lock.lock"));
     A("unlock", () => "Lås op", svc("lock.unlock"));
@@ -535,6 +553,19 @@ function nodeRedImport(all, tabIds) {
         const ents = nrEntities(n);
         if (!ents.length) { note(n, "bruger mønster/regex i stedet for faste entiteter"); continue; }
         const forS = n.for && num(n.for) > 0 ? nrUnits(n.for, n.forUnits || "minutes") : 0;
+        const opNum = { lt: "below", lte: "below", gt: "above", gte: "above" }[n.ifStateOperator];
+        if (t === "server-state-changed" && n.ifState !== "" && n.ifState !== undefined && opNum && num(n.ifState) !== undefined && !isNaN(num(n.ifState))) {
+          ents.forEach((e, k) => mk({ id: `${n.id}~${k}`, kind: "numeric", card: "adv.numeric", entity_id: [e], [opNum]: num(n.ifState), ...(forS ? { for: forS } : {}),
+            args: { entity_id: e, [opNum]: num(n.ifState), ...(forS ? { minutes: Math.round((forS / 60) * 100) / 100 } : {}) } }, { entity: e }, [0], k));
+          if (n.wires && n.wires[1] && n.wires[1].length) tabReport.notes.push(`${n.name || ents[0]}: "ellers"-udgangen er ikke overført`);
+          continue;
+        }
+        if (t === "server-state-changed" && ents.length > 3 && !ents.some((e) => NR_EVENTLIKE.includes(e.split(".")[0]))) {
+          const to = n.ifState && (n.ifStateOperator || "is") === "is" ? String(n.ifState) : undefined;
+          mk({ id: `${n.id}~all`, kind: "state", card: "adv.state", entity_id: ents, ...(to ? { to } : {}), ...(forS ? { for: forS } : {}),
+            args: { entity_id: ents, ...(to ? { to } : {}), ...(forS ? { minutes: Math.round((forS / 60) * 100) / 100 } : {}) } }, {}, [0]);
+          continue;
+        }
         ents.forEach((e, k) => {
           const dom = e.split(".")[0];
           if (NR_EVENTLIKE.includes(dom)) {
@@ -590,7 +621,12 @@ function nodeRedImport(all, tabIds) {
         mk({ id: n.id, kind: "sun", card: `sun.${ev}`, event: ev, offset, args: { offset } }, {});
         if (ev !== n.event) tabReport.notes.push(`${n.name || n.event}: "${n.event}" er sat til ${ev === "sunset" ? "solnedgang" : "solopgang"}`);
       } else if (t === "ha-device" && n.deviceType === "trigger") {
-        note(n, "enheds-trigger: vælg den tilsvarende knap eller sensor som NÅR-kort");
+        const ev = n.event || {};
+        if (!ev.device_id || !ev.domain) { note(n, "enheds-trigger uden enhed"); continue; }
+        const sub = ev.subtype ? EVENT_LABELS[ev.subtype] || String(ev.subtype).replace(/_/g, " ") : "";
+        const label = ev.type === "action" && sub ? `Sender “${sub}”` : [String(ev.type || "").replace(/_/g, " "), sub].filter(Boolean).join(": ");
+        const config = { platform: "device", ...ev };
+        mk({ id: n.id, kind: "device", card: "dev.trigger", label: n.name ? `${n.name}: ${label}` : label, config, args: { label, full: n.name ? `${n.name}: ${label}` : label, config } }, {});
       } else if (["server-events", "poll-state", "ha-webhook", "ha-time", "zone", "ha-tag", "ha-sentence", "http in", "mqtt in"].includes(t)) {
         note(n, "denne type start kan ikke oversættes endnu");
       }
@@ -831,6 +867,9 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .nr-tab .t{display:flex;flex-direction:column}.nr-tab .s{font-size:12px;color:var(--fc-muted)}
 .nr-notes{margin:0;padding-left:20px;font-size:13px;line-height:1.6;color:var(--fc-muted)}
 .spin{animation:spin 1s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.ents{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}
+.ent{display:inline-flex;align-items:center;gap:6px;padding:4px 6px 4px 10px;border-radius:999px;background:rgba(127,127,127,.14);font-size:13px}
+.ent small{color:var(--fc-muted)}.ent button{width:20px;height:20px;border-radius:50%;font-size:11px}.ent button:hover{background:rgba(127,127,127,.25)}
 .chip.unsaved{background:var(--fc-warn);color:#fff;font-weight:600}
 .chip[hidden]{display:none}
 .stash{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px;padding:10px 14px;border-radius:12px;background:color-mix(in srgb,var(--fc-warn) 16%,var(--fc-card));border-left:4px solid var(--fc-warn)}
@@ -1060,6 +1099,10 @@ class FlowCardsPanel extends HTMLElement {
     return `${esc(card.kind)} ${pill("ukendt kort")}`;
   }
   _cardSource(card, sec) {
+    if (card.card === "dev.trigger") {
+      const d = (this._hass.devices || {})[(card.config || {}).device_id];
+      return { name: d ? d.name_by_user || d.name : "Enhed", icon: "mdi:gesture-tap-button" };
+    }
     if (card.card && card.card.startsWith("e.")) {
       const eid = (card.entity_id || [])[0];
       return { name: this._entityName(eid), icon: this._entityIcon(eid || "x.x") };
@@ -1246,6 +1289,14 @@ class FlowCardsPanel extends HTMLElement {
       }
       groups.get(key).entities.push(eid);
     }
+    if (cat === "t") {
+      for (const [id, dev] of Object.entries(devs)) {
+        if (groups.has(`d:${id}`) || dev.entry_type === "service" || dev.disabled_by) continue;
+        const area = areas[dev.area_id];
+        groups.set(`d:${id}`, { key: `d:${id}`, name: dev.name_by_user || dev.name || id, area: area ? area.name : "", entities: [], icon: "mdi:devices" });
+      }
+    }
+    for (const g of groups.values()) if (g.key.startsWith("d:")) g.deviceId = g.key.slice(2);
     let list = [...groups.values()];
     if (q) list = list.filter((g) => `${g.name} ${g.area} ${g.entities.join(" ")} ${g.entities.map((e) => this._entityName(e)).join(" ")}`.toLowerCase().includes(q));
     list.sort((a, b) => (!a.area - !b.area) || a.area.localeCompare(b.area, "da") || a.name.localeCompare(b.name, "da"));
@@ -1270,7 +1321,7 @@ class FlowCardsPanel extends HTMLElement {
       const devHtml = shown.map((g) => {
         const head = g.area !== lastArea ? `<div class="sub">${esc(g.area || "Uden område")}</div>` : "";
         lastArea = g.area;
-        const sub = g.entities.length > 1 ? `${g.entities.length} entiteter` : g.entities[0];
+        const sub = g.entities.length > 1 ? `${g.entities.length} entiteter` : g.entities[0] || "Enhed";
         return `${head}<button class="dev" data-action="pick-source" data-key="${esc(g.key)}"><span class="ic"><ha-icon icon="${esc(g.icon)}"></ha-icon></span><span class="t"><div>${esc(g.name)}</div><div class="s">${esc(sub)}</div></span><ha-icon icon="mdi:chevron-right"></ha-icon></button>`;
       }).join("");
       content = `${p.search ? "" : `<div class="apps">${apps.map((a) => `<button class="app" data-action="pick-app" data-app="${a.id}" style="${color}"><span class="ic"><ha-icon icon="${a.icon}"></ha-icon></span>${esc(a.name)}</button>`).join("")}</div>`}
@@ -1286,9 +1337,15 @@ class FlowCardsPanel extends HTMLElement {
         groups = [{ name: "", defs: appDefs(this._ctx()).filter((d) => d.app === app.id && d.cat === cat && !d.hidden), eid: null }];
       } else {
         title = p.source.name;
+        if (p.source.deviceId && cat === "t") {
+          const dt = p.devTriggers;
+          const devHtml = dt === undefined ? `<div class="empty" style="padding:16px">Henter enhedens knapper og hændelser…</div>`
+            : dt.length ? `<div class="sub">Enhedens knapper og hændelser</div><div class="defs">${dt.map((t, i) => `<button class="def" style="${color}" data-action="pick-devtrig" data-i="${i}">${esc(t.label)}</button>`).join("")}</div>` : "";
+          p._devHtml = devHtml;
+        } else p._devHtml = "";
         groups = p.source.entities.map((eid) => ({ name: this._entityName(eid), eid, defs: entityDefs(eid, this._hass.states[eid]).filter((d) => d.cat === cat && !d.hidden) })).filter((g) => g.defs.length);
       }
-      content = groups.map((g) => `${groups.length > 1 || g.eid && g.name !== title ? `<div class="sub">${esc(g.name)}</div>` : ""}<div class="defs">${g.defs.map((d) => {
+      content = (p.source && p.source.type === "device" ? p._devHtml || "" : "") + (p.source && p.source.type === "device" && !groups.length && p.devTriggers && !p.devTriggers.length ? `<div class="empty">Denne enhed har ingen kort for dette afsnit.</div>` : "") + groups.map((g) => `${groups.length > 1 || g.eid && g.name !== title ? `<div class="sub">${esc(g.name)}</div>` : ""}<div class="defs">${g.defs.map((d) => {
         let txt; try { txt = d.text(Object.fromEntries((d.fields || []).map((fl) => [fl.key, fl.type === "select" || fl.type === "number" || fl.type === "range" ? fl.default ?? "" : ""]))); } catch (e) { txt = d.id; }
         return `<button class="def" style="${color}" data-action="pick-def" data-def="${esc(d.id)}" data-eid="${esc(g.eid || "")}">${txt}</button>`;
       }).join("")}</div>`).join("");
@@ -1335,6 +1392,20 @@ class FlowCardsPanel extends HTMLElement {
         input = `<select ${attrs}><option value="">Vælg…</option>${this._notifyTargets().map(([k, l]) => `<option value="${esc(k)}" ${v === k ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`; break;
       case "flow":
         input = `<select ${attrs}><option value="">Vælg flow…</option>${this._flows.filter((f) => f.id !== this._draft.id).map((f) => `<option value="${f.id}" ${v === f.id ? "selected" : ""}>${esc(f.name)}</option>`).join("")}</select>`; break;
+      case "entities": {
+        const list = Array.isArray(v) ? v : v ? [v] : [];
+        const opts = Object.keys(this._hass.states).sort().map((e) => `<option value="${esc(e)}">${esc(this._entityName(e))}</option>`).join("");
+        input = `<div class="ents">${list.map((e, i) => `<span class="ent">${esc(this._entityName(e))} <small>${esc(e)}</small><button type="button" data-action="ent-del" data-key="${fl.key}" data-i="${i}" title="Fjern">✕</button></span>`).join("")}</div>
+          <input id="${id}" data-ent-add="${fl.key}" list="dl-${fl.key}" placeholder="Søg og vælg en entitet for at tilføje…"><datalist id="dl-${fl.key}">${opts}</datalist>`;
+        break;
+      }
+      case "tts": {
+        const ttsList = Object.keys(this._hass.states).filter((e) => e.startsWith("tts.")).sort((a, b) => (b.includes("cloud") - a.includes("cloud")));
+        input = ttsList.length
+          ? `<select ${attrs}>${ttsList.map((e) => `<option value="${esc(e)}" ${v === e ? "selected" : ""}>${esc(this._entityName(e))}</option>`).join("")}</select>`
+          : `<div class="error-box">Der er ingen tekst-til-tale-tjeneste i Home Assistant. Tilføj f.eks. Google Translate under Enheder og tjenester.</div>`;
+        break;
+      }
       case "entity": {
         const opts = Object.keys(this._hass.states).sort().map((e) => `<option value="${esc(e)}">${esc(this._entityName(e))}</option>`).join("");
         input = `<input ${attrs} list="dl-${fl.key}" value="${esc(v)}" placeholder="light.kontor"><datalist id="dl-${fl.key}">${opts}</datalist>`; break;
@@ -1350,6 +1421,34 @@ class FlowCardsPanel extends HTMLElement {
       }
     }
     return `<div class="field">${lab}${input}</div>`;
+  }
+
+  async _loadDeviceTriggers(deviceId) {
+    const p = this._picker;
+    let list = [];
+    try {
+      const trigs = await this._hass.callWS({ type: "device_automation/trigger/list", device_id: deviceId });
+      const own = (trigs || []).filter((t) => !t.entity_id);   // entity-based ones are already offered as entity cards
+      const domains = [...new Set(own.map((t) => t.domain))];
+      let res = {};
+      try {
+        const tr = await this._hass.callWS({ type: "frontend/get_translations", language: this._hass.language || "en", category: "device_automation", integration: domains });
+        res = (tr && tr.resources) || {};
+      } catch (e) { /* translations are optional */ }
+      list = own.map((t) => ({ config: t, label: this._devTrigLabel(t, res) }));
+    } catch (err) {
+      list = [];
+    }
+    if (this._picker === p) { p.devTriggers = list; this._render(); }
+  }
+
+  _devTrigLabel(t, res) {
+    const sub = t.subtype ? EVENT_LABELS[t.subtype] || res[`component.${t.domain}.device_automation.trigger_subtype.${t.subtype}`] || String(t.subtype).replace(/_/g, " ") : "";
+    if (t.type === "action" && sub) return `Sender “${sub}”`;
+    const tpl = res[`component.${t.domain}.device_automation.trigger_type.${t.type}`];
+    if (tpl) return tpl.replace(/\{subtype\}/g, sub).replace(/"/g, "");
+    const typ = EVENT_LABELS[t.type] || String(t.type).replace(/_/g, " ");
+    return sub ? `${typ}: ${sub}` : typ;
   }
 
   _openPicker(section, editIdx, nodeId) {
@@ -1371,10 +1470,17 @@ class FlowCardsPanel extends HTMLElement {
     this._render();
   }
 
-  _chooseDef(def, eid) {
+  _chooseDef(def, eid, preset) {
     const p = this._picker;
     const args = {};
     for (const fl of def.fields || []) if (fl.default !== undefined) args[fl.key] = clone(fl.default);
+    for (const fl of def.fields || []) {
+      if (fl.type === "tts" && args[fl.key] === undefined) {
+        const t = Object.keys(this._hass.states).filter((e) => e.startsWith("tts.")).sort((a, b) => (b.includes("cloud") - a.includes("cloud")))[0];
+        if (t) args[fl.key] = t;
+      }
+    }
+    if (preset) Object.assign(args, preset);
     if (!(def.fields || []).length) {
       p.def = def; p.eid = eid; p.args = args;
       this._confirmCard();
@@ -1602,12 +1708,13 @@ class FlowCardsPanel extends HTMLElement {
       case "pick-source": {
         const g = this._sources(catOf(this._picker.section)).find((x) => x.key === el.dataset.key);
         if (!g) return;
-        if (g.entities.length === 1) {
+        if (g.entities.length === 1 && !(g.deviceId && catOf(this._picker.section) === "t")) {
           const defs = entityDefs(g.entities[0], this._hass.states[g.entities[0]]).filter((d) => d.cat === catOf(this._picker.section) && !d.hidden);
           Object.assign(this._picker, { step: "cards", source: { type: "device", name: g.name, entities: g.entities } });
           if (defs.length === 1) { this._chooseDef(defs[0], g.entities[0]); return; }
         } else {
-          Object.assign(this._picker, { step: "cards", source: { type: "device", name: g.name, entities: g.entities } });
+          Object.assign(this._picker, { step: "cards", source: { type: "device", name: g.name, entities: g.entities, deviceId: g.deviceId } });
+          if (g.deviceId && catOf(this._picker.section) === "t") this._loadDeviceTriggers(g.deviceId);
         }
         this._render(); break;
       }
@@ -1626,6 +1733,18 @@ class FlowCardsPanel extends HTMLElement {
       }
       case "confirm-card":
         this._confirmCard(); break;
+      case "ent-del": {
+        const p = this._picker; const k = el.dataset.key;
+        const l = Array.isArray(p.args[k]) ? p.args[k] : p.args[k] ? [p.args[k]] : [];
+        l.splice(Number(el.dataset.i), 1); p.args[k] = l; this._keepScroll = true; this._render(); break;
+      }
+      case "pick-devtrig": {
+        const p = this._picker;
+        const t = (p.devTriggers || [])[Number(el.dataset.i)];
+        const def = appDefs(this._ctx()).find((d) => d.id === "dev.trigger");
+        if (t && def) this._chooseDef(def, null, { label: t.label, full: `${p.source.name}: ${t.label}`, config: t.config });
+        break;
+      }
       case "nr-open": this._nrOpen(); break;
       case "nr-close": if (!this._nr || !this._nr.busy) { this._nr = null; this._render(); } break;
       case "nr-paste-mode": this._nr = { step: "paste", paste: "" }; this._render(); break;
@@ -1651,6 +1770,9 @@ class FlowCardsPanel extends HTMLElement {
     const field = t.dataset && t.dataset.field;
     if (field === "search") { this._search = t.value; this._renderListOnly(); return; }
     if (field === "new-name") { this._newOpts.name = t.value; return; }
+    if (t.dataset && t.dataset.entAdd && this._picker && (e.inputType === "insertReplacementText" || !e.inputType) && this._hass.states[t.value.trim()]) {
+      this._onChange(e); return;
+    }
     if (field === "nr-paste") { this._nr.paste = t.value; return; }
     if (field === "new-folder-name") { this._newOpts.newFolder = t.value; return; }
     if (field === "name") { this._draft.name = t.value; this._markDirty(); return; }
@@ -1683,6 +1805,15 @@ class FlowCardsPanel extends HTMLElement {
     if (field === "draft-folder") { this._draft.folder = t.value; this._markDirty(); return; }
     if (field === "draft-mode") { this._draft.mode = t.value; this._markDirty(); return; }
     if (field === "picker-unavail") { this._picker.showUnavailable = t.checked; this._render(); return; }
+    if (t.dataset && t.dataset.entAdd && this._picker) {
+      const k = t.dataset.entAdd; const val = t.value.trim();
+      if (!this._hass.states[val]) return;
+      const l = Array.isArray(this._picker.args[k]) ? this._picker.args[k] : this._picker.args[k] ? [this._picker.args[k]] : [];
+      if (!l.includes(val)) l.push(val);
+      this._picker.args[k] = l; this._keepScroll = true; this._render();
+      setTimeout(() => { const n = this.shadowRoot.querySelector(`[data-ent-add="${k}"]`); if (n) n.focus(); }, 0);
+      return;
+    }
     if (field === "card-disabled") { this._picker.disabled = t.checked; return; }
     if (t.dataset && t.dataset.arg && this._picker) {
       this._picker.args[t.dataset.arg] = t.type === "checkbox" ? t.checked : t.value;

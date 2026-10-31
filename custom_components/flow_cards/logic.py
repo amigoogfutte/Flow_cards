@@ -10,7 +10,7 @@ from typing import Any
 WEEKDAYS = ("mon", "tue", "wed", "thu", "fri", "sat", "sun")
 UNAVAILABLE = ("unavailable", "unknown", None)
 
-TRIGGER_KINDS = {"state", "numeric", "event_entity", "time", "interval", "sun", "event", "start", "manual"}
+TRIGGER_KINDS = {"state", "numeric", "event_entity", "time", "interval", "sun", "event", "start", "manual", "device"}
 CONDITION_KINDS = {"state", "numeric", "time", "sun", "template"}
 ACTION_KINDS = {"service", "delay", "notify", "flow_run", "flow_enable", "log", "stop"}
 LOGIC_KINDS = {"all", "any", "note"}
@@ -203,6 +203,10 @@ def _check_trigger(c: dict) -> None:
         raise FlowValidationError("Solkort skal være solopgang eller solnedgang")
     if k == "event":
         _require(c, "event_type")
+    if k == "device":
+        cfg = c.get("config")
+        if not isinstance(cfg, dict) or not cfg.get("device_id") or not cfg.get("domain"):
+            raise FlowValidationError("Enhedskortet mangler enhed")
 
 
 def _check_condition(c: dict) -> None:

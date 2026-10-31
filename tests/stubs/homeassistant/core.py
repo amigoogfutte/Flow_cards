@@ -39,3 +39,5 @@ class HomeAssistant:
         self.bus = Bus(); self.states = States(self); self.services = Services(); self.is_running = True; self.data = {}
     def async_create_background_task(self, coro, name=None, eager_start=True):
         return asyncio.get_event_loop().create_task(coro)
+    def async_create_task(self, coro, name=None, eager_start=True):
+        return asyncio.get_event_loop().create_task(coro)

@@ -31,6 +31,9 @@ const states = {};
   st("sun.sun", "below_horizon", { friendly_name: "Sun" }),
   st("notify.rikke_mobil", "unknown", { friendly_name: "Rikke_mobil" }),
   st("scene.kontor_jesper_ved_computer", "unknown", { friendly_name: "Kontor Jesper 1 jesper er ved computer" }),
+  st("tts.google_translate_en_com", "unknown", { friendly_name: "Google Translate" }),
+  st("tts.home_assistant_cloud", "unknown", { friendly_name: "Home Assistant Cloud" }),
+  st("media_player.kokken", "off", { friendly_name: "Køkken højttaler" }),
 ].forEach((s) => (states[s.entity_id] = s));
 const entities = {
   "light.kontor": { device_id: "d1" }, "light.jesper_1": { device_id: "d2" }, "light.gulv_kontor": { device_id: "d3" },
@@ -41,7 +44,7 @@ const entities = {
 const devices = {
   d1: { name: "Kontor loft", area_id: "kontor" }, d2: { name: "Jesper 1", area_id: "kontor" }, d3: { name: "Gulvlampe", area_id: "kontor" },
   d4: { name: "Kontor kontakt", area_id: "kontor" }, d5: { name: "Presson sensor Kontor", area_id: "kontor" },
-  d6: { name: "Gardin", area_id: "sove" }, d7: { name: "Aqara Smart Lock U200", area_id: "gang" },
+  d6: { name: "Gardin", area_id: "sove" }, d8: { name: "Ikea puk soveværelse", area_id: "sove" }, d7: { name: "Aqara Smart Lock U200", area_id: "gang" },
 };
 const areas = { kontor: { name: "Kontor" }, sove: { name: "Soveværelse" }, gang: { name: "Gang" } };
 const services = { light: { turn_on: {}, turn_off: {}, toggle: {} }, notify: { mobile_app_jesper_iphone: {}, send_message: {} }, scene: { turn_on: {} }, persistent_notification: { create: {} } };
@@ -159,6 +162,12 @@ const hass = {
       }, 200);
       return { run_id: run.id };
     }
+    if (msg.type === "device_automation/trigger/list") return msg.device_id === "d8" ? [
+      { platform: "device", domain: "mqtt", device_id: "d8", type: "action", subtype: "on", metadata: {} },
+      { platform: "device", domain: "mqtt", device_id: "d8", type: "action", subtype: "off", metadata: {} },
+      { platform: "device", domain: "mqtt", device_id: "d8", type: "action", subtype: "brightness_move_up", metadata: {} },
+      { platform: "device", domain: "sensor", device_id: "d8", entity_id: "sensor.x", type: "battery_level", metadata: {} }] : [];
+    if (msg.type === "frontend/get_translations") return { resources: {} };
     if (msg.type === "supervisor/api") {
       if (msg.endpoint === "/addons") return { addons: [{ slug: "a0d7b954_nodered", name: "Node-RED" }] };
       if (msg.endpoint.endsWith("/info")) return { state: "started", ingress_url: "/api/hassio_ingress/abc/" };
