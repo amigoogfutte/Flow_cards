@@ -114,6 +114,8 @@ def state_trigger_matches(card: dict, old: Any, new: Any) -> bool:
 
 def numeric_crossed(card: dict, old: Any, new: Any) -> bool:
     """True when the value moves INTO the range (like HA numeric_state)."""
+    if old in UNAVAILABLE or new in UNAVAILABLE:
+        return False  # a sensor coming back online is not a crossing
     new_v = to_number(new)
     if not in_range(new_v, card.get("above"), card.get("below")):
         return False
@@ -125,7 +127,7 @@ def event_entity_matches(card: dict, old_state: Any, new_state: Any, event_type:
     """Event entities change state (a timestamp) on every press."""
     if new_state in UNAVAILABLE or old_state == new_state:
         return False
-    if old_state in ("unavailable",):
+    if old_state in ("unavailable", None):
         return False  # entity just came back, not a press
     wanted = as_list(card.get("event_type"))
     return not wanted or str(event_type) in [str(w) for w in wanted]

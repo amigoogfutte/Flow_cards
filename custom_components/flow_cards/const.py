@@ -1,7 +1,7 @@
 """Constants for Flow Cards."""
 
 DOMAIN = "flow_cards"
-VERSION = "0.5.8"
+VERSION = "0.5.9"
 REPO = "amigoogfutte/Flow_cards"
 
 STORAGE_VERSION = 1
@@ -16,6 +16,7 @@ STATIC_URL = "/flow_cards_static"
 
 HISTORY_PER_FLOW = 30
 MAX_STEPS_PER_RUN = 200
+STARTUP_QUIET_SECONDS = 60  # entity triggers ignore the restart noise for this long
 MAX_FLOW_DEPTH = 5  # how deep "run another flow" may nest
 
 MODES = ("single", "restart", "parallel")

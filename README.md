@@ -64,6 +64,10 @@ Tryk **Lyt** i editoren, og gør noget fysisk: tryk på en knap, tænd en lampe,
 
 Den lytter også på knapper og fjernbetjeninger, der ikke har deres egen entitet (fx Zigbee2MQTT-knapper, der kun sender en hændelse).
 
+## Genstart
+
+Når Home Assistant genstarter, kommer enhederne online og får deres tilstand tilbage. Det er ikke rigtige ændringer, så Flows ignorerer tilstands-, tal- og knap-kort det første minut efter opstart, og når en enhed blot kommer tilbage efter at have været utilgængelig. Vil du have noget til at ske ved opstart, så brug kortet "Home Assistant starter".
+
 ## Data
 
 - Flows gemmes i `/config/.storage/flow_cards.flows` og historik i `/config/.storage/flow_cards.history`. Begge kommer med i HA's sikkerhedskopier.

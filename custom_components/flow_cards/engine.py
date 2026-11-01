@@ -29,6 +29,7 @@ from .const import (
     HISTORY_PER_FLOW,
     MAX_FLOW_DEPTH,
     MAX_STEPS_PER_RUN,
+    STARTUP_QUIET_SECONDS,
     STORAGE_KEY_FLOWS,
     STORAGE_KEY_HISTORY,
     STORAGE_VERSION,
@@ -83,6 +84,25 @@ class FlowManager:
         self._unsubs: dict[str, list[CALLBACK_TYPE]] = {}
         self._tasks: dict[str, set[asyncio.Task]] = {}
         self._listeners: set[Callable[[dict], None]] = set()
+        # While Home Assistant starts, devices come online and states get restored. Those are not
+        # real changes, so entity triggers stay quiet until things have settled.
+        self._quiet_until: float | None = None
+        if not hass.is_running:
+            self._quiet_until = float("inf")
+
+            @callback
+            def _started(_event: Event) -> None:
+                self._quiet_until = _time.monotonic() + STARTUP_QUIET_SECONDS
+
+            hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STARTED, _started)
+
+    def _settling(self) -> bool:
+        if self._quiet_until is None:
+            return False
+        if _time.monotonic() < self._quiet_until:
+            return True
+        self._quiet_until = None
+        return False
 
     # ------------------------------------------------------------ lifecycle
 
@@ -281,6 +301,10 @@ class FlowManager:
                 entity_id = event.data["entity_id"]
                 old: State | None = event.data.get("old_state")
                 new: State | None = event.data.get("new_state")
+                if old is None or new is None or self._settling():
+                    # entity appeared/vanished, or Home Assistant is still starting
+                    _cancel(entity_id)
+                    return
                 old_v, new_v = _value(old, attribute), _value(new, attribute)
                 if kind == "state":
                     ok = logic.state_trigger_matches(card, old_v, new_v)
