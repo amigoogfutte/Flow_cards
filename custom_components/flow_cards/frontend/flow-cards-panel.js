@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.5.7";
+const FC_VERSION = "0.5.8";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -906,6 +906,8 @@ ha-icon{--mdc-icon-size:20px;display:inline-flex}
 .defs{display:flex;flex-direction:column;gap:8px}
 .def.cur{outline:2px solid var(--fc-accent,#ff8a00);outline-offset:-2px}
 .def .curtag{font-size:11px;opacity:.75;margin-left:6px}
+.node .lin{font-size:11px;color:var(--fc-muted);margin-top:4px;line-height:1.3}
+.node .lin.warn{color:var(--error-color,#db4437)}
 .swap{margin-bottom:12px}.swap .sub{margin:0 2px 6px}
 .swap-row{display:flex;flex-wrap:wrap;gap:6px}
 .swap-def{border-radius:999px;border:1px solid var(--fc-line);border-left:4px solid var(--c);padding:6px 12px;font-size:13px;text-align:left}
@@ -1597,6 +1599,26 @@ class FlowCardsPanel extends HTMLElement {
       this._picker = { section, step: "source", search: "", showUnavailable: false };
     }
     this._render();
+  }
+
+  // which cards feed an ALL/ANY node, and can they actually arrive in the same run?
+  _logicInputsHtml(n) {
+    const nodes = this._draft.nodes || [], edges = this._draft.edges || [];
+    const byId = Object.fromEntries(nodes.map((x) => [x.id, x]));
+    const ins = [...new Set(edges.filter((e) => e.to === n.id && byId[e.from]).map((e) => e.from))];
+    if (!ins.length) return `<div class="lin warn">Ingen input endnu – træk pile fra de kort, der skal vente på hinanden, ind i venstre side af dette kort.</div>`;
+    const name = (id) => { const c = byId[id]; const t = c.sec === "logic" ? c.kind : stripHtml(this._cardText(c, c.sec)); return t.length > 28 ? `${t.slice(0, 27)}…` : t; };
+    let html = `<div class="lin">${n.kind === "all" ? "Venter på" : "Første af"} ${ins.length}: ${ins.map((id) => esc(name(id))).join(" · ")}</div>`;
+    if (n.kind === "all" && ins.length > 1) {
+      const trigOf = (id) => { const out = new Set(), seen = new Set(), st = [id];
+        while (st.length) { const x = st.pop(); if (seen.has(x)) continue; seen.add(x); const c = byId[x]; if (!c) continue;
+          if (c.sec === "triggers") { out.add(x); continue; } edges.filter((e) => e.to === x).forEach((e) => st.push(e.from)); }
+        return out; };
+      const sets = ins.map(trigOf);
+      const common = [...sets[0]].filter((t) => sets.every((s) => s.has(t)));
+      if (!common.length) html += `<div class="lin warn">Inputtene starter fra forskellige NÅR-kort. Et flow kører for ét NÅR ad gangen, så de når aldrig frem samtidig – brug “Fortsæt ved det første input” eller lad dem starte fra samme NÅR.</div>`;
+    }
+    return html;
   }
 
   _swapArgs(def, old) {
@@ -2405,7 +2427,8 @@ class FlowCardsPanel extends HTMLElement {
         ${n.sec === "conditions" ? `<button class="not ${n.invert ? "" : "off"}" data-action="node-invert" data-node="${n.id}">IKKE</button>` : ""}
         <button data-action="node-dup" data-node="${n.id}" title="Dupliker"><ha-icon icon="mdi:content-copy" style="--mdc-icon-size:15px"></ha-icon></button>
         <button data-action="node-del" data-node="${n.id}" title="Fjern"><ha-icon icon="mdi:close" style="--mdc-icon-size:16px"></ha-icon></button>`;
-      const body = n.sec === "logic" ? (appDefs(this._ctx()).find((d) => d.id === n.card) || { text: () => esc(n.kind) }).text(n.args || {}) : this._cardText(n, n.sec);
+      let body = n.sec === "logic" ? (appDefs(this._ctx()).find((d) => d.id === n.card) || { text: () => esc(n.kind) }).text(n.args || {}) : this._cardText(n, n.sec);
+      if (n.sec === "logic" && (n.kind === "all" || n.kind === "any")) body += this._logicInputsHtml(n);
       const conn = this._connect && this._connect.node !== n.id && inPin ? "target" : "";
       return `<div class="node ${sec.cls} ${n.kind === "note" ? "note" : ""} ${n.disabled ? "disabled" : ""} ${conn} ${this._connect && this._connect.node === n.id ? "source" : ""}" data-nid="${n.id}" style="left:${n.x}px;top:${n.y}px;min-height:${this._nodeH(n)}px">
         ${badge}${inPin}<div class="nhead"><ha-icon icon="${esc(src.icon)}" style="--mdc-icon-size:16px"></ha-icon><span class="src">${esc(src.name)}</span>${tools}</div>
