@@ -121,7 +121,7 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .check input{width:24px;height:24px;flex:none;accent-color:var(--me)}
 .chip em{font-style:normal;font-size:11px;padding:1px 5px;background:var(--tile-hi);border-radius:2px}
 .champs{display:flex;justify-content:center;gap:8px}
-.champ{margin:0;flex:0 1 230px;min-width:0}
+.champ{margin:0;flex:0 1 230px;min-width:0;padding-top:44px}
 .champ svg{display:block;width:100%;height:auto;max-height:300px;overflow:visible}
 .champ .lb{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .champ .skind{stroke:var(--skin-d)} .champ .skinm{stroke:var(--skin)}
@@ -145,17 +145,22 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .champ .hdl{stroke-width:5;fill:none;stroke-linecap:round}
 .champ .shine{stroke:#FFF7D6;stroke-opacity:.8;stroke-width:3;stroke-linecap:round;fill:none}
 .champ .nametag{fill:var(--on-color);font-family:var(--display);font-weight:900}
-.champ .shadow{fill:var(--tile-hi);transform-box:fill-box;transform-origin:center;animation:shadow .7s ease-in-out infinite alternate}
-.champ .jump{animation:jump .7s ease-in-out infinite alternate}
-.champ .wave{transform-box:fill-box;transform-origin:100% 100%;animation:wave .35s ease-in-out infinite alternate}
-.champ .lift{animation:lift .35s ease-in-out infinite alternate}
-.champ .conf{animation:conf 2.4s linear infinite}
-@keyframes jump{from{transform:translateY(6px)}to{transform:translateY(-6px)}}
-@keyframes shadow{from{transform:scaleX(1)}to{transform:scaleX(.7)}}
-@keyframes wave{from{transform:rotate(-7deg)}to{transform:rotate(7deg)}}
-@keyframes lift{from{transform:translateY(1px)}to{transform:translateY(-2px)}}
-@keyframes conf{from{transform:translateY(-6px)}to{transform:translateY(34px)}}
-@media (prefers-reduced-motion:reduce){.champ .shadow,.champ .jump,.champ .wave,.champ .lift,.champ .conf{animation:none}}
+.champ .shadow{fill:var(--tile-hi);transform-box:fill-box;transform-origin:center;animation:shadow 1s ease-in-out infinite}
+/* Ét hop varer 1 sekund: sammenkrøbet, afsæt, højeste punkt, landing */
+.champ .jump{transform-origin:104px 262px;animation:jump 1s cubic-bezier(.3,0,.7,1) infinite}
+.champ .legL{transform-origin:92px 184px;animation:legL 1s ease-in-out infinite}
+.champ .legR{transform-origin:116px 184px;animation:legR 1s ease-in-out infinite}
+.champ .wave{transform-origin:80px 108px;animation:wave 1s ease-in-out infinite}
+.champ .armR{transform-origin:128px 108px;animation:armR 1s ease-in-out infinite}
+.champ .conf{animation:conf 2s linear infinite}
+@keyframes jump{0%,100%{transform:translateY(10px) scale(1.07,.9)}14%{transform:translateY(-12px) scale(.95,1.07)}50%{transform:translateY(-44px) scale(1,1)}86%{transform:translateY(-12px) scale(.96,1.05)}}
+@keyframes shadow{0%,100%{transform:scaleX(1.05);opacity:1}50%{transform:scaleX(.55);opacity:.55}}
+@keyframes legL{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(9deg)}}
+@keyframes legR{0%,100%{transform:rotate(20deg)}50%{transform:rotate(-9deg)}}
+@keyframes wave{0%,100%{transform:rotate(-16deg)}25%{transform:rotate(6deg)}50%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
+@keyframes armR{0%,100%{transform:rotate(7deg)}50%{transform:rotate(-7deg)}}
+@keyframes conf{from{transform:translateY(-10px) rotate(0)}to{transform:translateY(60px) rotate(200deg)}}
+@media (prefers-reduced-motion:reduce){.champ .shadow,.champ .jump,.champ .legL,.champ .legR,.champ .wave,.champ .armR,.champ .conf{animation:none}}
 .toast{min-height:20px;font-size:14px;color:var(--good);text-align:center}
 @media (prefers-reduced-motion:reduce){.lockbar{animation:none}}
 </style>
@@ -656,15 +661,15 @@ function champHTML(S,p){
     <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#C9C6E0"/></linearGradient>
     <filter id="${id}f" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="4"/></filter>
    </defs>
-   ${bits.map(([x,y,c,d],i)=>`<rect class="conf" x="${x}" y="${y}" width="${i%2?5:8}" height="${i%2?9:4}" rx="1" transform="rotate(${i*37} ${x} ${y})" style="fill:var(${c});animation-delay:${d}s"/>`).join("")}
+   ${bits.map(([x,y,c,d],i)=>`<rect class="conf" x="${x}" y="${y}" width="${i%2?5:8}" height="${i%2?9:4}" rx="1" transform="rotate(${i*37} ${x} ${y})" style="fill:var(${c});animation-delay:-${d}s"/>`).join("")}
    <ellipse class="shadow" cx="104" cy="266" rx="50" ry="6" filter="url(#${id}f)"/>
    <g class="jump">
-    ${limb("M116 184 L142 202 L164 226",14,"skin")}
+    <g class="legR">${limb("M116 184 L142 202 L164 226",14,"skin")}
     <path d="M158 219 L164 226" class="sock"/>
-    <g transform="translate(166 229) rotate(-30)">${shoe}</g>
-    ${limb("M92 184 L70 208 L58 240",14,"skin")}
+    <g transform="translate(166 229) rotate(-30)">${shoe}</g></g>
+    <g class="legL">${limb("M92 184 L70 208 L58 240",14,"skin")}
     <path d="M60 232 L58 240" class="sock"/>
-    <g transform="translate(57 244) scale(-1 1) rotate(-14)">${shoe}</g>
+    <g transform="translate(57 244) scale(-1 1) rotate(-14)">${shoe}</g></g>
     <!-- bukser -->
     <path d="M82 158 h44 l10 30 q-14 8 -26 2 l-6 -14 l-8 16 q-14 4 -26 -4 z" class="shorts"/>
     <path d="M82 158 h44 l10 30 q-14 8 -26 2 l-6 -14 l-8 16 q-14 4 -26 -4 z" fill="url(#${id}b)"/>
@@ -676,7 +681,7 @@ function champHTML(S,p){
      <circle cx="45" cy="48" r="8.5" class="sk"/><circle cx="45" cy="48" r="8.5" fill="url(#${id}r)"/><path d="M39 45 h12 M39 49 h12" class="crease"/>
     </g>
     <!-- arm med pokal -->
-    <g class="lift">
+    <g class="armR"><g class="lift">
      <path d="M136 16 h-11 c0 16 6 21 16 24 M180 16 h11 c0 16 -6 21 -16 24" class="hdl" stroke="url(#${id}a)"/>
      <path d="M137 8 h42 v15 c0 16 -9 26 -21 26 s-21 -10 -21 -26 z" fill="url(#${id}a)"/>
      <ellipse cx="158" cy="9" rx="21" ry="3.2" fill="#FFF2C4"/>
@@ -686,7 +691,7 @@ function champHTML(S,p){
     </g>
     ${limb("M128 108 L152 90 L158 66",11,"skin")}
     ${limb("M128 108 L144 96",15,"sleeve")}
-    <circle cx="158" cy="64" r="8.5" class="sk"/><circle cx="158" cy="64" r="8.5" fill="url(#${id}r)"/>
+    <circle cx="158" cy="64" r="8.5" class="sk"/><circle cx="158" cy="64" r="8.5" fill="url(#${id}r)"/></g>
     <!-- hals og trøje -->
     <path d="M97 80 h14 v18 h-14 z" class="sk"/><path d="M97 82 q7 9 14 0 v6 q-7 6 -14 0 z" class="under"/>
     <path d="M76 100 Q90 92 97 92 Q104 100 111 92 Q118 92 132 100 L126 164 Q104 170 82 164 Z" class="jersey"/>
