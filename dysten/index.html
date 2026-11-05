@@ -233,7 +233,7 @@ let wake=null;
 async function keepAwake(){try{wake=await navigator.wakeLock?.request("screen")}catch{}}
 
 /* ---------- Værten styrer spillet ---------- */
-const H={deck:[],ans:-1,lockUntil:0,due:null,lastN:[0,0,0,0],tick:null,last:0,beat:0,bot:null,botKey:"",pausedAt:0,catObj:null};
+const H={used:new Set(),played:new Set(),ans:-1,lockUntil:0,due:null,lastN:[0,0,0,0],tick:null,last:0,beat:0,bot:null,botKey:"",pausedAt:0,catObj:null};
 const now=()=>performance.now();
 const inPlay=S=>S.duel.filter(p=>!S.out.includes(p));
 const nextIn=(S,p)=>{const d=S.duel;for(let k=1;k<=d.length;k++){const q=d[(d.indexOf(p)+k)%d.length];if(!S.out.includes(q))return q}return p};
@@ -250,17 +250,28 @@ function publish(){
   gotState(JSON.parse(JSON.stringify(S)));
   if(G.mode==="bot")botThink();
 }
+/* Et spørgsmål bruges kun én gang i samme spil, også på tværs af gulve */
+function takeQ(c){
+  const free=c.items.filter(x=>!H.used.has(x.p+"|"+x.a));
+  if(!free.length)return null;
+  const it=free[Math.floor(Math.random()*free.length)];
+  H.used.add(it.p+"|"+it.a);
+  return it;
+}
 function nextQ(){
-  if(!H.deck.length)H.deck=shuffle(H.catObj.items);
-  const it=H.deck.pop();
-  const pool=[...new Set([...H.catObj.items.map(x=>x.a),...H.catObj.extra])].filter(a=>a!==it.a);
+  let c=H.catObj,it=takeQ(c);
+  /* Er kategorien tom midt i en lang duel, fortsætter den med ubrugte spørgsmål fra de andre */
+  if(!it)for(const x of shuffle(CATS)){it=takeQ(x);if(it){c=x;break}}
+  if(!it){H.used.clear();it=takeQ(c)}
+  const pool=[...new Set([...c.items.map(x=>x.a),...c.extra])].filter(a=>a!==it.a);
   const o=shuffle([it.a,...shuffle(pool).slice(0,7)]);
   H.ans=o.indexOf(it.a);
-  G.S.q={id:(G.S.q?.id||0)+1,p:it.p,o};G.S.wrong=[];G.S.reveal=null;H.lockUntil=0;G.S.lockWhy="";
+  G.S.q={id:(G.S.q?.id||0)+1,p:it.p,o,big:c.big,cn:c.id===H.catObj.id?"":c.name};G.S.wrong=[];G.S.reveal=null;H.lockUntil=0;G.S.lockWhy="";
 }
 function toPick(picker){
   const S=G.S;S.phase="pick";S.picker=picker;
-  if(S.ring.length===0||S.ring.every(id=>id in S.owner)){S.ring=shuffle(CATS).slice(0,8).map(c=>c.id);S.owner={}}
+  if(S.ring.length===0||S.ring.every(id=>id in S.owner)){let fresh=CATS.filter(c=>!H.played.has(c.id));if(fresh.length<8){H.played.clear();fresh=CATS}
+    S.ring=shuffle(fresh).slice(0,8).map(c=>c.id);S.owner={}}
   S.cat=null;S.duel=null;S.out=[];S.winner=null;S.q=null;S.run=false;
   publish();
 }
@@ -291,7 +302,7 @@ function hostAct(p,t,i){
   if(t==="start"&&p===0&&S.phase==="wait"&&n>=2){try{G.room?.presence({open:null}).catch(()=>{})}catch{}toPick(0);return}
   if(S.phase==="pick"&&p===S.picker){
     if(t==="cat"&&!S.cat&&S.ring.includes(i)&&!(i in S.owner)){
-      H.catObj=CATS.find(c=>c.id===i);H.deck=shuffle(H.catObj.items);S.cat=i;beginDuel();return}
+      H.catObj=CATS.find(c=>c.id===i);H.played.add(i);S.cat=i;beginDuel();return}
     return}
   if(t==="next"&&S.phase==="end"&&(p===0||p===nextAlive(S,S.picker))){toPick(nextAlive(S,S.picker));return}
   if(S.phase!=="play"||p!==S.turn||S.reveal||tn<H.lockUntil)return;
@@ -419,7 +430,7 @@ function act(t,i){
 
 /* ---------- Start og afslut ---------- */
 function setName(){const v=document.getElementById("navn")?.value.trim().slice(0,16);if(v!==undefined){G.name=v;store.set("feltet-navn",v)}}
-function resetHost(){H.lastN=[0,0,0,0];H.due=null;H.lockUntil=0;H.botKey="";clearTimeout(H.bot)}
+function resetHost(){H.used.clear();H.played.clear();H.lastN=[0,0,0,0];H.due=null;H.lockUntil=0;H.botKey="";clearTimeout(H.bot)}
 async function createDuel(){
   setName();G.code=String(1000+Math.floor(Math.random()*9000));
   G.mode="host";G.me=0;G.S=newS(G.name||"Vært");G.S0=null;resetHost();
@@ -546,8 +557,8 @@ function duelHTML(S){
   const nx=nextIn(S,S.turn);
   return `<div class="duel">
   <div class="clocks n${S.duel.length}">${order.map(p=>clockHTML(S,p)).join("")}</div>
-  <div class="status"><span>${meOut?"Du er ude · ":""}${esc(c.name)}${!myTurn&&!meOut&&nx===G.me?" · Du er næste":""}</span><b>${msg}</b></div>
-  <div class="prompt ${c.big?"bigq":""}"><span>${esc(q?.p||"")}</span></div>
+  <div class="status"><span>${meOut?"Du er ude · ":""}${esc(q?.cn||c.name)}${!myTurn&&!meOut&&nx===G.me?" · Du er næste":""}</span><b>${msg}</b></div>
+  <div class="prompt ${q?.big?"bigq":""}"><span>${esc(q?.p||"")}</span></div>
   <div class="opts ${myTurn?"mine":""}">
    ${(q?.o||[]).map((o,i)=>{
      const isW=S.wrong.includes(i),isR=S.reveal&&S.reveal.i===i;
