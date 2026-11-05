@@ -274,7 +274,11 @@ function startHostLoop(){clearInterval(H.tick);H.last=now();H.tick=setInterval(h
 
 /* Øveduel: computeren svarer rigtigt tre ud af fire gange */
 function botThink(){
-  const S=G.S;clearTimeout(H.bot);
+  const S=G.S;
+  /* Urets faste opdateringer må ikke udskyde computerens svar */
+  const key=[S.phase,S.q?.id,S.wrong.length,S.turn,S.reveal?1:0,S.paused].join();
+  if(key===H.botKey)return;
+  H.botKey=key;clearTimeout(H.bot);
   if(S.paused)return;
   if(S.phase==="pick"&&S.picker===1){H.bot=setTimeout(()=>hostAct(1,"cat",S.ring.find(id=>!(id in S.owner))),900);return}
   if(S.phase==="play"&&S.turn===1&&!S.reveal){
@@ -371,7 +375,7 @@ async function joinDuel(code){
 }
 function startBot(){
   setName();G.mode="bot";G.me=0;G.code="";G.gr=null;G.S=newS([G.name||"Dig","Computeren"]);G.S0=null;H.lastN=0;H.due=null;H.lockUntil=0;
-  G.S.picker=0;startHostLoop();toPick(0);
+  H.botKey="";clearTimeout(H.bot);G.S.picker=0;startHostLoop();toPick(0);
 }
 function leave(keepMsg){
   clearInterval(H.tick);clearTimeout(H.bot);
