@@ -121,14 +121,25 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .check input{width:24px;height:24px;flex:none;accent-color:var(--me)}
 .chip em{font-style:normal;font-size:11px;padding:1px 5px;background:var(--tile-hi);border-radius:2px}
 .champs{display:flex;justify-content:center;gap:8px}
-.champ{margin:0;flex:0 1 180px;min-width:0;animation:cheer 1.4s ease-in-out infinite alternate}
-.champ svg{display:block;width:100%;height:auto;max-height:240px}
-.champ .fc{fill:var(--c)} .champ .arm{stroke:var(--c);stroke-width:9;stroke-linecap:round;fill:none}
-.champ .face{fill:var(--ink)} .champ .eye{fill:var(--on-color)} .champ .smile{stroke:var(--on-color);stroke-width:2;fill:none;stroke-linecap:round}
-.champ .gold{fill:var(--gold)} .champ .hdl{stroke:var(--gold);stroke-width:4;fill:none}
+.champ{margin:0;flex:0 1 210px;min-width:0}
+.champ svg{display:block;width:100%;height:auto;max-height:270px;overflow:visible}
+.champ .fc{fill:var(--c)} .champ .limb{stroke:var(--c);stroke-width:10;stroke-linecap:round;stroke-linejoin:round;fill:none}
+.champ .foot{stroke:var(--ink);stroke-width:10;stroke-linecap:round;fill:none}
+.champ .face{fill:var(--ink)} .champ .eye{stroke:var(--on-color);stroke-width:2.6;stroke-linecap:round;fill:none}
+.champ .mouth{fill:var(--on-color)} .champ .tongue{fill:var(--bad)}
+.champ .gold{fill:var(--gold)} .champ .hdl{stroke:var(--gold);stroke-width:3.5;fill:none}
 .champ .nametag{fill:var(--on-color);font-family:var(--display);font-weight:900}
-@keyframes cheer{from{transform:translateY(0)}to{transform:translateY(-6px)}}
-@media (prefers-reduced-motion:reduce){.champ{animation:none}}
+.champ .shadow{fill:var(--tile-hi);transform-box:fill-box;transform-origin:center;animation:shadow .6s ease-in-out infinite alternate}
+.champ .jump{animation:jump .6s ease-in-out infinite alternate}
+.champ .wave{transform-box:fill-box;transform-origin:100% 100%;animation:wave .3s ease-in-out infinite alternate}
+.champ .lift{animation:lift .3s ease-in-out infinite alternate}
+.champ .conf{animation:conf 2.2s linear infinite}
+@keyframes jump{from{transform:translateY(8px)}to{transform:translateY(-8px)}}
+@keyframes shadow{from{transform:scaleX(1)}to{transform:scaleX(.65)}}
+@keyframes wave{from{transform:rotate(-10deg)}to{transform:rotate(10deg)}}
+@keyframes lift{from{transform:translateY(2px)}to{transform:translateY(-3px)}}
+@keyframes conf{from{transform:translateY(-8px)}to{transform:translateY(40px)}}
+@media (prefers-reduced-motion:reduce){.champ .shadow,.champ .jump,.champ .wave,.champ .lift,.champ .conf{animation:none}}
 .toast{min-height:20px;font-size:14px;color:var(--good);text-align:center}
 @media (prefers-reduced-motion:reduce){.lockbar{animation:none}}
 </style>
@@ -612,21 +623,31 @@ function duelHTML(S){
   </div>
   <button class="pass" data-pass="1" ${can?"":"disabled"}>Pas (3 sek.)</button></div>`;
 }
-/* Vinderfigur med pokal over hovedet og navnet på brystet */
+/* Vinderfigur i et jubelhop med pokalen i vejret, konfetti og navnet på brystet */
 function champHTML(S,p){
   const n=S.names[p],fs=n.length>10?9:n.length>7?11:n.length>5?13:15;
-  return `<figure class="champ" style="${col(S,p)}"><svg viewBox="0 0 120 172" role="img" aria-label="${esc(n)} med pokal">
-   <rect x="42" y="134" width="15" height="32" rx="3" class="fc"/><rect x="63" y="134" width="15" height="32" rx="3" class="fc"/>
-   <path d="M38 88 L46 40 M82 88 L74 40" class="arm"/>
-   <circle cx="46" cy="38" r="5" class="face"/><circle cx="74" cy="38" r="5" class="face"/>
-   <path d="M38 6 h-9 c0 15 5 21 15 23 M82 6 h9 c0 15 -5 21 -15 23" class="hdl"/>
-   <path d="M40 2 h40 v14 c0 14 -9 22 -20 22 s-20 -8 -20 -22 z" class="gold"/>
-   <rect x="56" y="37" width="8" height="7" class="gold"/><rect x="47" y="43" width="26" height="5" rx="1" class="gold"/>
-   <circle cx="60" cy="64" r="14" class="face"/>
-   <circle cx="55" cy="62" r="1.8" class="eye"/><circle cx="65" cy="62" r="1.8" class="eye"/>
-   <path d="M54 69 q6 5 12 0" class="smile"/>
-   <rect x="33" y="80" width="54" height="58" rx="8" class="fc"/>
-   <text x="60" y="111" text-anchor="middle" font-size="${fs}" class="nametag">${esc(n)}</text>
+  const bits=[[14,14,"--c1",0],[44,6,"--c2",.5],[150,16,"--c3",.9],[136,52,"--c2",.3],[10,74,"--gold",1.1],[152,92,"--c1",.7],[24,112,"--c3",1.4],[60,20,"--gold",1.6],[100,10,"--c1",1.2],[146,126,"--gold",.2]];
+  return `<figure class="champ" style="${col(S,p)}"><svg viewBox="0 0 164 196" role="img" aria-label="${esc(n)} jubler med pokalen">
+   ${bits.map(([x,y,c,d],i)=>`<rect class="conf" x="${x}" y="${y}" width="${i%2?5:7}" height="${i%2?8:4}" rx="1" style="fill:var(${c});animation-delay:${d}s"/>`).join("")}
+   <ellipse class="shadow" cx="82" cy="188" rx="40" ry="5"/>
+   <g class="jump">
+    <path d="M70 134 L52 156 L34 148" class="limb"/><path d="M94 134 L112 156 L130 148" class="limb"/>
+    <path d="M34 148 l-8 -6" class="foot"/><path d="M130 148 l8 -6" class="foot"/>
+    <g class="wave"><path d="M58 92 L32 72 L26 42" class="limb"/><circle cx="26" cy="38" r="7" class="face"/></g>
+    <path d="M106 92 L130 72 L128 46" class="limb"/>
+    <g class="lift">
+     <path d="M112 8 h-7 c0 11 4 15 11 17 M144 8 h7 c0 11 -4 15 -11 17" class="hdl"/>
+     <path d="M113 4 h30 v10 c0 11 -7 17 -15 17 s-15 -6 -15 -17 z" class="gold"/>
+     <rect x="125" y="30" width="6" height="5" class="gold"/><rect x="118" y="35" width="20" height="4" rx="1" class="gold"/>
+     <circle cx="128" cy="43" r="7" class="face"/>
+    </g>
+    <circle cx="82" cy="60" r="20" class="face"/>
+    <path d="M69 57 q4 -6 8 0 M87 57 q4 -6 8 0" class="eye"/>
+    <path d="M69 65 h26 c0 10 -6 14 -13 14 s-13 -4 -13 -14 z" class="mouth"/>
+    <path d="M76 75 q6 -5 12 0 q-6 5 -12 0 z" class="tongue"/>
+    <rect x="54" y="84" width="56" height="56" rx="9" class="fc"/>
+    <text x="82" y="117" text-anchor="middle" font-size="${fs}" class="nametag">${esc(n)}</text>
+   </g>
   </svg></figure>`;
 }
 function endHTML(S){
