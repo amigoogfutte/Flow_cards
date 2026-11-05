@@ -123,13 +123,16 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .champs{display:flex;justify-content:center;gap:8px}
 .champ{margin:0;flex:0 1 230px;min-width:0}
 .champ svg{display:block;width:100%;height:auto;max-height:300px;overflow:visible}
-.champ .skin{stroke:var(--skin);fill:none;stroke-linecap:round;stroke-linejoin:round}
-.champ .thick{stroke-width:14}
-.champ .arm{stroke-width:11}
+.champ .lb{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.champ .skind{stroke:var(--skin-d)} .champ .skinm{stroke:var(--skin)}
+.champ .sleeved{stroke:color-mix(in srgb,var(--c) 72%,#000)} .champ .sleevem{stroke:var(--c)}
+.champ .lh{stroke:#FFFFFF;stroke-opacity:.16}
+.champ .fold{stroke:#000;stroke-opacity:.12;stroke-width:2;stroke-linecap:round;fill:none}
+.champ .under{fill:var(--skin-d)}
+.champ .lace{stroke:#8E8AB0;stroke-width:1.6;stroke-linecap:round;fill:none}
+.champ .sole{fill:var(--c)}
 .champ .sk{fill:var(--skin)}
-.champ .sleeve{stroke:var(--c);stroke-width:15;stroke-linecap:round;fill:none}
 .champ .sock{stroke:#FFFFFF;stroke-width:13;fill:none}
-.champ .shoe{fill:#FFFFFF;stroke:var(--c);stroke-width:2.5}
 .champ .shorts{fill:var(--shorts)}
 .champ .jersey{fill:var(--c)}
 .champ .collar{stroke:var(--on-color);stroke-opacity:.45;stroke-width:2.5;fill:none}
@@ -639,30 +642,38 @@ function duelHTML(S){
 /* Vinderfigur: en spiller midt i et jubelhop med pokalen i vejret og navnet på trøjen */
 function champHTML(S,p){
   const n=S.names[p],fs=n.length>11?8:n.length>8?10:n.length>6?12:15,id="g"+p;
+  /* Lemmer tegnes i tre lag, så de ser runde ud: skygge, grundfarve og lys kant */
+  const limb=(d,w,k)=>`<path d="${d}" class="lb ${k}d" stroke-width="${w}"/><path d="${d}" class="lb ${k}m" stroke-width="${w-3.5}" transform="translate(-1.3 -1)"/><path d="${d}" class="lb lh" stroke-width="${Math.max(2,w*.2)}" transform="translate(-${w*.24} -${w*.2})"/>`;
+  const shoe=`<path d="M-9 -7 C-8 -13 7 -13 9 -7 C13 -2 25 0 29 6 C31 10 28 12 25 12 L-9 12 C-12 8 -11 -1 -9 -7 Z" fill="url(#${id}s)"/>
+   <path d="M2 -7 l6 5 M8 -5 l5 5 M14 -2 l4 4" class="lace"/>
+   <path d="M-11 10 L28 10 Q32 13 27 16 L-9 16 Q-13 13 -11 10 Z" class="sole"/>`;
   const bits=[[18,30,"--c1",0],[58,12,"--c2",.5],[186,70,"--c3",.9],[176,120,"--c2",.3],[12,110,"--gold",1.1],[192,170,"--c1",.7],[22,176,"--c3",1.4],[92,8,"--gold",1.6],[34,70,"--c2",1.2],[176,216,"--gold",.2],[16,226,"--c1",.8]];
   return `<figure class="champ" style="${col(S,p)}"><svg viewBox="0 0 208 276" role="img" aria-label="${esc(n)} jubler med pokalen">
    <defs>
     <linearGradient id="${id}a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFE9A3"/><stop offset=".45" stop-color="#FFC93C"/><stop offset="1" stop-color="#C98A12"/></linearGradient>
     <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
+    <radialGradient id="${id}r" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#3A1408" stop-opacity=".38"/></radialGradient>
+    <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#C9C6E0"/></linearGradient>
+    <filter id="${id}f" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="4"/></filter>
    </defs>
    ${bits.map(([x,y,c,d],i)=>`<rect class="conf" x="${x}" y="${y}" width="${i%2?5:8}" height="${i%2?9:4}" rx="1" transform="rotate(${i*37} ${x} ${y})" style="fill:var(${c});animation-delay:${d}s"/>`).join("")}
-   <ellipse class="shadow" cx="104" cy="266" rx="46" ry="5"/>
+   <ellipse class="shadow" cx="104" cy="266" rx="50" ry="6" filter="url(#${id}f)"/>
    <g class="jump">
-    <!-- bagerste ben, sparket bagud -->
-    <path d="M118 182 L146 204 L170 190" class="skin thick"/>
-    <path d="M160 196 L170 190" class="sock"/>
-    <path d="M170 182 q12 -4 20 3 q4 5 -2 8 l-16 3 q-6 -4 -2 -14 z" class="shoe"/>
-    <!-- forreste ben, løftet knæ -->
-    <path d="M90 186 L74 216 L84 244" class="skin thick"/>
-    <path d="M81 234 L84 244" class="sock"/>
-    <path d="M77 244 h15 q2 8 16 10 q4 5 -2 6 h-28 q-4 -8 -1 -16 z" class="shoe"/>
+    ${limb("M116 184 L142 202 L164 226",14,"skin")}
+    <path d="M158 219 L164 226" class="sock"/>
+    <g transform="translate(166 229) rotate(-30)">${shoe}</g>
+    ${limb("M92 184 L70 208 L58 240",14,"skin")}
+    <path d="M60 232 L58 240" class="sock"/>
+    <g transform="translate(57 244) scale(-1 1) rotate(-14)">${shoe}</g>
     <!-- bukser -->
     <path d="M82 158 h44 l10 30 q-14 8 -26 2 l-6 -14 l-8 16 q-14 4 -26 -4 z" class="shorts"/>
+    <path d="M82 158 h44 l10 30 q-14 8 -26 2 l-6 -14 l-8 16 q-14 4 -26 -4 z" fill="url(#${id}b)"/>
+    <path d="M104 176 l-1 -14 M90 164 q-2 12 -6 20 M118 164 q2 12 7 20" class="fold"/>
     <!-- arm med knytnæve -->
     <g class="wave">
-     <path d="M80 108 L54 88 L46 54" class="skin arm"/>
-     <path d="M80 108 L64 96" class="sleeve"/>
-     <circle cx="45" cy="48" r="8.5" class="sk"/><path d="M39 45 h12 M39 49 h12" class="crease"/>
+     ${limb("M80 108 L54 88 L46 54",11,"skin")}
+     ${limb("M80 108 L64 96",15,"sleeve")}
+     <circle cx="45" cy="48" r="8.5" class="sk"/><circle cx="45" cy="48" r="8.5" fill="url(#${id}r)"/><path d="M39 45 h12 M39 49 h12" class="crease"/>
     </g>
     <!-- arm med pokal -->
     <g class="lift">
@@ -673,20 +684,21 @@ function champHTML(S,p){
      <rect x="154" y="48" width="8" height="9" fill="url(#${id}a)"/>
      <rect x="145" y="56" width="26" height="6" rx="1.5" fill="url(#${id}a)"/>
     </g>
-    <path d="M128 108 L152 90 L158 66" class="skin arm"/>
-    <path d="M128 108 L144 96" class="sleeve"/>
-    <circle cx="158" cy="64" r="8.5" class="sk"/>
+    ${limb("M128 108 L152 90 L158 66",11,"skin")}
+    ${limb("M128 108 L144 96",15,"sleeve")}
+    <circle cx="158" cy="64" r="8.5" class="sk"/><circle cx="158" cy="64" r="8.5" fill="url(#${id}r)"/>
     <!-- hals og trøje -->
-    <path d="M97 80 h14 v18 h-14 z" class="sk"/>
+    <path d="M97 80 h14 v18 h-14 z" class="sk"/><path d="M97 82 q7 9 14 0 v6 q-7 6 -14 0 z" class="under"/>
     <path d="M76 100 Q90 92 97 92 Q104 100 111 92 Q118 92 132 100 L126 164 Q104 170 82 164 Z" class="jersey"/>
     <path d="M76 100 Q90 92 97 92 Q104 100 111 92 Q118 92 132 100 L126 164 Q104 170 82 164 Z" fill="url(#${id}b)"/>
+    <path d="M84 150 q10 8 22 6 M124 120 q-6 16 -4 32 M82 112 q4 16 2 34" class="fold"/>
     <path d="M97 92 Q104 100 111 92" class="collar"/>
     <text x="104" y="134" text-anchor="middle" font-size="${fs}" class="nametag">${esc(n)}</text>
     <!-- hoved -->
     <g transform="rotate(-5 104 62)">
      <ellipse cx="86" cy="64" rx="3.5" ry="5" class="sk"/><ellipse cx="122" cy="64" rx="3.5" ry="5" class="sk"/>
-     <ellipse cx="104" cy="62" rx="18" ry="21" class="sk"/>
-     <path d="M85 60 C83 34 124 32 123 60 C119 50 112 47 104 49 C96 47 89 52 85 60 Z" class="hair"/>
+     <ellipse cx="104" cy="62" rx="18" ry="21" class="sk"/><ellipse cx="104" cy="62" rx="18" ry="21" fill="url(#${id}r)"/>
+     <path d="M85 60 C83 34 124 32 123 60 C119 50 112 47 104 49 C96 47 89 52 85 60 Z" class="hair"/><path d="M85 60 C83 34 124 32 123 60 C119 50 112 47 104 49 C96 47 89 52 85 60 Z" fill="url(#${id}r)"/>
      <path d="M91 57 q4 -3 8 -1 M109 56 q4 -2 8 1" class="brow"/>
      <path d="M91 64 q4 -5 8 0 M109 64 q4 -5 8 0" class="eyes"/>
      <path d="M103 67 q-2 4 1 5" class="crease"/>
