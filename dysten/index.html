@@ -169,8 +169,8 @@ setInterval(()=>{const e=document.getElementById("toast");if(e&&!e.textContent&&
 </script>
 <script>
 /* Sæt til sidens egen adresse efter første udgivelse, så startlinks kan deles. */
-const CAN_SHARE = false;
-const NOTE = 'Kopiér linket, og sæt det ind i en SMS eller mail. Spiller I uden Claude, så brug <a href="https://amigoogfutte.github.io/Flow_cards/dysten/" style="color:inherit">websiden</a>.';
+const CAN_SHARE = true;
+const NOTE = "Tryk Del startlink, og vælg Beskeder eller Mail. Din modstander skal bare åbne linket.";
 const SHARE_URL = "";
 
 const CATS = [
@@ -407,8 +407,9 @@ function homeHTML(){
   ${inv?`<div class="invite"><span class="label">Du er inviteret</span><strong>Duel ${esc(inv)}</strong></div>`:""}
   <label class="field" for="navn"><span class="label">Dit navn</span>
     <input id="navn" maxlength="16" autocomplete="nickname" placeholder="Fx Jesper" value="${esc(G.name)}"></label>
+  ${CAN_SHARE?"":`<a class="btn main" href="https://amigoogfutte.github.io/Flow_cards/dysten/" target="_blank" rel="noopener">Spil på websiden, så modstanderen ikke skal bruge Claude</a>`}
   ${inv?`<button class="btn main" data-join="${esc(inv)}" ${canRoom?"":"disabled"}>Deltag i duellen</button>`
-       :`<button class="btn main" data-do="create" ${canRoom?"":"disabled"}>Opret duel og send startlink</button>`}
+       :`<button class="btn ${CAN_SHARE?"main":""}" data-do="create" ${canRoom?"":"disabled"}>${CAN_SHARE?"Opret duel og send startlink":"Opret duel her i Claude"}</button>`}
   ${G.open.length&&!inv?`<div class="open"><span class="label">Åbne dueller</span>${G.open.map(o=>`<button data-join="${esc(o.code)}"><span>${esc(o.name)} venter</span><span>Deltag</span></button>`).join("")}</div>`:""}
   ${!canRoom?`<p class="note">${G.roomState==="loading"?"Forbinder …":"Øveduellen virker altid."}</p>`:""}
   <div class="row">
