@@ -7,7 +7,7 @@
   color-scheme:dark;
   --floor:#140F33; --tile:#261D57; --tile-hi:#352A73; --line:#463A8C;
   --ink:#F4F1FF; --muted:#AEA6D8;
-  --me:#FFB72B; --opp:#2FD6E8; --on-color:#17102F;
+  --me:#FFB72B; --c0:#FFB72B; --c1:#2FD6E8; --c2:#FF7AC6; --c3:#A6E84E; --on-color:#17102F;
   --good:#3BE38B; --bad:#FF4D6A;
   --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
   --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -36,7 +36,7 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .floorgrid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;grid-area:1/1;aspect-ratio:8/4}
 .floorgrid i{background:var(--tile);border-radius:2px}
 .floorgrid i.a{background:var(--me)}
-.floorgrid i.b{background:var(--opp)}
+.floorgrid i.b{background:var(--c1)}
 .floorgrid i.c{background:var(--tile-hi)}
 .hero-t{grid-area:1/1;align-self:center;justify-self:center;text-align:center;padding:10px 18px;background:var(--floor);border-radius:2px}
 .hero-t h1{font-size:clamp(46px,15vw,76px)}
@@ -47,18 +47,18 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .invite{background:var(--tile);padding:14px;border-radius:4px;display:grid;gap:4px;border:2px solid var(--me)}
 .open{display:grid;gap:8px}
 .open button{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:12px;background:var(--tile);border-radius:4px;text-align:left;font-weight:600}
-.open button span:last-child{color:var(--opp);font-weight:800;white-space:nowrap}
+.open button span:last-child{color:var(--c1);font-weight:800;white-space:nowrap}
 .code{font-family:var(--display);font-weight:900;font-size:clamp(84px,30vw,128px);line-height:1;letter-spacing:.06em;color:var(--me);text-align:center;font-variant-numeric:tabular-nums}
 .linkbox{display:block;background:var(--tile);padding:12px;border-radius:4px;font-size:14px;word-break:break-all;user-select:all}
 /* Kategori */
 .ring{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
 .cat,.you{aspect-ratio:1;min-width:0;padding:6px;border-radius:3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;text-align:center;background:var(--tile-hi)}
-.cat b{font-family:var(--display);font-size:clamp(20px,6vw,27px);line-height:1;hyphens:manual}
+.cat b{font-family:var(--display);font-size:clamp(19px,5.6vw,27px);line-height:1;hyphens:manual;max-width:100%;overflow-wrap:anywhere}
 .cat span{font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
 .cat:not(:disabled):active{background:var(--ink);color:var(--on-color)}
 .cat:disabled{cursor:default;opacity:.8}
-.cat.mine{background:var(--me);color:var(--on-color);opacity:1}
-.cat.theirs{background:var(--opp);color:var(--on-color);opacity:1}
+.cat.own{background:var(--c);color:var(--on-color);opacity:1}
+.cat.sel{box-shadow:inset 0 0 0 3px var(--ink);opacity:1}
 .you{background:var(--floor);box-shadow:inset 0 0 0 3px var(--me);color:var(--me)}
 .you b{font-family:var(--display);font-size:36px;line-height:1}
 .you span{font-size:13px;font-weight:800}
@@ -67,16 +67,21 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 /* Duel */
 .duel{flex:1;display:grid;grid-template-rows:auto auto minmax(92px,1fr) minmax(280px,1.9fr) auto;gap:10px;padding-block:10px}
 .clocks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.clocks.n3{grid-template-columns:repeat(3,1fr);gap:5px}
+.clocks.n4{grid-template-columns:repeat(4,1fr);gap:5px}
+.clocks.n3 .clock,.clocks.n4 .clock{padding:5px 6px 7px}
+.clocks.n3 .t{font-size:clamp(32px,10vw,44px)}
+.clocks.n4 .t{font-size:clamp(26px,8vw,36px)}
+.clocks.n3 .who,.clocks.n4 .who{font-size:12px}
+.clock.ude{opacity:.35}
 .clock{padding:7px 10px 9px;background:var(--tile);border-radius:4px;min-width:0;opacity:.62;transition:opacity .12s}
 .clock.on{opacity:1}
 .clock .who{font-size:13px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .clock .t{font-family:var(--display);font-weight:900;font-size:clamp(46px,14vw,62px);line-height:1;font-variant-numeric:tabular-nums}
 .clock .m{height:5px;background:var(--floor);margin-top:4px}
 .clock .m i{display:block;height:100%}
-.clock.mine .t{color:var(--me)} .clock.mine .m i{background:var(--me)}
-.clock.theirs .t{color:var(--opp)} .clock.theirs .m i{background:var(--opp)}
-.clock.mine.on{box-shadow:0 0 0 3px var(--me)}
-.clock.theirs.on{box-shadow:0 0 0 3px var(--opp)}
+.clock .t{color:var(--c)} .clock .m i{background:var(--c)}
+.clock.on{box-shadow:0 0 0 3px var(--c)}
 .clock.low .t{color:var(--bad)}
 .status{display:flex;justify-content:space-between;gap:10px;font-size:14px;font-weight:600;color:var(--muted)}
 .status b{color:var(--ink)}
@@ -97,11 +102,21 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .pausebox{position:fixed;inset:0;z-index:5;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--floor);padding:24px;padding-left:max(24px,env(safe-area-inset-left,0px));padding-right:max(24px,env(safe-area-inset-right,0px));text-align:center}
 /* Resultat */
 .win{font-size:clamp(50px,16vw,76px);margin-top:4px}
-.win.yes{color:var(--me)} .win.no{color:var(--opp)}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.win{color:var(--c)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(70px,1fr));gap:8px}
 .stats div{background:var(--tile);padding:10px 12px;border-radius:4px;min-width:0}
 .stats b{display:block;font-family:var(--display);font-size:38px;line-height:1}
 .stats span{display:block;font-size:13px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;background:var(--tile);border-radius:3px;font-size:14px;font-weight:800;min-width:0}
+.chip i{width:12px;height:12px;background:var(--c);flex:none}
+.chip b{font-family:var(--display);font-size:18px;line-height:1}
+.chip.off{opacity:.45}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.seg button{min-height:46px;background:var(--tile);border-radius:4px;font-weight:800}
+.seg button.on{background:var(--ink);color:var(--on-color)}
+.vs{font-family:var(--display);font-weight:900;font-size:30px;line-height:1.1;overflow-wrap:anywhere}
+.vs span{color:var(--c)}
 .toast{min-height:20px;font-size:14px;color:var(--good);text-align:center}
 @media (prefers-reduced-motion:reduce){.lockbar{animation:none}}
 </style>
@@ -170,49 +185,63 @@ setInterval(()=>{const e=document.getElementById("toast");if(e&&!e.textContent&&
 <script>
 /* Sæt til sidens egen adresse efter første udgivelse, så startlinks kan deles. */
 const CAN_SHARE = true;
-const NOTE = "Tryk Del startlink, og vælg Beskeder eller Mail. Din modstander skal bare åbne linket.";
+const NOTE = "Tryk Del startlink, og vælg Beskeder eller Mail. Der er plads til 4 spillere, og de skal bare åbne linket.";
 const SHARE_URL = "";
 
 const CATS = [
-["hoved","Hovedstæder","Land til hovedstad",false,"Norge|Oslo;Sverige|Stockholm;Finland|Helsinki;Island|Reykjavik;Tyskland|Berlin;Frankrig|Paris;Spanien|Madrid;Portugal|Lissabon;Italien|Rom;Grækenland|Athen;Polen|Warszawa;Holland|Amsterdam;Belgien|Bruxelles;Schweiz|Bern;Østrig|Wien;Tjekkiet|Prag;Ungarn|Budapest;Rumænien|Bukarest;Bulgarien|Sofia;Serbien|Beograd;Kroatien|Zagreb;Irland|Dublin;Estland|Tallinn;Letland|Riga;Litauen|Vilnius;Ukraine|Kyiv;Tyrkiet|Ankara;Egypten|Kairo;Marokko|Rabat;Kenya|Nairobi;Nigeria|Abuja;Ghana|Accra;Etiopien|Addis Abeba;Japan|Tokyo;Kina|Beijing;Sydkorea|Seoul;Thailand|Bangkok;Vietnam|Hanoi;Indien|New Delhi;Indonesien|Jakarta;Australien|Canberra;New Zealand|Wellington;Canada|Ottawa;USA|Washington D.C.;Mexico|Mexico City;Brasilien|Brasília;Argentina|Buenos Aires;Chile|Santiago;Peru|Lima;Colombia|Bogotá;Cuba|Havana;Grønland|Nuuk;Færøerne|Tórshavn"],
+["hoved","Hoved\u00ADstæder","Land til hovedstad",false,"Norge|Oslo;Sverige|Stockholm;Finland|Helsinki;Island|Reykjavik;Tyskland|Berlin;Frankrig|Paris;Spanien|Madrid;Portugal|Lissabon;Italien|Rom;Grækenland|Athen;Polen|Warszawa;Holland|Amsterdam;Belgien|Bruxelles;Schweiz|Bern;Østrig|Wien;Tjekkiet|Prag;Ungarn|Budapest;Rumænien|Bukarest;Bulgarien|Sofia;Serbien|Beograd;Kroatien|Zagreb;Irland|Dublin;Estland|Tallinn;Letland|Riga;Litauen|Vilnius;Ukraine|Kyiv;Tyrkiet|Ankara;Egypten|Kairo;Marokko|Rabat;Kenya|Nairobi;Nigeria|Abuja;Ghana|Accra;Etiopien|Addis Abeba;Japan|Tokyo;Kina|Beijing;Sydkorea|Seoul;Thailand|Bangkok;Vietnam|Hanoi;Indien|New Delhi;Indonesien|Jakarta;Australien|Canberra;New Zealand|Wellington;Canada|Ottawa;USA|Washington D.C.;Mexico|Mexico City;Brasilien|Brasília;Argentina|Buenos Aires;Chile|Santiago;Peru|Lima;Colombia|Bogotá;Cuba|Havana;Grønland|Nuuk;Færøerne|Tórshavn"],
 ["flag","Flag","Flag til land",true,"🇩🇰|Danmark;🇳🇴|Norge;🇸🇪|Sverige;🇫🇮|Finland;🇮🇸|Island;🇩🇪|Tyskland;🇫🇷|Frankrig;🇪🇸|Spanien;🇵🇹|Portugal;🇮🇹|Italien;🇬🇷|Grækenland;🇵🇱|Polen;🇳🇱|Holland;🇧🇪|Belgien;🇨🇭|Schweiz;🇦🇹|Østrig;🇨🇿|Tjekkiet;🇭🇺|Ungarn;🇷🇴|Rumænien;🇧🇬|Bulgarien;🇭🇷|Kroatien;🇮🇪|Irland;🇪🇪|Estland;🇱🇻|Letland;🇱🇹|Litauen;🇺🇦|Ukraine;🇹🇷|Tyrkiet;🇪🇬|Egypten;🇲🇦|Marokko;🇰🇪|Kenya;🇳🇬|Nigeria;🇿🇦|Sydafrika;🇯🇵|Japan;🇨🇳|Kina;🇰🇷|Sydkorea;🇹🇭|Thailand;🇻🇳|Vietnam;🇮🇳|Indien;🇮🇩|Indonesien;🇦🇺|Australien;🇳🇿|New Zealand;🇨🇦|Canada;🇺🇸|USA;🇲🇽|Mexico;🇧🇷|Brasilien;🇦🇷|Argentina;🇨🇱|Chile;🇵🇪|Peru;🇨🇴|Colombia;🇨🇺|Cuba;🇬🇱|Grønland;🇬🇧|Storbritannien"],
 ["kemi","Grund\u00ADstoffer","Kemisk tegn til grundstof",true,"H|Brint;He|Helium;Li|Litium;C|Kulstof;N|Kvælstof;O|Ilt;F|Fluor;Ne|Neon;Na|Natrium;Mg|Magnesium;Al|Aluminium;Si|Silicium;P|Fosfor;S|Svovl;Cl|Klor;Ar|Argon;K|Kalium;Ca|Calcium;Ti|Titan;Cr|Krom;Mn|Mangan;Fe|Jern;Co|Kobolt;Ni|Nikkel;Cu|Kobber;Zn|Zink;As|Arsen;Br|Brom;Ag|Sølv;Sn|Tin;I|Jod;Ba|Barium;W|Wolfram;Pt|Platin;Au|Guld;Hg|Kviksølv;Pb|Bly;Rn|Radon;U|Uran;Pu|Plutonium"],
 ["dyr","Dyr","Billede til dyr",true,"🦁|Løve;🐯|Tiger;🐻|Bjørn;🐼|Panda;🐨|Koala;🦊|Ræv;🐺|Ulv;🦝|Vaskebjørn;🦘|Kænguru;🦒|Giraf;🦓|Zebra;🦏|Næsehorn;🦛|Flodhest;🐘|Elefant;🦬|Bison;🦌|Hjort;🦔|Pindsvin;🦦|Odder;🦫|Bæver;🦥|Dovendyr;🦇|Flagermus;🐧|Pingvin;🦉|Ugle;🦅|Ørn;🦩|Flamingo;🦚|Påfugl;🦜|Papegøje;🦢|Svane;🦆|And;🐊|Krokodille;🐢|Skildpadde;🦎|Firben;🐍|Slange;🦈|Haj;🐙|Blæksprutte;🦀|Krabbe;🦞|Hummer;🐬|Delfin;🐳|Hval;🦭|Sæl;🐝|Bi;🦋|Sommerfugl;🐌|Snegl;🦂|Skorpion"],
 ["post","Post\u00ADnumre","Postnummer til by",true,"5000|Odense;8000|Aarhus;9000|Aalborg;6000|Kolding;7100|Vejle;8700|Horsens;8900|Randers;7400|Herning;6700|Esbjerg;4000|Roskilde;3000|Helsingør;3400|Hillerød;4700|Næstved;4200|Slagelse;7500|Holstebro;8600|Silkeborg;8800|Viborg;6400|Sønderborg;6200|Aabenraa;6100|Haderslev;7000|Fredericia;4600|Køge;5700|Svendborg;3700|Rønne;9800|Hjørring;9900|Frederikshavn;7800|Skive;4300|Holbæk;4400|Kalundborg;8500|Grenaa;9400|Nørresundby;6800|Varde;6900|Skjern;7700|Thisted;9500|Hobro;3600|Frederikssund;4100|Ringsted;4900|Nakskov;6270|Tønder;6760|Ribe"],
-["film","Danske film","Film til instruktør",false,"Festen|Thomas Vinterberg;Jagten|Thomas Vinterberg;Druk|Thomas Vinterberg;Breaking the Waves|Lars von Trier;Dancer in the Dark|Lars von Trier;Melancholia|Lars von Trier;Babettes gæstebud|Gabriel Axel;Hævnen|Susanne Bier;Efter brylluppet|Susanne Bier;Den eneste ene|Susanne Bier;Pusher|Nicolas Winding Refn;Drive|Nicolas Winding Refn;Blinkende lygter|Anders Thomas Jensen;Adams æbler|Anders Thomas Jensen;Retfærdighedens ryttere|Anders Thomas Jensen;Olsen-Banden|Erik Balling;Italiensk for begyndere|Lone Scherfig;Flugt|Jonas Poher Rasmussen;Krigen|Tobias Lindholm;Kapringen|Tobias Lindholm;Klovn the Movie|Mikkel Nørgaard;Kvinden i buret|Mikkel Nørgaard;Nattevagten|Ole Bornedal;Kunsten at græde i kor|Peter Schønau Fog;Bænken|Per Fly;Arven|Per Fly;Flammen & Citronen|Ole Christian Madsen;Superclásico|Ole Christian Madsen;En kongelig affære|Nikolaj Arcel;Bastarden|Nikolaj Arcel;Kongekabale|Nikolaj Arcel;Under sandet|Martin Zandvliet;Pelle Erobreren|Bille August;Zappa|Bille August;Gertrud|Carl Th. Dreyer;Ordet|Carl Th. Dreyer"],
-["bog","Danske bøger","Bog til forfatter",false,"Den grimme ælling|H.C. Andersen;Den lille havfrue|H.C. Andersen;Kongens Fald|Johannes V. Jensen;Pelle Erobreren|Martin Andersen Nexø;Ditte Menneskebarn|Martin Andersen Nexø;Den afrikanske farm|Karen Blixen;Babettes Gæstebud|Karen Blixen;Frøken Smillas fornemmelse for sne|Peter Høeg;Kvinden i buret|Jussi Adler-Olsen;Flaskepost fra P|Jussi Adler-Olsen;Kastanjemanden|Søren Sveistrup;Løgneren|Martin A. Hansen;Barndommens gade|Tove Ditlevsen;Gift|Tove Ditlevsen;Hærværk|Tom Kristensen;Niels Lyhne|J.P. Jacobsen;Fru Marie Grubbe|J.P. Jacobsen;Lykke-Per|Henrik Pontoppidan;Det forsømte forår|Hans Scherfig;Den forsvundne fuldmægtig|Hans Scherfig;Hundehoved|Morten Ramsland;Vi, de druknede|Carsten Jensen;Jeg har set verden begynde|Carsten Jensen;Drengene fra Sankt Petri|Bjarne Reuter;Zappa|Bjarne Reuter;Gummi-Tarzan|Ole Lund Kirkegaard;Hodja fra Pjort|Ole Lund Kirkegaard;Orla Frøsnapper|Ole Lund Kirkegaard;Erasmus Montanus|Ludvig Holberg;Jeppe på Bjerget|Ludvig Holberg;Den kroniske uskyld|Klaus Rifbjerg;Anna (jeg) Anna|Klaus Rifbjerg;Forførerens dagbog|Søren Kierkegaard;Frygt og bæven|Søren Kierkegaard;Nøddebo Præstegård|Henrik Scharling"],
+["film","Danske film","Film til instruktør",false,"Festen|Thomas Vinterberg;Jagten|Thomas Vinterberg;Druk|Thomas Vinterberg;Breaking the Waves|Lars von Trier;Dancer in the Dark|Lars von Trier;Melancholia|Lars von Trier;Babettes gæstebud|Gabriel Axel;Hævnen|Susanne Bier;Efter brylluppet|Susanne Bier;Den eneste ene|Susanne Bier;Pusher|Nicolas Winding Refn;Drive|Nicolas Winding Refn;Blinkende lygter|Anders Thomas Jensen;Adams æbler|Anders Thomas Jensen;Retfærdighedens ryttere|Anders Thomas Jensen;Olsen-Banden|Erik Balling;Italiensk for begyndere|Lone Scherfig;Flugt|Jonas Poher Rasmussen;Krigen|Tobias Lindholm;Kapringen|Tobias Lindholm;Klovn the Movie|Mikkel Nørgaard;Kvinden i buret|Mikkel Nørgaard;Nattevagten|Ole Bornedal;Kunsten at græde i kor|Peter Schønau Fog;Bænken|Per Fly;Arven|Per Fly;Flammen & Citronen|Ole Christian Madsen;Superclásico|Ole Christian Madsen;En kongelig affære|Nikolaj Arcel;Bastarden|Nikolaj Arcel;Kongekabale|Nikolaj Arcel;Under sandet|Martin Zandvliet;Pelle Erobreren|Bille August;Zappa|Bille August;Gertrud|Carl Th. Dreyer;Ordet|Carl Th. Dreyer","Annette K. Olesen,Natasha Arthy,Lasse Spang Olsen,Hella Joof,Niels Arden Oplev,Søren Kragh-Jacobsen,Henrik Ruben Genz,Pernille Fischer Christensen"],
+["bog","Danske bøger","Bog til forfatter",false,"Den grimme ælling|H.C. Andersen;Den lille havfrue|H.C. Andersen;Kongens Fald|Johannes V. Jensen;Pelle Erobreren|Martin Andersen Nexø;Ditte Menneskebarn|Martin Andersen Nexø;Den afrikanske farm|Karen Blixen;Babettes Gæstebud|Karen Blixen;Frøken Smillas fornemmelse for sne|Peter Høeg;Kvinden i buret|Jussi Adler-Olsen;Flaskepost fra P|Jussi Adler-Olsen;Kastanjemanden|Søren Sveistrup;Løgneren|Martin A. Hansen;Barndommens gade|Tove Ditlevsen;Gift|Tove Ditlevsen;Hærværk|Tom Kristensen;Niels Lyhne|J.P. Jacobsen;Fru Marie Grubbe|J.P. Jacobsen;Lykke-Per|Henrik Pontoppidan;Det forsømte forår|Hans Scherfig;Den forsvundne fuldmægtig|Hans Scherfig;Hundehoved|Morten Ramsland;Vi, de druknede|Carsten Jensen;Jeg har set verden begynde|Carsten Jensen;Drengene fra Sankt Petri|Bjarne Reuter;Zappa|Bjarne Reuter;Gummi-Tarzan|Ole Lund Kirkegaard;Hodja fra Pjort|Ole Lund Kirkegaard;Orla Frøsnapper|Ole Lund Kirkegaard;Erasmus Montanus|Ludvig Holberg;Jeppe på Bjerget|Ludvig Holberg;Den kroniske uskyld|Klaus Rifbjerg;Anna (jeg) Anna|Klaus Rifbjerg;Forførerens dagbog|Søren Kierkegaard;Frygt og bæven|Søren Kierkegaard;Nøddebo Præstegård|Henrik Scharling","Helle Helle,Dorrit Willumsen,Kirsten Thorup,Jens Christian Grøndahl,Naja Marie Aidt,Yahya Hassan,Dan Turèll,Sara Omar,Michael Strunge"],
 ["hits","Store hits","Sang til kunstner",false,"Barbie Girl|Aqua;Bohemian Rhapsody|Queen;Dancing Queen|ABBA;Thriller|Michael Jackson;Smells Like Teen Spirit|Nirvana;Hey Jude|The Beatles;Wonderwall|Oasis;Purple Rain|Prince;Like a Prayer|Madonna;Enter Sandman|Metallica;Rolling in the Deep|Adele;Shape of You|Ed Sheeran;Halo|Beyoncé;Viva la Vida|Coldplay;Angie|The Rolling Stones;Take On Me|a-ha;Stairway to Heaven|Led Zeppelin;Hotel California|Eagles;Sweet Child o' Mine|Guns N' Roses;Livin' on a Prayer|Bon Jovi;Poker Face|Lady Gaga;Toxic|Britney Spears;Umbrella|Rihanna;Shake It Off|Taylor Swift;Lose Yourself|Eminem;Blinding Lights|The Weeknd;Bad Guy|Billie Eilish;In the End|Linkin Park;Zombie|The Cranberries;Creep|Radiohead;Heroes|David Bowie;Imagine|John Lennon;Rocket Man|Elton John;Like a Rolling Stone|Bob Dylan;My Way|Frank Sinatra;Jailhouse Rock|Elvis Presley;Purple Haze|Jimi Hendrix;Back to Black|Amy Winehouse;Wake Me Up|Avicii;The Final Countdown|Europe"],
-["sport","Sports\u00ADstjerner","Navn til sportsgren",false,"Caroline Wozniacki|Tennis;Holger Rune|Tennis;Clara Tauson|Tennis;Jonas Vingegaard|Cykling;Bjarne Riis|Cykling;Mads Pedersen|Cykling;Mikkel Hansen|Håndbold;Niklas Landin|Håndbold;Anja Andersen|Håndbold;Michael Laudrup|Fodbold;Peter Schmeichel|Fodbold;Christian Eriksen|Fodbold;Pernille Harder|Fodbold;Viktor Axelsen|Badminton;Peter Gade|Badminton;Camilla Martin|Badminton;Pernille Blume|Svømning;Rikke Møller Pedersen|Svømning;Kevin Magnussen|Motorsport;Tom Kristensen|Motorsport;Nicolai Højgaard|Golf;Thomas Bjørn|Golf;Mikkel Kessler|Boksning;Johnny Bredahl|Boksning;Wilson Kipketer|Atletik;Eskild Ebbesen|Roning;Paul Elvstrøm|Sejlsport;Anne-Marie Rindom|Sejlsport;Hans Nielsen|Speedway;Nicki Pedersen|Speedway;Ole Olsen|Speedway;Emma Aastrand Jørgensen|Kajak;Kim Wraae Knudsen|Kajak"],
-["maerke","Mærker","Mærke til hjemland",false,"LEGO|Danmark;Carlsberg|Danmark;Bang & Olufsen|Danmark;IKEA|Sverige;Volvo|Sverige;H&M|Sverige;Spotify|Sverige;Nokia|Finland;Supercell|Finland;Samsung|Sydkorea;Hyundai|Sydkorea;Nestlé|Schweiz;Rolex|Schweiz;Ferrari|Italien;Lamborghini|Italien;Fiat|Italien;Renault|Frankrig;Peugeot|Frankrig;Zara|Spanien;Seat|Spanien;Heineken|Holland;Philips|Holland;Guinness|Irland;Apple|USA;Nike|USA;Toyota|Japan;Sony|Japan;BMW|Tyskland;Adidas|Tyskland;Škoda|Tjekkiet;Stella Artois|Belgien;Huawei|Kina;Tata|Indien;Burberry|Storbritannien;Rolls-Royce|Storbritannien;Red Bull|Østrig"],
-["ord","Mund\u00ADheld","Find det sidste ord",false,"Morgenstund har guld i …|munden;Den der ler sidst, ler …|bedst;Mange bække små gør en stor …|å;Man skal ikke skue hunden på …|hårene;Når katten er ude, spiller musene på …|bordet;Bedre en fugl i hånden end ti på …|taget;Lediggang er roden til alt …|ondt;Selv en blind høne kan finde et …|korn;Som man råber i skoven, får man …|svar;Stille vand har dybest …|grund;Øvelse gør …|mester;Af skade bliver man …|klog;Alle gode gange …|tre;Ingen roser uden …|torne;Talen er sølv, tavshed er …|guld;Tiden læger alle …|sår;Fra asken til …|ilden;Kærlighed gør …|blind;Gammel kærlighed …|ruster;Den enes død, den andens …|brød;Bedre sent end …|aldrig;Ud af øjet, ud af …|sind;Blod er tykkere end …|vand;Man skal smede, mens jernet er …|varmt;Små gryder har også …|ører;Krage søger …|mage;Æblet falder ikke langt fra …|stammen;En ulykke kommer sjældent …|alene;Uden mad og drikke duer helten …|ikke"]
-].map(([id,name,hint,big,raw])=>({id,name,hint,big,items:raw.split(";").map(s=>{const [p,a]=s.split("|");return {p,a}})}));
+["sport","Sports\u00ADstjerner","Navn til sportsgren",false,"Caroline Wozniacki|Tennis;Holger Rune|Tennis;Clara Tauson|Tennis;Jonas Vingegaard|Cykling;Bjarne Riis|Cykling;Mads Pedersen|Cykling;Mikkel Hansen|Håndbold;Niklas Landin|Håndbold;Anja Andersen|Håndbold;Michael Laudrup|Fodbold;Peter Schmeichel|Fodbold;Christian Eriksen|Fodbold;Pernille Harder|Fodbold;Viktor Axelsen|Badminton;Peter Gade|Badminton;Camilla Martin|Badminton;Pernille Blume|Svømning;Rikke Møller Pedersen|Svømning;Kevin Magnussen|Motorsport;Tom Kristensen|Motorsport;Nicolai Højgaard|Golf;Thomas Bjørn|Golf;Mikkel Kessler|Boksning;Johnny Bredahl|Boksning;Wilson Kipketer|Atletik;Eskild Ebbesen|Roning;Paul Elvstrøm|Sejlsport;Anne-Marie Rindom|Sejlsport;Hans Nielsen|Speedway;Nicki Pedersen|Speedway;Ole Olsen|Speedway;Emma Aastrand Jørgensen|Kajak;Kim Wraae Knudsen|Kajak","Bueskydning,Ishockey,Skydning,Ridning,Bordtennis,Basketball,Volleyball,Curling"],
+["maerke","Mærker","Mærke til hjemland",false,"LEGO|Danmark;Carlsberg|Danmark;Bang & Olufsen|Danmark;IKEA|Sverige;Volvo|Sverige;H&M|Sverige;Spotify|Sverige;Nokia|Finland;Supercell|Finland;Samsung|Sydkorea;Hyundai|Sydkorea;Nestlé|Schweiz;Rolex|Schweiz;Ferrari|Italien;Lamborghini|Italien;Fiat|Italien;Renault|Frankrig;Peugeot|Frankrig;Zara|Spanien;Seat|Spanien;Heineken|Holland;Philips|Holland;Guinness|Irland;Apple|USA;Nike|USA;Toyota|Japan;Sony|Japan;BMW|Tyskland;Adidas|Tyskland;Škoda|Tjekkiet;Stella Artois|Belgien;Huawei|Kina;Tata|Indien;Burberry|Storbritannien;Rolls-Royce|Storbritannien;Red Bull|Østrig","Canada,Norge,Polen,Australien,Mexico,Brasilien,Tyrkiet"],
+["ord","Mund\u00ADheld","Find det sidste ord",false,"Morgenstund har guld i …|munden;Den der ler sidst, ler …|bedst;Mange bække små gør en stor …|å;Man skal ikke skue hunden på …|hårene;Når katten er ude, spiller musene på …|bordet;Bedre en fugl i hånden end ti på …|taget;Lediggang er roden til alt …|ondt;Selv en blind høne kan finde et …|korn;Som man råber i skoven, får man …|svar;Stille vand har dybest …|grund;Øvelse gør …|mester;Af skade bliver man …|klog;Alle gode gange …|tre;Ingen roser uden …|torne;Talen er sølv, tavshed er …|guld;Tiden læger alle …|sår;Fra asken til …|ilden;Kærlighed gør …|blind;Gammel kærlighed …|ruster;Den enes død, den andens …|brød;Bedre sent end …|aldrig;Ud af øjet, ud af …|sind;Blod er tykkere end …|vand;Man skal smede, mens jernet er …|varmt;Små gryder har også …|ører;Krage søger …|mage;Æblet falder ikke langt fra …|stammen;En ulykke kommer sjældent …|alene;Uden mad og drikke duer helten …|ikke"],
+["valuta","Valutaer","Land til valuta",false,"USA|Dollar;Storbritannien|Pund;Japan|Yen;Kina|Yuan;Indien|Rupee;Rusland|Rubel;Schweiz|Franc;Tyrkiet|Lira;Mexico|Peso;Brasilien|Real;Sydafrika|Rand;Sydkorea|Won;Polen|Zloty;Thailand|Baht;Vietnam|Dong;Ungarn|Forint;Tjekkiet|Koruna;Rumænien|Leu;Israel|Shekel;Saudi-Arabien|Riyal;Danmark|Krone;Tyskland|Euro;Indonesien|Rupiah;Malaysia|Ringgit"],
+["kunst","Malerier","Værk til kunstner",false,"Mona Lisa|Leonardo da Vinci;Stjernenatten|Vincent van Gogh;Skriget|Edvard Munch;Guernica|Pablo Picasso;Pigen med perleøreringen|Johannes Vermeer;Nattevagten|Rembrandt;Kysset|Gustav Klimt;Venus' fødsel|Sandro Botticelli;Vandliljer|Claude Monet;Erindringens vedholdenhed|Salvador Dalí;Campbell's suppedåser|Andy Warhol;Danseklassen|Edgar Degas;Den store bølge ud for Kanagawa|Hokusai;De to Fridaer|Frida Kahlo;American Gothic|Grant Wood;Nighthawks|Edward Hopper;Sommeraften på Skagens strand|P.S. Krøyer;Skabelsen af Adam|Michelangelo;Menneskets søn|René Magritte","Jackson Pollock,Paul Cézanne,Henri Matisse,J.M.W. Turner"],
+["tegne","Tegnefilm","Figur til film",false,"Pumba|Løvernes Konge;Elsa|Frost;Dory|Find Nemo;Woody|Toy Story;Ursula|Den Lille Havfrue;Jasmin|Aladdin;Baloo|Junglebogen;Belle|Skønheden og Udyret;Sulley|Monsters, Inc.;Lightning McQueen|Biler;Remy|Ratatouille;Jack Skellington|The Nightmare Before Christmas;Merida|Modig;Mirabel|Encanto;Riley|Inderst inde;Carl Fredricksen|Op;Maui|Vaiana;Rapunzel|To på flugt;Mufasa|Løvernes Konge","Peter Pan,Bambi,Ice Age,Shrek"],
+["stadion","Stadioner","Stadion til klub",false,"Parken|FC København;Anfield|Liverpool;Old Trafford|Manchester United;Camp Nou|FC Barcelona;Santiago Bernabéu|Real Madrid;Allianz Arena|Bayern München;Signal Iduna Park|Borussia Dortmund;Stamford Bridge|Chelsea;Emirates Stadium|Arsenal;Etihad Stadium|Manchester City;Parc des Princes|Paris Saint-Germain;Ceres Park|AGF;St James' Park|Newcastle United;Ibrox|Rangers;Johan Cruijff Arena|Ajax;Estádio da Luz|Benfica;Estádio do Dragão|FC Porto;MCH Arena|FC Midtjylland","Juventus,AC Milan,Brøndby IF,Odense Boldklub"],
+["sevaerd","Se\u00ADværdig\u00ADheder","Seværdighed til by",false,"Eiffeltårnet|Paris;Colosseum|Rom;Big Ben|London;Frihedsgudinden|New York;Akropolis|Athen;Den Røde Plads|Moskva;Sagrada Família|Barcelona;Brandenburger Tor|Berlin;Burj Khalifa|Dubai;Cristo Redentor|Rio de Janeiro;Den Lille Havfrue|København;Hagia Sofia|Istanbul;Den Forbudte By|Beijing;Golden Gate-broen|San Francisco;Karlsbroen|Prag;Rijksmuseum|Amsterdam;Alhambra|Granada;Det skæve tårn|Pisa;Vasamuseet|Stockholm;Taj Mahal|Agra;Marina Bay Sands|Singapore;Petronas Towers|Kuala Lumpur;Manneken Pis|Bruxelles;Rialtobroen|Venedig;Operahuset ved Bennelong Point|Sydney"],
+["serier","Tv-serier","Figur til serie",false,"Birgitte Nyborg|Borgen;Sarah Lund|Forbrydelsen;Mads Skjern|Matador;Walter White|Breaking Bad;Jon Snow|Game of Thrones;Michael Scott|The Office;Eleven|Stranger Things;Ross Geller|Friends;Don Draper|Mad Men;Geralt|The Witcher;Carrie Bradshaw|Sex and the City;Sheldon Cooper|The Big Bang Theory;Thomas Shelby|Peaky Blinders;Logan Roy|Succession;Frank Underwood|House of Cards;Carmy|The Bear;Frank Hvam|Klovn;Michael Scofield|Prison Break;Jack Bauer|24 Timer;Carrie Mathison|Homeland;Rick Grimes|The Walking Dead"],
+["mad","Mad fra verden","Ret til land",false,"Paella|Spanien;Sushi|Japan;Pizza|Italien;Smørrebrød|Danmark;Moussaka|Grækenland;Tacos|Mexico;Pad thai|Thailand;Pho|Vietnam;Kimchi|Sydkorea;Gullasch|Ungarn;Feijoada|Brasilien;Haggis|Skotland;Pierogi|Polen;Borsjtj|Ukraine;Fish and chips|England;Wienerschnitzel|Østrig;Poutine|Canada;Döner kebab|Tyrkiet;Hamburger|USA;Surströmming|Sverige;Fårikål|Norge;Ceviche|Peru;Moules frites|Belgien;Butter chicken|Indien;Bouillabaisse|Frankrig;Pekingand|Kina;Injera|Etiopien;Tajine|Marokko"],
+["dkgo","Oplev Danmark","Seværdighed til sted",false,"LEGOLAND|Billund;Råbjerg Mile|Skagen;Kronborg|Helsingør;ARoS|Aarhus;Louisiana|Humlebæk;Egeskov Slot|Kværndrup;Frederiksborg Slot|Hillerød;Vikingeskibsmuseet|Roskilde;H.C. Andersens Hus|Odense;Djurs Sommerland|Nimtofte;Fårup Sommerland|Blokhus;Knuthenborg Safaripark|Maribo;Tirpitz|Blåvand;Utzon Center|Aalborg;Hammershus|Bornholm;Tivoli|København;Bakken|Klampenborg;Jellingstenene|Jelling;Den Blå Planet|Kastrup;Arken|Ishøj;Mennesket ved Havet|Esbjerg;Fregatten Jylland|Ebeltoft"],
+["sportord","Sports\u00ADudtryk","Udtryk til sport",false,"Ace|Tennis;Birdie|Golf;Strike|Bowling;Offside|Fodbold;Touchdown|Amerikansk fodbold;Slam dunk|Basketball;Skakmat|Skak;180|Dart;Scrum|Rugby;Homerun|Baseball;Knockout|Boksning;Bodycheck|Ishockey;Peloton|Cykling;Butterfly|Svømning;Dressur|Ridning;En garde|Fægtning;Ollie|Skateboard;Ippon|Judo;Stenen og fejekosten|Curling;Break|Snooker"],
+["aar","Årstal","År til begivenhed",true,"1864|Slaget ved Dybbøl;1945|Danmark blev befriet;1989|Berlinmuren faldt;1492|Columbus nåede Amerika;1969|Første månelanding;1912|Titanic sank;1789|Den Franske Revolution;1973|Danmark kom med i EF;1849|Danmarks første grundlov;1914|1. verdenskrig brød ud;1939|2. verdenskrig brød ud;2001|Angrebet 11. september;1801|Slaget på Reden;1807|Københavns bombardement;1920|Genforeningen;1536|Reformationen i Danmark;1397|Kalmarunionen;1660|Enevælden i Danmark;1915|Danske kvinder fik stemmeret;1963|Kennedy blev myrdet;1986|Tjernobyl-ulykken;1992|Danmark blev europamester;1066|Slaget ved Hastings;1453|Konstantinopels fald;1776|USA's uafhængighed;1991|Sovjetunionen blev opløst"],
+["viden","Op\u00ADdagelser","Opdagelse til person",false,"Telefonen|Alexander Graham Bell;Bogtrykkerkunsten|Johannes Gutenberg;Dynamit|Alfred Nobel;Penicillin|Alexander Fleming;Relativitetsteorien|Albert Einstein;Tyngdeloven|Isaac Newton;Evolutionsteorien|Charles Darwin;Radium|Marie Curie;Elektromagnetismen|H.C. Ørsted;Atommodellen fra 1913|Niels Bohr;World Wide Web|Tim Berners-Lee;Radioen|Guglielmo Marconi;Den første benzinbil|Karl Benz;Koppevaccinen|Edward Jenner;Det periodiske system|Dmitrij Mendelejev;Solen i centrum|Nikolaus Kopernikus;Lysets endelige hastighed|Ole Rømer;Røntgenstråler|Wilhelm Röntgen","Galileo Galilei,Nikola Tesla,Louis Pasteur"],
+["frugt","Frugt og grønt","Billede til navn",true,"🍎|Æble;🍌|Banan;🍇|Vindruer;🍉|Vandmelon;🍊|Appelsin;🍋|Citron;🍍|Ananas;🥭|Mango;🍑|Fersken;🍐|Pære;🍓|Jordbær;🥝|Kiwi;🥥|Kokosnød;🍒|Kirsebær;🥑|Avocado;🥦|Broccoli;🥕|Gulerod;🌽|Majs;🍆|Aubergine;🍅|Tomat;🥒|Agurk;🧄|Hvidløg;🧅|Løg;🥔|Kartoffel;🍄|Svamp;🥜|Jordnødder;🌰|Kastanje"],
+["dkmusik","Dansk musik","Sang til kunstner",false,"Midt om natten|Kim Larsen;Kun for mig|Medina;Natteravn|Rasmus Seebach;7 Years|Lukas Graham;Still Counting|Volbeat;Sleeping My Day Away|D-A-D;Fascination|Alphabeat;Comforting Sounds|Mew;Slingrer ned ad Vestergade|Gnags;Militskvinder|Kliché;Stupid Man|Thomas Helmig;Smuk og dejlig|Anne Linnet;Silverflame|Dizzy Mizz Lizzy;Aicha|Outlandish;Saturday Night|Whigfield;Played-A-Live|Safri Duo;Move Your Feet|Junior Senior;Only Teardrops|Emmelie de Forest;Fly on the Wings of Love|Olsen Brothers;Rocket Brothers|Kashmir;Kvinde min|Gasolin'","Nephew,TV-2,Shu-bi-dua,Sanne Salomonsen,Lars Lilholt"]
+].map(([id,name,hint,big,raw,extra])=>({id,name,hint,big,extra:extra?extra.split(","):[],items:raw.split(";").map(s=>{const [p,a]=s.split("|");return {p,a}})}));
 
-const CLOCK=45000, WRONG=2000, PASS=3000, COUNT=3200, FLASH=650;
+const CLOCKS=[30,45,60], WRONG=2000, PASS=3000, COUNT=3200, FLASH=650, MAXP=4;
 const $app=document.getElementById("app");
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const store={get(k){try{return localStorage.getItem(k)||""}catch{return ""}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
 
-const G={room:null,lobby:null,roomState:"loading",open:[],name:store.get("feltet-navn"),invite:null,
-  mode:null,me:0,code:"",gr:null,S:null,recvAt:0,seen:0,hostSeen:0,pending:0,actN:0,msg:"",full:false,offUnsub:[],renderKey:""};
-
+const G={room:null,roomState:"loading",open:[],name:store.get("feltet-navn"),invite:null,
+  mode:null,me:0,code:"",gr:null,S:null,S0:null,recvAt:0,seen:0,hostSeen:0,pending:0,actN:0,msg:"",full:false,lost:false,offUnsub:[],renderKey:""};
 function inviteFromHash(){const m=/^#duel-(\d{4})$/.exec(location.hash);G.invite=m?m[1]:null}
 inviteFromHash();
 addEventListener("hashchange",()=>{inviteFromHash();if(!G.mode)render(true)});
 
-/* ---------- Lyd ---------- */
 let ac=null;
 function sound(f,d=.09){try{if(!ac)ac=new (window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.frequency.value=f;g.gain.value=.05;g.gain.exponentialRampToValueAtTime(.001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch{}}
 let wake=null;
 async function keepAwake(){try{wake=await navigator.wakeLock?.request("screen")}catch{}}
 
 /* ---------- Værten styrer spillet ---------- */
-const H={deck:[],ans:-1,lockUntil:0,due:null,lastN:0,tick:null,last:0,bot:null,pausedAt:0,catObj:null};
+const H={deck:[],ans:-1,lockUntil:0,due:null,lastN:[0,0,0,0],tick:null,last:0,beat:0,bot:null,botKey:"",pausedAt:0,catObj:null};
 const now=()=>performance.now();
+const inPlay=S=>S.duel.filter(p=>!S.out.includes(p));
+const nextIn=(S,p)=>{const d=S.duel;for(let k=1;k<=d.length;k++){const q=d[(d.indexOf(p)+k)%d.length];if(!S.out.includes(q))return q}return p};
+const nextAlive=(S,from)=>{const n=S.names.length;for(let k=1;k<=n;k++){const i=(from+k)%n;if(!S.gone[i])return i}return from};
+const tilesOf=(S,p)=>S.ring.filter(id=>S.owner[id]===p).length;
 
-function newS(names){return {v:0,phase:"wait",names,ring:[],owner:{},picker:1,cat:null,turn:0,clocks:[CLOCK,CLOCK],run:false,q:null,wrong:[],lock:0,lockWhy:"",reveal:null,score:[0,0],right:[0,0],winner:null,rematch:[false,false],gp:null,ack:0,paused:false,count:0}}
-
-function syncClock(){const t=now();if(G.S.run&&!G.S.paused){G.S.clocks[G.S.turn]=Math.max(0,G.S.clocks[G.S.turn]-(t-H.last))}H.last=t}
+function newS(name){return {v:0,phase:"wait",names:[name],seats:[null],gone:[false],ack:[0],clock:45000,ring:[],owner:{},picker:0,cat:null,duel:null,out:[],turn:0,clocks:[],run:false,q:null,wrong:[],lock:0,lockWhy:"",reveal:null,right:[],winner:null,loser:null,paused:false,count:0}}
+function syncClock(){const t=now();if(G.S.run&&!G.S.paused)G.S.clocks[G.S.turn]=Math.max(0,G.S.clocks[G.S.turn]-(t-H.last));H.last=t}
 function publish(){
   const S=G.S;syncClock();S.v++;
   const t=now();S.lock=Math.max(0,H.lockUntil-t);
@@ -224,31 +253,52 @@ function publish(){
 function nextQ(){
   if(!H.deck.length)H.deck=shuffle(H.catObj.items);
   const it=H.deck.pop();
-  const others=shuffle([...new Set(H.catObj.items.map(x=>x.a))].filter(a=>a!==it.a)).slice(0,7);
-  const o=shuffle([it.a,...others]);
+  const pool=[...new Set([...H.catObj.items.map(x=>x.a),...H.catObj.extra])].filter(a=>a!==it.a);
+  const o=shuffle([it.a,...shuffle(pool).slice(0,7)]);
   H.ans=o.indexOf(it.a);
   G.S.q={id:(G.S.q?.id||0)+1,p:it.p,o};G.S.wrong=[];G.S.reveal=null;H.lockUntil=0;G.S.lockWhy="";
 }
 function toPick(picker){
   const S=G.S;S.phase="pick";S.picker=picker;
-  if(S.ring.length===0||S.ring.every(id=>id in S.owner)){S.ring=shuffle(CATS).slice(0,8).map(c=>c.id);S.owner={};S.score=[0,0]}
-  S.cat=null;S.rematch=[false,false];S.winner=null;S.q=null;S.run=false;
+  if(S.ring.length===0||S.ring.every(id=>id in S.owner)){S.ring=shuffle(CATS).slice(0,8).map(c=>c.id);S.owner={}}
+  S.cat=null;S.duel=null;S.out=[];S.winner=null;S.q=null;S.run=false;
+  publish();
+}
+function beginDuel(){
+  /* Alle er med. Den, der valgte feltet, svarer sidst i rækken. */
+  const S=G.S,n=S.names.length,d=[];
+  for(let k=1;k<=n;k++){const p=(S.picker+k)%n;if(!S.gone[p])d.push(p)}
+  S.duel=d;S.out=[];S.turn=d[0];S.clocks=Array(n).fill(S.clock);S.right=Array(n).fill(0);S.q=null;S.phase="count";
+  H.due={at:now()+COUNT,fn(){S.phase="play";nextQ();S.run=true;H.last=now();publish()}};publish();
+}
+function finish(w){
+  const S=G.S;S.run=false;H.due=null;H.lockUntil=0;S.lockWhy="";S.reveal=null;S.paused=false;
+  S.winner=w;S.owner[S.cat]=w;S.phase="end";S.q=null;publish();
+}
+/* En spiller er ude af duellen. Står kun én tilbage, tager vedkommende feltet. */
+function knockOut(p){
+  const S=G.S;S.out.push(p);
+  const left=inPlay(S);
+  if(left.length<=1){finish(left[0]??p);return}
+  if(S.turn===p){S.turn=nextIn(S,p);H.due=null;nextQ();S.run=S.phase==="play";H.last=now()}
   publish();
 }
 function hostAct(p,t,i){
-  const S=G.S,tn=now();if(S.paused)return;
-  if(t==="cat"&&S.phase==="pick"&&p===S.picker&&S.ring.includes(i)&&!(i in S.owner)){
-    H.catObj=CATS.find(c=>c.id===i);H.deck=shuffle(H.catObj.items);
-    S.cat=i;S.turn=1-p;S.clocks=[CLOCK,CLOCK];S.right=[0,0];S.q=null;S.phase="count";
-    H.due={at:tn+COUNT,fn(){S.phase="play";nextQ();S.run=true;H.last=now();publish()}};publish();return;
-  }
-  if(t==="again"&&S.phase==="end"){S.rematch[p]=true;if(G.mode==="bot")S.rematch[1]=true;
-    if(S.rematch[0]&&S.rematch[1])toPick(1-S.picker);else publish();return}
+  const S=G.S,tn=now(),n=S.names.length;
+  if(t==="forfeit"&&p===0&&S.paused&&S.duel){const away=inPlay(S).filter(x=>S.gone[x]);S.paused=false;H.last=now();away.forEach(x=>{if(G.S.phase==="play"||G.S.phase==="count")knockOut(x)});return}
+  if(S.paused)return;
+  if(t==="clock"&&p===0&&S.phase==="wait"&&CLOCKS.includes(i)){S.clock=i*1000;publish();return}
+  if(t==="start"&&p===0&&S.phase==="wait"&&n>=2){try{G.room?.presence({open:null}).catch(()=>{})}catch{}toPick(0);return}
+  if(S.phase==="pick"&&p===S.picker){
+    if(t==="cat"&&!S.cat&&S.ring.includes(i)&&!(i in S.owner)){
+      H.catObj=CATS.find(c=>c.id===i);H.deck=shuffle(H.catObj.items);S.cat=i;beginDuel();return}
+    return}
+  if(t==="next"&&S.phase==="end"&&(p===0||p===nextAlive(S,S.picker))){toPick(nextAlive(S,S.picker));return}
   if(S.phase!=="play"||p!==S.turn||S.reveal||tn<H.lockUntil)return;
   if(t==="pick"){
-    if(S.wrong.includes(i)||i<0||i>7)return;
+    if(S.wrong.includes(i)||!(i>=0&&i<=7))return;
     if(i===H.ans){syncClock();S.run=false;S.right[p]++;S.reveal={i,ok:true};
-      H.due={at:tn+FLASH,fn(){S.turn=1-S.turn;nextQ();S.run=true;H.last=now();publish()}};publish();
+      H.due={at:tn+FLASH,fn(){S.turn=nextIn(S,S.turn);nextQ();S.run=true;H.last=now();publish()}};publish();
     }else{S.wrong.push(i);H.lockUntil=tn+WRONG;S.lockWhy="Forkert: 2 sekunders straf";publish()}
   }else if(t==="pass"){
     S.reveal={i:H.ans,ok:false};H.lockUntil=tn+PASS;S.lockWhy="Pas: 3 sekunders straf";
@@ -258,12 +308,10 @@ function hostAct(p,t,i){
 function hostTick(){
   const S=G.S;if(!S||S.paused)return;
   syncClock();const t=now();
+  if(S.phase==="play"&&S.clocks[S.turn]<=0&&!S.reveal?.ok){knockOut(S.turn);return}
   if(H.due&&t>=H.due.at){const f=H.due.fn;H.due=null;f();return}
-  if(S.phase==="play"&&S.run&&S.clocks[S.turn]<=0){
-    S.run=false;H.due=null;H.lockUntil=0;S.winner=1-S.turn;S.score[S.winner]++;S.owner[S.cat]=S.winner;S.phase="end";S.q=null;publish();return;
-  }
   if(S.lockWhy&&t>=H.lockUntil&&!S.reveal){S.lockWhy="";publish();return}
-  if(t-(H.beat||0)>1000){H.beat=t;if(S.phase==="play")publish()}
+  if(t-H.beat>1000){H.beat=t;if(S.phase==="play")publish()}
 }
 function setPaused(on){
   const S=G.S;if(!S||S.paused===on)return;
@@ -274,21 +322,19 @@ function setPaused(on){
 }
 function startHostLoop(){clearInterval(H.tick);H.last=now();H.tick=setInterval(hostTick,50)}
 
-/* Øveduel: computeren svarer rigtigt tre ud af fire gange */
+/* Øvelse: computerne svarer rigtigt tre ud af fire gange */
 function botThink(){
   const S=G.S;
-  /* Urets faste opdateringer må ikke udskyde computerens svar */
-  const key=[S.phase,S.q?.id,S.wrong.length,S.turn,S.reveal?1:0,S.paused].join();
+  const key=[S.phase,S.picker,S.cat,S.q?.id,S.wrong.length,S.turn,S.reveal?1:0].join();
   if(key===H.botKey)return;
   H.botKey=key;clearTimeout(H.bot);
-  if(S.paused)return;
-  if(S.phase==="pick"&&S.picker===1){H.bot=setTimeout(()=>hostAct(1,"cat",S.ring.find(id=>!(id in S.owner))),900);return}
-  if(S.phase==="play"&&S.turn===1&&!S.reveal){
-    const wait=Math.max(1800+Math.random()*2400,H.lockUntil-now()+500);
+  if(S.phase==="pick"&&S.picker>0){H.bot=setTimeout(()=>{hostAct(S.picker,"cat",shuffle(S.ring.filter(id=>!(id in S.owner)))[0])},900);return}
+  if(S.phase==="play"&&S.turn>0&&!S.reveal){
+    const wait=Math.max(1800+Math.random()*2400,H.lockUntil-now()+500),who=S.turn;
     H.bot=setTimeout(()=>{
-      const c=G.S;if(c.phase!=="play"||c.turn!==1||c.reveal)return;
-      if(Math.random()<.75)hostAct(1,"pick",H.ans);
-      else{const w=[0,1,2,3,4,5,6,7].filter(i=>i!==H.ans&&!c.wrong.includes(i));hostAct(1,"pick",w[Math.floor(Math.random()*w.length)])}
+      const c=G.S;if(c.phase!=="play"||c.turn!==who||c.reveal)return;
+      if(Math.random()<.75)hostAct(who,"pick",H.ans);
+      else{const w=[0,1,2,3,4,5,6,7].filter(i=>i!==H.ans&&!c.wrong.includes(i));hostAct(who,"pick",w[Math.floor(Math.random()*w.length)])}
     },wait);
   }
 }
@@ -313,17 +359,8 @@ async function enterRoom(code){
 }
 function onPeers(ch){
   const others=ch.peers.filter(p=>!p.sameTab&&p.presence?.code===G.code);
-  if(G.mode==="host"){
-    const S=G.S,guests=others.filter(p=>p.presence.role==="g");
-    let g=guests.find(p=>p.peer===S.gp);
-    if(!g&&guests.length&&(S.phase==="wait"||!S.gp||S.paused)){g=guests[0];S.gp=g.peer;H.lastN=0;S.ack=0}
-    if(!g){if(S.gp&&S.phase!=="wait")setPaused(true);return}
-    S.names[1]=String(g.presence.name||"Gæst").slice(0,16);
-    if(S.phase==="wait"){G.room.presence({open:null}).catch(()=>{});toPick(0);return}
-    if(S.paused)setPaused(false);
-    const a=g.presence.act;
-    if(a&&Number(a.n)>H.lastN){H.lastN=Number(a.n);S.ack=H.lastN;hostAct(1,String(a.t),a.t==="cat"?String(a.i):Number(a.i))}
-  }else if(G.mode==="guest"){
+  if(G.mode==="host")hostPeers(others.filter(p=>p.presence.role==="g"));
+  else if(G.mode==="guest"){
     const h=others.find(p=>p.presence.role==="h");
     if(!h){if(G.hostSeen&&!G.lost){G.lost=true;render(true)}return}
     G.hostSeen=1;if(G.lost){G.lost=false;render(true)}
@@ -331,19 +368,43 @@ function onPeers(ch){
     if(s&&s.v>G.seen){G.seen=s.v;gotState(s)}
   }
 }
-function gotState(s){
-  const old=G.S0,me=G.me;
-  G.S0=s;G.recvAt=performance.now();
-  if(G.mode==="guest"){
-    const mine=G.gr&&G.gr.peers().find(p=>p.sameTab)?.peer;
-    G.full=!!(s.gp&&mine&&s.gp!==mine);
-    if(s.ack>=G.pending)G.pending=0;
+function hostPeers(guests){
+  const S=G.S,before=JSON.stringify([S.names,S.seats,S.gone]);
+  const nameOf=g=>String(g.presence.name||"Gæst").slice(0,16);
+  for(const g of guests){
+    if(S.seats.includes(g.peer))continue;
+    if(S.phase==="wait"&&S.names.length<MAXP){S.seats.push(g.peer);S.names.push(nameOf(g));S.gone.push(false);S.ack.push(0);H.lastN[S.seats.length-1]=0}
+    else{const i=S.seats.findIndex((p,x)=>x>0&&S.gone[x]&&S.names[x]===nameOf(g));if(i>0){S.seats[i]=g.peer;H.lastN[i]=0;S.ack[i]=0}}
   }
-  if(old&&s.turn===me&&s.q&&old.q?.id===s.q.id){
+  for(let i=1;i<S.seats.length;i++){
+    const g=guests.find(p=>p.peer===S.seats[i]);
+    if(S.phase==="wait"&&!g){S.seats.splice(i,1);S.names.splice(i,1);S.gone.splice(i,1);S.ack.splice(i,1);H.lastN.splice(i,1);H.lastN.push(0);i--;continue}
+    S.gone[i]=!g;
+    if(g)S.names[i]=nameOf(g);
+  }
+  if(S.phase==="play"||S.phase==="count"){const away=inPlay(S).some(x=>S.gone[x]);if(away!==S.paused)setPaused(away)}
+  if(S.phase==="pick"&&S.gone[S.picker])toPick(nextAlive(S,S.picker));
+  for(let i=1;i<S.seats.length;i++){
+    const g=guests.find(p=>p.peer===S.seats[i]),a=g?.presence.act;
+    if(a&&Number(a.n)>H.lastN[i]){H.lastN[i]=Number(a.n);S.ack[i]=H.lastN[i];hostAct(i,String(a.t),a.t==="cat"?String(a.i):Number(a.i));S.v++}
+  }
+  if(JSON.stringify([S.names,S.seats,S.gone])!==before)publish();
+}
+function gotState(s){
+  const old=G.S0;
+  if(G.mode==="guest"){
+    const mine=G.gr&&G.gr.peers().find(p=>p.sameTab)?.peer,i=s.seats.indexOf(mine);
+    if(i>=0)G.me=i;
+    G.full=i<0&&s.phase!=="wait";
+    if(i>=0&&s.ack[i]>=G.pending)G.pending=0;
+  }
+  G.S0=s;G.recvAt=performance.now();
+  const me=G.me;
+  if(old&&s.turn===me&&s.duel?.includes(me)&&s.q&&old.q?.id===s.q.id){
     if(s.reveal?.ok&&!old.reveal)sound(880);
     else if(s.wrong.length>old.wrong.length)sound(170,.16);
   }
-  if(old&&old.phase!=="end"&&s.phase==="end")sound(s.winner===me?1040:140,.3);
+  if(old&&old.phase!=="end"&&s.phase==="end"&&s.duel?.includes(me))sound(s.winner===me?1040:140,.3);
   if(s.phase==="count"&&old?.phase!=="count")keepAwake();
   render();
 }
@@ -358,9 +419,10 @@ function act(t,i){
 
 /* ---------- Start og afslut ---------- */
 function setName(){const v=document.getElementById("navn")?.value.trim().slice(0,16);if(v!==undefined){G.name=v;store.set("feltet-navn",v)}}
+function resetHost(){H.lastN=[0,0,0,0];H.due=null;H.lockUntil=0;H.botKey="";clearTimeout(H.bot)}
 async function createDuel(){
   setName();G.code=String(1000+Math.floor(Math.random()*9000));
-  G.mode="host";G.me=0;G.S=newS([G.name||"Vært","Modstander"]);G.S0=null;H.lastN=0;H.due=null;H.lockUntil=0;
+  G.mode="host";G.me=0;G.S=newS(G.name||"Vært");G.S0=null;resetHost();
   render(true);
   await enterRoom(G.code);
   G.gr.presence({code:G.code,role:"h",s:G.S}).catch(()=>{});
@@ -369,15 +431,17 @@ async function createDuel(){
   gotState(JSON.parse(JSON.stringify(G.S)));
 }
 async function joinDuel(code){
-  setName();G.code=code;G.mode="guest";G.me=1;G.S=null;G.S0=null;G.seen=0;G.hostSeen=0;G.pending=0;G.actN=0;G.full=false;G.lost=false;
+  setName();G.code=code;G.mode="guest";G.me=-1;G.S=null;G.S0=null;G.seen=0;G.hostSeen=0;G.pending=0;G.actN=0;G.full=false;G.lost=false;
   render(true);
   await enterRoom(code);
   G.gr.presence({code,role:"g",name:G.name||"Gæst"}).catch(()=>{});
   setTimeout(()=>{if(G.mode==="guest"&&!G.S0){G.msg="Ingen duel med kode "+code+" lige nu. Tjek koden, eller bed værten om at åbne duellen.";leave(true)}},9000);
 }
-function startBot(){
-  setName();G.mode="bot";G.me=0;G.code="";G.gr=null;G.S=newS([G.name||"Dig","Computeren"]);G.S0=null;H.lastN=0;H.due=null;H.lockUntil=0;
-  H.botKey="";clearTimeout(H.bot);G.S.picker=0;startHostLoop();toPick(0);
+function startBot(count){
+  setName();G.mode="bot";G.me=0;G.code="";G.gr=null;G.S=newS(G.name||"Dig");G.S0=null;resetHost();
+  const S=G.S;
+  for(let i=1;i<=count;i++){S.names.push(count===1?"Computeren":"Computer "+i);S.seats.push(null);S.gone.push(false);S.ack.push(0)}
+  startHostLoop();toPick(0);
 }
 function leave(keepMsg){
   clearInterval(H.tick);clearTimeout(H.bot);
@@ -390,91 +454,99 @@ function leave(keepMsg){
 }
 
 /* ---------- Skærme ---------- */
+const col=(S,p)=>`--c:var(--c${(p-Math.max(G.me,0)+S.names.length)%S.names.length})`;
+const nm=(S,p)=>p===G.me?"Dig":esc(S.names[p]);
 function floorHTML(){
-  const a=[10,11,18,27,44,53],b=[12,21,30,38,46],c=[1,6,16,25,33,41];
   return Array.from({length:32},(_,i)=>`<i class="${[2,3,12,19,20].includes(i)?"a":[26,27,28,21,13].includes(i)?"b":[0,7,9,14,17,22,24,31].includes(i)?"c":""}"></i>`).join("");
 }
-function shareLink(){
-  const base=SHARE_URL||location.href.split("#")[0];
-  return base+"#duel-"+G.code;
-}
+function shareLink(){return (SHARE_URL||location.href.split("#")[0])+"#duel-"+G.code}
 function homeHTML(){
   const inv=G.invite,canRoom=!!G.room;
   return `<div class="screen">
   <div class="hero"><div class="floorgrid" aria-hidden="true">${floorHTML()}</div>
-    <div class="hero-t"><h1>Dysten</h1><p>Fan-spil for to telefoner</p></div></div>
+    <div class="hero-t"><h1>Dysten</h1><p>Fan-spil for 2 til 4 telefoner</p></div></div>
   ${G.msg?`<p class="note" role="status">${esc(G.msg)}</p>`:""}
   ${inv?`<div class="invite"><span class="label">Du er inviteret</span><strong>Duel ${esc(inv)}</strong></div>`:""}
+  ${CAN_SHARE?"":`<a class="btn main" href="https://amigoogfutte.github.io/Flow_cards/dysten/" target="_blank" rel="noopener">Spil på websiden, så modstanderne ikke skal bruge Claude</a>`}
   <label class="field" for="navn"><span class="label">Dit navn</span>
     <input id="navn" maxlength="16" autocomplete="nickname" placeholder="Fx Jesper" value="${esc(G.name)}"></label>
-  ${CAN_SHARE?"":`<a class="btn main" href="https://amigoogfutte.github.io/Flow_cards/dysten/" target="_blank" rel="noopener">Spil på websiden, så modstanderen ikke skal bruge Claude</a>`}
   ${inv?`<button class="btn main" data-join="${esc(inv)}" ${canRoom?"":"disabled"}>Deltag i duellen</button>`
-       :`<button class="btn ${CAN_SHARE?"main":""}" data-do="create" ${canRoom?"":"disabled"}>${CAN_SHARE?"Opret duel og send startlink":"Opret duel her i Claude"}</button>`}
-  ${G.open.length&&!inv?`<div class="open"><span class="label">Åbne dueller</span>${G.open.map(o=>`<button data-join="${esc(o.code)}"><span>${esc(o.name)} venter</span><span>Deltag</span></button>`).join("")}</div>`:""}
-  ${!canRoom?`<p class="note">${G.roomState==="loading"?"Forbinder …":"Øveduellen virker altid."}</p>`:""}
+       :`<button class="btn ${CAN_SHARE?"main":""}" data-do="create" ${canRoom?"":"disabled"}>${CAN_SHARE?"Opret spil og send startlink":"Opret spil her i Claude"}</button>`}
+  ${G.open.length&&!inv?`<div class="open"><span class="label">Åbne spil</span>${G.open.map(o=>`<button data-join="${esc(o.code)}"><span>${esc(o.name)} venter</span><span>Deltag</span></button>`).join("")}</div>`:""}
+  ${!canRoom?`<p class="note">${G.roomState==="loading"?"Forbinder …":"Øvelsen virker altid."}</p>`:""}
   <div class="row">
     <label class="field" for="kode"><span class="label">Har du en kode?</span>
       <input id="kode" inputmode="numeric" maxlength="4" placeholder="1234" value=""></label>
     <div class="field"><span class="label">&nbsp;</span><button class="btn" data-do="code" ${canRoom?"":"disabled"}>Deltag</button></div>
   </div>
-  <button class="btn" data-do="bot">Øv mod computeren</button>
+  <div class="row"><button class="btn" data-do="bot1">Øv mod 1 computer</button><button class="btn" data-do="bot3">Øv mod 3 computere</button></div>
   <ul class="rules">
-    <li><b>45 s</b><span>Hver spiller har sit eget ur. Kun den, der skal svare, bruger tid.</span></li>
-    <li><b>8</b><span>Otte svarmuligheder. Rigtigt svar sender turen til modstanderen.</span></li>
+    <li><b>2–4</b><span>Spillere på samme gulv med 8 kategorifelter. I skiftes til at vælge felt, og alle er med i hver duel.</span></li>
+    <li><b>45 s</b><span>Alle har deres eget ur, og turen går på omgang. Værten kan vælge 30, 45 eller 60 sekunder.</span></li>
+    <li><b>8</b><span>Otte svarmuligheder. Rigtigt svar sender turen videre til den næste.</span></li>
     <li><b>−2 s</b><span>Forkert svar låser felterne i 2 sekunder, mens dit ur kører.</span></li>
     <li><b>−3 s</b><span>Pas viser svaret i 3 sekunder, mens dit ur kører.</span></li>
-    <li><b>0,0</b><span>Den, hvis ur løber ud først, taber duellen.</span></li>
-    <li><b>8</b><span>Du står i midten med 8 kategorier omkring dig. I skiftes til at vælge, og vinderen overtager feltet.</span></li>
+    <li><b>0,0</b><span>Løber dit ur ud, er du ude af duellen. Den sidste med tid tager feltet, og flest felter vinder gulvet.</span></li>
   </ul></div>`;
 }
-function waitHTML(){
-  const link=shareLink();
+function playersHTML(S){
+  return `<div class="chips">${S.names.map((n,p)=>`<span class="chip ${S.gone[p]?"off":""}" style="${col(S,p)}"><i></i>${nm(S,p)}<b>${S.ring.length?tilesOf(S,p):""}</b></span>`).join("")}</div>`;
+}
+function lobbyHTML(S){
+  const host=G.mode==="host",link=shareLink(),n=S.names.length;
+  if(!host)return `<div class="screen"><div class="center"><span class="label">Spil ${esc(G.code)}</span>
+    <h2 style="font-size:44px">Venter på, at ${esc(S.names[0])} starter</h2>${playersHTML(S)}</div>
+    <button class="btn" data-do="leave">Forlad spillet</button></div>`;
   return `<div class="screen">
-  <div><span class="label">Din duelkode</span><div class="code">${esc(G.code)}</div></div>
-  <p>Send linket til din modstander. Duellen går i gang, så snart de trykker Deltag.</p>
+  <div><span class="label">Spilkode</span><div class="code">${esc(G.code)}</div></div>
+  ${playersHTML(S)}
+  <button class="btn main" data-do="start" ${n<2?"disabled":""}>${n<2?"Venter på spillere …":"Start med "+n+" spillere"}</button>
+  <div class="field"><span class="label">Tid på uret</span><div class="seg">${CLOCKS.map(c=>`<button data-clock="${c}" class="${S.clock===c*1000?"on":""}">${c} sek.</button>`).join("")}</div></div>
   <a class="linkbox" href="${esc(link)}">${esc(link)}</a>
-  ${CAN_SHARE?`<button class="btn main" data-do="share">Del startlink via SMS eller mail</button><button class="btn" data-do="copy">Kopiér startlink</button>`:`<button class="btn main" data-do="copy">Kopiér startlink</button>`}
+  ${CAN_SHARE?`<div class="row"><button class="btn" data-do="share">Del startlink</button><button class="btn" data-do="copy">Kopiér link</button></div>`:`<button class="btn" data-do="copy">Kopiér startlink</button>`}
   <p class="toast" id="toast" role="status"></p>
   <p class="note">${NOTE}</p>
-  <button class="btn" data-do="leave">Annullér duel</button></div>`;
+  <button class="btn" data-do="leave">Annullér spillet</button></div>`;
 }
 function connectHTML(){
-  return `<div class="screen"><div class="center"><h2 style="font-size:44px">${G.full?"Duellen er optaget":"Finder duellen …"}</h2>
+  return `<div class="screen"><div class="center"><h2 style="font-size:44px">${G.full?"Spillet er fuldt":"Finder spillet …"}</h2>
   <p class="note">Kode ${esc(G.code)}</p></div><button class="btn" data-do="leave">Tilbage</button></div>`;
 }
 function ringHTML(S,canPick){
   const tiles=S.ring.map(id=>{
-    const c=CATS.find(x=>x.id===id),o=S.owner[id],cl=o===undefined?"":o===G.me?"mine":"theirs";
-    return `<button class="cat ${cl}" data-cat="${c.id}" ${canPick&&o===undefined?"":"disabled"}><b>${esc(c.name)}</b>${o===undefined?"":`<span>${o===G.me?"Dit felt":esc(S.names[o])}</span>`}</button>`});
-  const mineN=S.ring.filter(id=>S.owner[id]===G.me).length;
-  tiles.splice(4,0,`<div class="you"><b>Dig</b><span>${mineN} af 8</span></div>`);
+    const c=CATS.find(x=>x.id===id),o=S.owner[id],sel=S.cat===id;
+    return `<button class="cat ${o===undefined?"":"own"} ${sel?"sel":""}" ${o===undefined?"":`style="${col(S,o)}"`} data-cat="${c.id}" ${canPick&&o===undefined?"":"disabled"}><b>${esc(c.name)}</b>${o===undefined?"":`<span>${o===G.me?"Dit felt":esc(S.names[o])}</span>`}</button>`});
+  tiles.splice(4,0,`<div class="you"><b>Dig</b><span>${tilesOf(S,G.me)} af 8</span></div>`);
   return `<div class="ring">${tiles.join("")}</div>`;
 }
 function pickHTML(S){
-  const mine=S.picker===G.me,other=S.names[1-G.me];
+  const mine=S.picker===G.me,who=esc(S.names[S.picker]),nx=nextAlive(S,S.picker),nxt=nx===G.me?"dig":esc(S.names[nx]);
   return `<div class="screen"><div>
-  <h2 style="font-size:44px">${mine?"Din tur til at vælge":esc(other)+" vælger"}</h2>
-  <p class="note" style="margin-top:6px">${mine?esc(other)+" får første opgave. Næste gang vælger "+esc(other)+".":"Du får første opgave. Næste gang vælger du."}</p></div>
-  ${ringHTML(S,mine)}
-  <button class="btn" data-do="leave">Forlad duellen</button></div>`;
+  <h2 style="font-size:44px">${mine?"Vælg et felt":who+" vælger felt"}</h2>
+  <p class="note" style="margin-top:6px">Alle er med i duellen, og den, der vælger, svarer sidst. Næste gang vælger ${nxt}.</p></div>
+  ${ringHTML(S,mine)}${playersHTML(S)}
+  <button class="btn" data-do="leave">Forlad spillet</button></div>`;
 }
 function countHTML(S){
   const c=CATS.find(x=>x.id===S.cat);
   return `<div class="screen"><div class="center"><span class="label">${esc(c.name)}</span>
+  <p class="vs">${S.duel.map(p=>`<span style="${col(S,p)}">${nm(S,p)}</span>`).join(" · ")}</p>
   <div class="big count" id="cnt">3</div><p><strong>${S.turn===G.me?"Du starter":esc(S.names[S.turn])+" starter"}</strong></p></div></div>`;
 }
 function clockHTML(S,p){
-  const mine=p===G.me;
-  return `<div class="clock ${mine?"mine":"theirs"} ${S.turn===p?"on":""}" id="c${p}">
-    <div class="who">${esc(mine?"Dig":S.names[p])}</div><div class="t" id="t${p}">45,0</div><div class="m"><i id="m${p}" style="width:100%"></i></div></div>`;
+  const o=S.out.includes(p);
+  return `<div class="clock ${S.turn===p?"on":""} ${o?"ude":""}" id="c${p}" style="${col(S,p)}">
+    <div class="who">${nm(S,p)}</div><div class="t" id="t${p}">${o?"Ude":S.clock/1000+",0"}</div><div class="m"><i id="m${p}" style="width:100%"></i></div></div>`;
 }
 function duelHTML(S){
-  const c=CATS.find(x=>x.id===S.cat),myTurn=S.turn===G.me,q=S.q;
+  const c=CATS.find(x=>x.id===S.cat),myTurn=S.turn===G.me,q=S.q,meOut=S.out.includes(G.me);
+  const order=[...S.duel].sort((a,b)=>(a===G.me?-1:0)-(b===G.me?-1:0));
   const locked=!!S.lockWhy,can=myTurn&&!S.reveal&&!locked;
   const msg=S.lockWhy?(myTurn?S.lockWhy:esc(S.names[S.turn])+": "+S.lockWhy.toLowerCase()):S.reveal?.ok?"Rigtigt":(myTurn?"Din tur":esc(S.names[S.turn])+" svarer");
+  const nx=nextIn(S,S.turn);
   return `<div class="duel">
-  <div class="clocks">${clockHTML(S,G.me)}${clockHTML(S,1-G.me)}</div>
-  <div class="status"><span>${esc(c.name)}</span><b>${msg}</b></div>
+  <div class="clocks n${S.duel.length}">${order.map(p=>clockHTML(S,p)).join("")}</div>
+  <div class="status"><span>${meOut?"Du er ude · ":""}${esc(c.name)}${!myTurn&&!meOut&&nx===G.me?" · Du er næste":""}</span><b>${msg}</b></div>
   <div class="prompt ${c.big?"bigq":""}"><span>${esc(q?.p||"")}</span></div>
   <div class="opts ${myTurn?"mine":""}">
    ${(q?.o||[]).map((o,i)=>{
@@ -486,56 +558,59 @@ function duelHTML(S){
   <button class="pass" data-pass="1" ${can?"":"disabled"}>Pas (3 sek.)</button></div>`;
 }
 function endHTML(S){
-  const won=S.winner===G.me,opp=S.names[1-G.me];
-  const my=S.ring.filter(id=>S.owner[id]===G.me).length,th=S.ring.filter(id=>S.owner[id]===1-G.me).length;
-  const done=my+th===8;
-  const waiting=S.rematch[G.me]&&!S.rematch[1-G.me];
-  const verdict=done?(my>th?`Du vandt gulvet ${my}–${th}`:my<th?`${esc(opp)} vandt gulvet ${th}–${my}`:"Gulvet endte 4–4"):`Stilling: ${my}–${th}. Næste gang vælger ${S.picker===G.me?esc(opp):"du"}.`;
+  const me=G.me,won=S.winner===me,done=S.ring.every(id=>id in S.owner);
+  const nx=nextAlive(S,S.picker),canNext=me===0||me===nx;
+  const rank=S.names.map((_,p)=>p).sort((a,b)=>tilesOf(S,b)-tilesOf(S,a));
+  const top=tilesOf(S,rank[0]),leaders=rank.filter(p=>tilesOf(S,p)===top);
+  const verdict=done?(leaders.length>1?"Gulvet endte uafgjort mellem "+leaders.map(p=>nm(S,p)).join(" og "):(leaders[0]===me?"Du vandt gulvet":esc(S.names[leaders[0]])+" vandt gulvet")+" med "+top+" felter"):`Næste felt vælges af ${nx===me?"dig":esc(S.names[nx])}.`;
   return `<div class="screen">
-   <div><span class="label">${won?esc(opp)+"s ur løb ud":"Dit ur løb ud"}</span>
-   <h2 class="big win ${won?"yes":"no"}">${won?"Du tog feltet":esc(S.names[S.winner])+" tog feltet"}</h2></div>
+   <div><span class="label">Sidste ur tilbage</span>
+   <h2 class="big win" style="${col(S,S.winner)}">${won?"Du tog feltet":esc(S.names[S.winner])+" tog feltet"}</h2></div>
    <p><strong>${verdict}</strong></p>
-   ${ringHTML(S,false)}
-   <div class="stats"><div><b>${S.right[G.me]}</b><span>Dine rigtige</span></div><div><b>${S.right[1-G.me]}</b><span>${esc(opp)}s rigtige</span></div></div>
-  <button class="btn main" data-do="again" ${waiting?"disabled":""}>${waiting?"Venter på "+esc(opp)+" …":done?"Nyt gulv":"Næste duel"}</button>
-  <button class="btn" data-do="leave">Forlad duellen</button></div>`;
+   ${ringHTML(S,false)}${playersHTML(S)}
+   <span class="label">Rigtige svar i duellen</span><div class="stats">${S.duel.map(p=>`<div><b>${S.right[p]}</b><span>${nm(S,p)}</span></div>`).join("")}</div>
+  ${canNext?`<button class="btn main" data-do="next">${done?"Nyt gulv":"Næste felt"}</button>`:`<p class="note" style="text-align:center">Venter på ${esc(S.names[nx])} …</p>`}
+  <button class="btn" data-do="leave">Forlad spillet</button></div>`;
 }
-function pauseHTML(){
-  return `<div class="pausebox"><h2 style="font-size:40px">Venter på modstanderen</h2><p class="note">Urene står stille, indtil telefonen er tilbage.</p><button class="btn" data-do="leave">Forlad duellen</button></div>`;
+function pauseHTML(S){
+  const away=S.duel?inPlay(S).filter(x=>S.gone[x]):[];
+  const hostCan=G.mode==="host"&&S.paused&&away.length;
+  return `<div class="pausebox"><h2 style="font-size:40px">Venter på ${away.length?away.map(x=>esc(S.names[x])).join(" og "):"værten"}</h2><p class="note">Urene står stille, indtil telefonen er tilbage.</p>
+  ${hostCan?`<button class="btn main" data-do="forfeit">Fortsæt uden ${away.map(x=>esc(S.names[x])).join(" og ")}</button>`:""}
+  <button class="btn" data-do="leave">Forlad spillet</button></div>`;
 }
 function render(force){
   const S=G.S0;
   let key,html;
   if(!G.mode){key="home"+force;html=homeHTML()}
-  else if(!S)key="c"+G.full,html=connectHTML();
-  else if(G.mode==="guest"&&G.full)key="full",html=connectHTML();
+  else if(!S){key="c"+G.full;html=connectHTML()}
+  else if(G.full){key="full";html=connectHTML()}
+  else if(S.phase==="wait"&&G.mode==="guest"&&G.me<0){key="c0";html=connectHTML()}
   else{
     switch(S.phase){
-      case"wait":key="wait";html=G.mode==="host"?waitHTML():connectHTML();break;
-      case"pick":key="pick"+S.ring+S.picker+JSON.stringify(S.owner);html=pickHTML(S);break;
-      case"count":key="count";html=countHTML(S);break;
-      case"play":key=["p",S.q?.id,S.turn,S.wrong,S.reveal?.i,S.reveal?.ok,S.lockWhy].join();html=duelHTML(S);break;
-      default:key="end"+S.rematch+JSON.stringify(S.owner);html=endHTML(S);
+      case"wait":key="wait"+S.names+S.clock+G.mode;html=lobbyHTML(S);break;
+      case"pick":key="pick"+S.ring+S.picker+S.cat+JSON.stringify(S.owner)+S.gone;html=pickHTML(S);break;
+      case"count":key="count"+S.duel;html=countHTML(S);break;
+      case"play":key=["p",S.q?.id,S.turn,S.wrong,S.out,S.reveal?.i,S.reveal?.ok,S.lockWhy].join();html=duelHTML(S);break;
+      default:key="end"+S.picker+JSON.stringify(S.owner)+S.gone;html=endHTML(S);
     }
-    if(S.paused||G.lost){key+="P";html+=pauseHTML()}
+    if(S.paused||G.lost){key+="P";html+=pauseHTML(S)}
   }
   if(key===G.renderKey&&!force)return;
   const keepName=document.getElementById("navn")?.value;
   G.renderKey=key;$app.innerHTML=html;
   if(keepName!==undefined&&document.getElementById("navn"))document.getElementById("navn").value=keepName;
 }
-
-/* Urene tegnes for hvert billede ud fra sidste kendte tilstand */
 function frame(){
   const S=G.S0;
   if(S){
     const dt=performance.now()-G.recvAt;
     if(S.phase==="count"){const e=document.getElementById("cnt");if(e)e.textContent=Math.max(1,Math.ceil((S.count-dt)/1067))}
-    if(S.phase==="play")for(const p of [0,1]){
+    if(S.phase==="play")for(const p of inPlay(S)){
       const live=S.run&&!S.paused&&!G.lost&&p===S.turn;
       const ms=Math.max(0,S.clocks[p]-(live?dt:0));
       const t=document.getElementById("t"+p),m=document.getElementById("m"+p);
-      if(t){t.textContent=(ms/1000).toFixed(1).replace(".",",");m.style.width=(ms/CLOCK*100)+"%";document.getElementById("c"+p).classList.toggle("low",ms<10000)}
+      if(t){t.textContent=(ms/1000).toFixed(1).replace(".",",");m.style.width=(ms/S.clock*100)+"%";document.getElementById("c"+p).classList.toggle("low",ms<10000)}
     }
   }
   requestAnimationFrame(frame);
@@ -554,20 +629,24 @@ document.addEventListener("keydown",e=>{
 });
 document.addEventListener("click",e=>{
   const c=e.target.closest("[data-cat]:not(:disabled)");if(c){act("cat",c.dataset.cat);return}
+  const k=e.target.closest("[data-clock]");if(k){act("clock",Number(k.dataset.clock));return}
   const j=e.target.closest("[data-join]:not(:disabled)");if(j){G.msg="";joinDuel(j.dataset.join);return}
   const b=e.target.closest("[data-do]:not(:disabled)");if(!b)return;
   sound(1,.001);
   switch(b.dataset.do){
     case"create":G.msg="";createDuel();break;
-    case"bot":G.msg="";startBot();break;
-    case"again":act("again");break;
+    case"bot1":G.msg="";startBot(1);break;
+    case"bot3":G.msg="";startBot(3);break;
+    case"start":act("start");break;
+    case"next":act("next");break;
+    case"forfeit":act("forfeit");break;
     case"leave":leave();break;
     case"code":{const v=document.getElementById("kode").value.trim();if(/^\d{4}$/.test(v)){G.msg="";joinDuel(v)}else{G.msg="Koden er fire tal.";render(true)}break}
     case"copy":{const t=document.getElementById("toast");const ok=()=>t.textContent="Linket er kopieret.";const no=()=>{t.textContent="Markér linket ovenfor, og kopiér det.";const r=document.createRange();r.selectNodeContents(document.querySelector(".linkbox"));const s=getSelection();s.removeAllRanges();s.addRange(r)};
       try{navigator.clipboard.writeText(shareLink()).then(ok,no)}catch{no()}break}
     case"share":{const t=document.getElementById("toast"),u=shareLink();
       if(!navigator.share){try{navigator.clipboard.writeText(u).then(()=>t.textContent="Linket er kopieret. Sæt det ind i en SMS eller mail.",()=>t.textContent="Markér linket ovenfor, og kopiér det.")}catch{t.textContent="Markér linket ovenfor, og kopiér det."}break}
-      navigator.share({title:"Duel i Feltet-dysten",text:"Duel i Feltet-dysten! Åbn linket og tryk Deltag (kode "+G.code+").",url:u}).catch(e=>{if(e?.name!=="AbortError")t.textContent="Delingen virkede ikke. Kopiér linket i stedet."});break}
+      navigator.share({title:"Spil Feltet-dysten",text:"Spil Feltet-dysten med mig! Åbn linket og tryk Deltag (kode "+G.code+").",url:u}).catch(e=>{if(e?.name!=="AbortError")t.textContent="Delingen virkede ikke. Kopiér linket i stedet."});break}
   }
 });
 render(true);requestAnimationFrame(frame);initRoom();
