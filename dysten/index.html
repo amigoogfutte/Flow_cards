@@ -7,7 +7,7 @@
   color-scheme:dark;
   --floor:#140F33; --tile:#261D57; --tile-hi:#352A73; --line:#463A8C;
   --ink:#F4F1FF; --muted:#AEA6D8;
-  --me:#FFB72B; --c0:#FFB72B; --c1:#2FD6E8; --c2:#FF7AC6; --c3:#A6E84E; --on-color:#17102F; --gold:#FFD24A; --skin:#EFBE93; --skin-d:#CF9468; --hair:#8A5A33; --shorts:#F4F1FF;
+  --me:#FFB72B; --c0:#FFB72B; --c1:#2FD6E8; --c2:#FF7AC6; --c3:#A6E84E; --on-color:#17102F; --gold:#FFD24A; --skin:#EFBE93; --outline:#1B1330; --hair:#A5642F; --shorts:#F4F1FF;
   --good:#3BE38B; --bad:#FF4D6A;
   --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
   --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -121,44 +121,38 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .check input{width:24px;height:24px;flex:none;accent-color:var(--me)}
 .chip em{font-style:normal;font-size:11px;padding:1px 5px;background:var(--tile-hi);border-radius:2px}
 .champs{display:flex;justify-content:center;gap:8px}
-.champ{margin:0;flex:0 1 230px;min-width:0;padding-top:44px}
+.champ{margin:0;flex:0 1 230px;min-width:0;padding-top:62px;padding-bottom:16px}
 .champ svg{display:block;width:100%;height:auto;max-height:300px;overflow:visible}
-.champ .lb{fill:none;stroke-linecap:round;stroke-linejoin:round}
-.champ .skind{stroke:var(--skin-d)} .champ .skinm{stroke:var(--skin)}
-.champ .sleeved{stroke:color-mix(in srgb,var(--c) 72%,#000)} .champ .sleevem{stroke:var(--c)}
-.champ .lh{stroke:#FFFFFF;stroke-opacity:.16}
-.champ .fold{stroke:#000;stroke-opacity:.12;stroke-width:2;stroke-linecap:round;fill:none}
-.champ .under{fill:var(--skin-d)}
-.champ .lace{stroke:#8E8AB0;stroke-width:1.6;stroke-linecap:round;fill:none}
-.champ .sole{fill:var(--c)}
-.champ .sk{fill:var(--skin)}
-.champ .sock{stroke:#FFFFFF;stroke-width:13;fill:none}
-.champ .shorts{fill:var(--shorts)}
-.champ .jersey{fill:var(--c)}
-.champ .collar{stroke:var(--on-color);stroke-opacity:.45;stroke-width:2.5;fill:none}
-.champ .hair{fill:var(--hair)}
-.champ .brow{stroke:var(--hair);stroke-width:2.2;stroke-linecap:round;fill:none}
-.champ .eyes{stroke:var(--on-color);stroke-width:2.4;stroke-linecap:round;fill:none}
-.champ .crease{stroke:var(--skin-d);stroke-width:1.6;stroke-linecap:round;fill:none}
-.champ .mouthd{fill:#6E1F2B}
-.champ .teeth{fill:#FFFFFF}
-.champ .hdl{stroke-width:5;fill:none;stroke-linecap:round}
-.champ .shine{stroke:#FFF7D6;stroke-opacity:.8;stroke-width:3;stroke-linecap:round;fill:none}
+.champ .nb{fill:none;stroke-linecap:round;stroke-linejoin:round}
+.champ .ink{stroke:var(--outline)} .champ .sk2{stroke:var(--skin)} .champ .sl{stroke:var(--c)}
+.champ .ol{stroke:var(--outline);stroke-width:3.2;stroke-linejoin:round}
+.champ .sk3{fill:var(--skin)} .champ .white{fill:#FFFFFF} .champ .pupil{fill:var(--outline)}
+.champ .jers{fill:var(--c)} .champ .short{fill:var(--shorts)} .champ .hairc{fill:var(--hair)}
+.champ .shoeup{fill:#FFFFFF} .champ .sole{fill:var(--c)} .champ .stripe{fill:var(--c)}
+.champ .shade{fill:#1B1330;fill-opacity:.16}
+.champ .gold{fill:var(--gold)} .champ .goldh{fill:#FFF0B8} .champ .golds{fill:#D9970F;fill-opacity:.75}
+.champ .hdlo{stroke:var(--outline);stroke-width:9;fill:none;stroke-linecap:round}
+.champ .hdl{stroke:var(--gold);stroke-width:4;fill:none;stroke-linecap:round}
+.champ .shine{stroke:#FFF7D6;stroke-width:3.5;stroke-linecap:round;fill:none}
+.champ .blush{fill:#F27A7A;fill-opacity:.55}
+.champ .browc{stroke:var(--outline);stroke-width:4;stroke-linecap:round;fill:none}
+.champ .mouthc{fill:#6E1F2B} .champ .tonguec{fill:#FF6B7F}
+.champ .fing,.champ .lace{stroke:var(--outline);stroke-width:2.2;stroke-linecap:round;fill:none}
 .champ .nametag{fill:var(--on-color);font-family:var(--display);font-weight:900}
 .champ .shadow{fill:var(--tile-hi);transform-box:fill-box;transform-origin:center;animation:shadow 1s ease-in-out infinite}
 /* Ét hop varer 1 sekund: sammenkrøbet, afsæt, højeste punkt, landing */
 .champ .jump{transform-origin:104px 262px;animation:jump 1s cubic-bezier(.3,0,.7,1) infinite}
-.champ .legL{transform-origin:92px 184px;animation:legL 1s ease-in-out infinite}
-.champ .legR{transform-origin:116px 184px;animation:legR 1s ease-in-out infinite}
-.champ .wave{transform-origin:80px 108px;animation:wave 1s ease-in-out infinite}
-.champ .armR{transform-origin:128px 108px;animation:armR 1s ease-in-out infinite}
+.champ .legL{transform-origin:92px 186px;animation:legL 1s ease-in-out infinite}
+.champ .legR{transform-origin:118px 186px;animation:legR 1s ease-in-out infinite}
+.champ .wave{transform-origin:84px 120px;animation:wave 1s ease-in-out infinite}
+.champ .armR{transform-origin:124px 120px;animation:armR 1s ease-in-out infinite}
 .champ .conf{animation:conf 2s linear infinite}
 @keyframes jump{0%,100%{transform:translateY(10px) scale(1.07,.9)}14%{transform:translateY(-12px) scale(.95,1.07)}50%{transform:translateY(-44px) scale(1,1)}86%{transform:translateY(-12px) scale(.96,1.05)}}
 @keyframes shadow{0%,100%{transform:scaleX(1.05);opacity:1}50%{transform:scaleX(.55);opacity:.55}}
 @keyframes legL{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(9deg)}}
 @keyframes legR{0%,100%{transform:rotate(20deg)}50%{transform:rotate(-9deg)}}
 @keyframes wave{0%,100%{transform:rotate(-16deg)}25%{transform:rotate(6deg)}50%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}
-@keyframes armR{0%,100%{transform:rotate(7deg)}50%{transform:rotate(-7deg)}}
+@keyframes armR{0%,100%{transform:rotate(11deg)}50%{transform:rotate(5deg)}}
 @keyframes conf{from{transform:translateY(-10px) rotate(0)}to{transform:translateY(60px) rotate(200deg)}}
 @media (prefers-reduced-motion:reduce){.champ .shadow,.champ .jump,.champ .legL,.champ .legR,.champ .wave,.champ .armR,.champ .conf{animation:none}}
 .toast{min-height:20px;font-size:14px;color:var(--good);text-align:center}
@@ -644,71 +638,67 @@ function duelHTML(S){
   </div>
   <button class="pass" data-pass="1" ${can?"":"disabled"}>Pas (3 sek.)</button></div>`;
 }
-/* Vinderfigur: en spiller midt i et jubelhop med pokalen i vejret og navnet på trøjen */
+/* Vinderfigur: egen tegnefilmfigur med stort hoved, tykke streger og flad skygge */
 function champHTML(S,p){
-  const n=S.names[p],fs=n.length>11?8:n.length>8?10:n.length>6?12:15,id="g"+p;
-  /* Lemmer tegnes i tre lag, så de ser runde ud: skygge, grundfarve og lys kant */
-  const limb=(d,w,k)=>`<path d="${d}" class="lb ${k}d" stroke-width="${w}"/><path d="${d}" class="lb ${k}m" stroke-width="${w-3.5}" transform="translate(-1.3 -1)"/><path d="${d}" class="lb lh" stroke-width="${Math.max(2,w*.2)}" transform="translate(-${w*.24} -${w*.2})"/>`;
-  const shoe=`<path d="M-9 -7 C-8 -13 7 -13 9 -7 C13 -2 25 0 29 6 C31 10 28 12 25 12 L-9 12 C-12 8 -11 -1 -9 -7 Z" fill="url(#${id}s)"/>
-   <path d="M2 -7 l6 5 M8 -5 l5 5 M14 -2 l4 4" class="lace"/>
-   <path d="M-11 10 L28 10 Q32 13 27 16 L-9 16 Q-13 13 -11 10 Z" class="sole"/>`;
-  const bits=[[18,30,"--c1",0],[58,12,"--c2",.5],[186,70,"--c3",.9],[176,120,"--c2",.3],[12,110,"--gold",1.1],[192,170,"--c1",.7],[22,176,"--c3",1.4],[92,8,"--gold",1.6],[34,70,"--c2",1.2],[176,216,"--gold",.2],[16,226,"--c1",.8]];
+  const n=S.names[p],fs=n.length>11?9:n.length>8?11:n.length>6?13:16;
+  const bits=[[18,30,"--c1",0],[58,12,"--c2",.5],[190,76,"--c3",.9],[182,124,"--c2",.3],[10,110,"--gold",1.1],[194,170,"--c1",.7],[20,176,"--c3",1.4],[92,6,"--gold",1.6],[30,76,"--c2",1.2],[180,216,"--gold",.2],[14,226,"--c1",.8]];
+  const noodle=(d,k,w)=>`<path d="${d}" class="nb ink" stroke-width="${w}"/><path d="${d}" class="nb ${k}" stroke-width="${w-6.5}"/>`;
+  const shoe=`<path d="M-10 -9 C-9 -16 8 -16 10 -8 C16 -2 32 -1 36 9 C38 15 34 17 30 17 L-11 17 C-15 10 -13 -2 -10 -9 Z" class="ol shoeup"/>
+   <path d="M-13 12 H36 C38 19 33 21 30 21 H-10 C-15 21 -15 15 -13 12 Z" class="ol sole"/>
+   <circle cx="-2" cy="2" r="4.5" class="ol stripe"/><path d="M6 -8 l6 5 M13 -5 l5 5" class="lace"/>`;
   return `<figure class="champ" style="${col(S,p)}"><svg viewBox="0 0 208 276" role="img" aria-label="${esc(n)} jubler med pokalen">
-   <defs>
-    <linearGradient id="${id}a" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#FFE9A3"/><stop offset=".45" stop-color="#FFC93C"/><stop offset="1" stop-color="#C98A12"/></linearGradient>
-    <linearGradient id="${id}b" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset=".55" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#000" stop-opacity=".2"/></linearGradient>
-    <radialGradient id="${id}r" cx=".36" cy=".3" r=".8"><stop offset="0" stop-color="#fff" stop-opacity=".35"/><stop offset=".5" stop-color="#fff" stop-opacity="0"/><stop offset="1" stop-color="#3A1408" stop-opacity=".38"/></radialGradient>
-    <linearGradient id="${id}s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#C9C6E0"/></linearGradient>
-    <filter id="${id}f" x="-30%" y="-200%" width="160%" height="500%"><feGaussianBlur stdDeviation="4"/></filter>
-   </defs>
    ${bits.map(([x,y,c,d],i)=>`<rect class="conf" x="${x}" y="${y}" width="${i%2?5:8}" height="${i%2?9:4}" rx="1" transform="rotate(${i*37} ${x} ${y})" style="fill:var(${c});animation-delay:-${d}s"/>`).join("")}
-   <ellipse class="shadow" cx="104" cy="266" rx="50" ry="6" filter="url(#${id}f)"/>
+   <ellipse class="shadow" cx="104" cy="266" rx="50" ry="6"/>
    <g class="jump">
-    <g class="legR">${limb("M116 184 L142 202 L164 226",14,"skin")}
-    <path d="M158 219 L164 226" class="sock"/>
-    <g transform="translate(166 229) rotate(-30)">${shoe}</g></g>
-    <g class="legL">${limb("M92 184 L70 208 L58 240",14,"skin")}
-    <path d="M60 232 L58 240" class="sock"/>
-    <g transform="translate(57 244) scale(-1 1) rotate(-14)">${shoe}</g></g>
-    <!-- bukser -->
-    <path d="M82 158 h44 l10 30 q-14 8 -26 2 l-6 -14 l-8 16 q-14 4 -26 -4 z" class="shorts"/>
-    <path d="M82 158 h44 l10 30 q-14 8 -26 2 l-6 -14 l-8 16 q-14 4 -26 -4 z" fill="url(#${id}b)"/>
-    <path d="M104 176 l-1 -14 M90 164 q-2 12 -6 20 M118 164 q2 12 7 20" class="fold"/>
-    <!-- arm med knytnæve -->
+    <g class="legR">${noodle("M118 186 L142 206 L162 224","sk2",13)}<g transform="translate(164 228) rotate(-28)">${shoe}</g></g>
+    <g class="legL">${noodle("M92 186 L70 210 L60 238","sk2",13)}<g transform="translate(58 243) scale(-1 1) rotate(-12)">${shoe}</g></g>
+    <path d="M77 162 Q104 174 131 162 L142 192 Q126 202 111 194 L104 180 L97 194 Q82 202 66 192 Z" class="ol short"/>
+    <path d="M118 169 L131 162 L142 192 Q134 197 126 197 Z" class="shade"/>
+    <!-- arm med åben hånd -->
     <g class="wave">
-     ${limb("M80 108 L54 88 L46 54",11,"skin")}
-     ${limb("M80 108 L64 96",15,"sleeve")}
-     <circle cx="45" cy="48" r="8.5" class="sk"/><circle cx="45" cy="48" r="8.5" fill="url(#${id}r)"/><path d="M39 45 h12 M39 49 h12" class="crease"/>
+     ${noodle("M84 120 L56 96 L44 62","sk2",13)}
+     <g transform="translate(42 50) rotate(-14)">
+      <ellipse cx="-13" cy="4" rx="4.6" ry="9" transform="rotate(-48 -13 4)" class="ol sk3"/>
+      <ellipse cx="-8" cy="-11" rx="4.4" ry="9" transform="rotate(-18 -8 -11)" class="ol sk3"/>
+      <ellipse cx="1" cy="-14" rx="4.4" ry="10" class="ol sk3"/>
+      <ellipse cx="10" cy="-11" rx="4.4" ry="9" transform="rotate(18 10 -11)" class="ol sk3"/>
+      <circle cx="0" cy="2" r="12" class="ol sk3"/>
+     </g>
+     ${noodle("M84 120 L68 106","sl",18)}
     </g>
     <!-- arm med pokal -->
-    <g class="armR"><g class="lift">
-     <path d="M136 16 h-11 c0 16 6 21 16 24 M180 16 h11 c0 16 -6 21 -16 24" class="hdl" stroke="url(#${id}a)"/>
-     <path d="M137 8 h42 v15 c0 16 -9 26 -21 26 s-21 -10 -21 -26 z" fill="url(#${id}a)"/>
-     <ellipse cx="158" cy="9" rx="21" ry="3.2" fill="#FFF2C4"/>
-     <path d="M145 16 q1 18 9 26" class="shine"/>
-     <rect x="154" y="48" width="8" height="9" fill="url(#${id}a)"/>
-     <rect x="145" y="56" width="26" height="6" rx="1.5" fill="url(#${id}a)"/>
+    <g class="armR">
+     <path d="M136 15 h-12 c0 17 7 23 17 26 M180 15 h12 c0 17 -7 23 -17 26" class="hdlo"/>
+     <path d="M136 15 h-12 c0 17 7 23 17 26 M180 15 h12 c0 17 -7 23 -17 26" class="hdl"/>
+     <rect x="153" y="48" width="10" height="10" class="ol gold"/>
+     <rect x="143" y="56" width="30" height="8" rx="2" class="ol gold"/>
+     <path d="M137 7 h42 v16 c0 16 -9 27 -21 27 s-21 -11 -21 -27 z" class="ol gold"/>
+     <path d="M165 7 h14 v16 c0 16 -9 27 -21 27 c8 -6 11 -16 11 -27 z" class="golds"/>
+     <path d="M144 13 q0 16 7 26" class="shine"/>
+     <ellipse cx="158" cy="7" rx="21" ry="3.6" class="ol goldh"/>
+     ${noodle("M124 120 L152 96 L158 76","sk2",13)}
+     <circle cx="158" cy="70" r="12" class="ol sk3"/>
+     <path d="M150 66 h16 M150 71 h16" class="fing"/>
+     ${noodle("M124 120 L140 106","sl",18)}
     </g>
-    ${limb("M128 108 L152 90 L158 66",11,"skin")}
-    ${limb("M128 108 L144 96",15,"sleeve")}
-    <circle cx="158" cy="64" r="8.5" class="sk"/><circle cx="158" cy="64" r="8.5" fill="url(#${id}r)"/></g>
-    <!-- hals og trøje -->
-    <path d="M97 80 h14 v18 h-14 z" class="sk"/><path d="M97 82 q7 9 14 0 v6 q-7 6 -14 0 z" class="under"/>
-    <path d="M76 100 Q90 92 97 92 Q104 100 111 92 Q118 92 132 100 L126 164 Q104 170 82 164 Z" class="jersey"/>
-    <path d="M76 100 Q90 92 97 92 Q104 100 111 92 Q118 92 132 100 L126 164 Q104 170 82 164 Z" fill="url(#${id}b)"/>
-    <path d="M84 150 q10 8 22 6 M124 120 q-6 16 -4 32 M82 112 q4 16 2 34" class="fold"/>
-    <path d="M97 92 Q104 100 111 92" class="collar"/>
-    <text x="104" y="134" text-anchor="middle" font-size="${fs}" class="nametag">${esc(n)}</text>
+    <!-- trøje -->
+    <path d="M78 112 Q104 100 130 112 L136 168 Q104 180 72 168 Z" class="ol jers"/>
+    <path d="M116 106 Q124 108 130 112 L136 168 Q126 172 112 174 Q124 140 116 106 Z" class="shade"/>
+    <text x="102" y="147" text-anchor="middle" font-size="${fs}" class="nametag">${esc(n)}</text>
     <!-- hoved -->
-    <g transform="rotate(-5 104 62)">
-     <ellipse cx="86" cy="64" rx="3.5" ry="5" class="sk"/><ellipse cx="122" cy="64" rx="3.5" ry="5" class="sk"/>
-     <ellipse cx="104" cy="62" rx="18" ry="21" class="sk"/><ellipse cx="104" cy="62" rx="18" ry="21" fill="url(#${id}r)"/>
-     <path d="M85 60 C83 34 124 32 123 60 C119 50 112 47 104 49 C96 47 89 52 85 60 Z" class="hair"/><path d="M85 60 C83 34 124 32 123 60 C119 50 112 47 104 49 C96 47 89 52 85 60 Z" fill="url(#${id}r)"/>
-     <path d="M91 57 q4 -3 8 -1 M109 56 q4 -2 8 1" class="brow"/>
-     <path d="M91 64 q4 -5 8 0 M109 64 q4 -5 8 0" class="eyes"/>
-     <path d="M103 67 q-2 4 1 5" class="crease"/>
-     <path d="M92 73 q12 4 24 0 q-1 12 -12 12 q-11 0 -12 -12 z" class="mouthd"/>
-     <path d="M94 74 q10 3 20 0 l-1 3 q-9 2 -18 0 z" class="teeth"/>
+    <g transform="rotate(-4 104 66)">
+     <circle cx="68" cy="66" r="9" class="ol sk3"/><circle cx="140" cy="66" r="9" class="ol sk3"/>
+     <ellipse cx="104" cy="62" rx="37" ry="35" class="ol sk3"/>
+     <path d="M125 32 A37 35 0 0 1 112 96 Q136 84 125 32 Z" class="shade"/>
+     <path d="M70 52 C62 20 78 26 80 28 C78 12 96 22 98 22 C100 6 116 16 118 24 C128 12 136 26 132 32 C146 30 142 44 138 54 C128 36 112 34 100 40 C88 34 76 40 70 52 Z" class="ol hairc"/>
+     <ellipse cx="78" cy="76" rx="7" ry="4.5" class="blush"/><ellipse cx="130" cy="76" rx="7" ry="4.5" class="blush"/>
+     <path d="M80 41 q9 -7 18 -2 M110 39 q9 -5 18 2" class="browc"/>
+     <ellipse cx="90" cy="58" rx="11.5" ry="14" class="ol white"/><ellipse cx="118" cy="58" rx="11.5" ry="14" class="ol white"/>
+     <circle cx="92" cy="56" r="7" class="pupil"/><circle cx="120" cy="56" r="7" class="pupil"/>
+     <circle cx="94.5" cy="53" r="2.6" class="white"/><circle cx="122.5" cy="53" r="2.6" class="white"/>
+     <path d="M84 74 Q104 82 124 74 Q123 95 104 95 Q85 95 84 74 Z" class="ol mouthc"/>
+     <path d="M87 76 Q104 82 121 76 L120 81 Q104 86 88 81 Z" class="white"/>
+     <path d="M93 90 Q104 82 115 90 Q104 97 93 90 Z" class="tonguec"/>
     </g>
    </g>
   </svg></figure>`;
