@@ -169,6 +169,8 @@ setInterval(()=>{const e=document.getElementById("toast");if(e&&!e.textContent&&
 </script>
 <script>
 /* Sæt til sidens egen adresse efter første udgivelse, så startlinks kan deles. */
+const CAN_SHARE = false;
+const NOTE = 'Kopiér linket, og sæt det ind i en SMS eller mail. Spiller I uden Claude, så brug <a href="https://amigoogfutte.github.io/Flow_cards/dysten/" style="color:inherit">websiden</a>.';
 const SHARE_URL = "";
 
 const CATS = [
@@ -426,18 +428,13 @@ function homeHTML(){
 }
 function waitHTML(){
   const link=shareLink();
-  const text="Duel i Feltet-dysten! Åbn linket og tryk Deltag (kode "+G.code+"): "+link;
   return `<div class="screen">
   <div><span class="label">Din duelkode</span><div class="code">${esc(G.code)}</div></div>
   <p>Send linket til din modstander. Duellen går i gang, så snart de trykker Deltag.</p>
   <a class="linkbox" href="${esc(link)}">${esc(link)}</a>
-  <button class="btn main" data-do="copy">Kopiér startlink</button>
-  <div class="row">
-    <a class="btn" href="sms:?&body=${encodeURIComponent(text)}">Åbn SMS</a>
-    <a class="btn" href="mailto:?subject=${encodeURIComponent("Duel i Feltet-dysten")}&body=${encodeURIComponent(text)}">Åbn mail</a>
-  </div>
+  ${CAN_SHARE?`<button class="btn main" data-do="share">Del startlink via SMS eller mail</button><button class="btn" data-do="copy">Kopiér startlink</button>`:`<button class="btn main" data-do="copy">Kopiér startlink</button>`}
   <p class="toast" id="toast" role="status"></p>
-  <p class="note">Sker der ikke noget, når du trykker SMS eller mail, så kopiér linket og sæt det ind selv.</p>
+  <p class="note">${NOTE}</p>
   <button class="btn" data-do="leave">Annullér duel</button></div>`;
 }
 function connectHTML(){
@@ -567,6 +564,9 @@ document.addEventListener("click",e=>{
     case"code":{const v=document.getElementById("kode").value.trim();if(/^\d{4}$/.test(v)){G.msg="";joinDuel(v)}else{G.msg="Koden er fire tal.";render(true)}break}
     case"copy":{const t=document.getElementById("toast");const ok=()=>t.textContent="Linket er kopieret.";const no=()=>{t.textContent="Markér linket ovenfor, og kopiér det.";const r=document.createRange();r.selectNodeContents(document.querySelector(".linkbox"));const s=getSelection();s.removeAllRanges();s.addRange(r)};
       try{navigator.clipboard.writeText(shareLink()).then(ok,no)}catch{no()}break}
+    case"share":{const t=document.getElementById("toast"),u=shareLink();
+      if(!navigator.share){try{navigator.clipboard.writeText(u).then(()=>t.textContent="Linket er kopieret. Sæt det ind i en SMS eller mail.",()=>t.textContent="Markér linket ovenfor, og kopiér det.")}catch{t.textContent="Markér linket ovenfor, og kopiér det."}break}
+      navigator.share({title:"Duel i Feltet-dysten",text:"Duel i Feltet-dysten! Åbn linket og tryk Deltag (kode "+G.code+").",url:u}).catch(e=>{if(e?.name!=="AbortError")t.textContent="Delingen virkede ikke. Kopiér linket i stedet."});break}
   }
 });
 render(true);requestAnimationFrame(frame);initRoom();
