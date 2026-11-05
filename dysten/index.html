@@ -7,7 +7,7 @@
   color-scheme:dark;
   --floor:#140F33; --tile:#261D57; --tile-hi:#352A73; --line:#463A8C;
   --ink:#F4F1FF; --muted:#AEA6D8;
-  --me:#FFB72B; --c0:#FFB72B; --c1:#2FD6E8; --c2:#FF7AC6; --c3:#A6E84E; --on-color:#17102F;
+  --me:#FFB72B; --c0:#FFB72B; --c1:#2FD6E8; --c2:#FF7AC6; --c3:#A6E84E; --on-color:#17102F; --gold:#FFD24A;
   --good:#3BE38B; --bad:#FF4D6A;
   --display:"Big Shoulders Display","Arial Narrow",Impact,sans-serif;
   --body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
@@ -117,6 +117,18 @@ button{cursor:pointer;border:0;background:none;touch-action:manipulation}
 .seg button.on{background:var(--ink);color:var(--on-color)}
 .vs{font-family:var(--display);font-weight:900;font-size:30px;line-height:1.1;overflow-wrap:anywhere}
 .vs span{color:var(--c)}
+.check{display:flex;gap:10px;align-items:center;font-size:15px;font-weight:600;min-height:44px}
+.check input{width:24px;height:24px;flex:none;accent-color:var(--me)}
+.chip em{font-style:normal;font-size:11px;padding:1px 5px;background:var(--tile-hi);border-radius:2px}
+.champs{display:flex;justify-content:center;gap:8px}
+.champ{margin:0;flex:0 1 180px;min-width:0;animation:cheer 1.4s ease-in-out infinite alternate}
+.champ svg{display:block;width:100%;height:auto;max-height:240px}
+.champ .fc{fill:var(--c)} .champ .arm{stroke:var(--c);stroke-width:9;stroke-linecap:round;fill:none}
+.champ .face{fill:var(--ink)} .champ .eye{fill:var(--on-color)} .champ .smile{stroke:var(--on-color);stroke-width:2;fill:none;stroke-linecap:round}
+.champ .gold{fill:var(--gold)} .champ .hdl{stroke:var(--gold);stroke-width:4;fill:none}
+.champ .nametag{fill:var(--on-color);font-family:var(--display);font-weight:900}
+@keyframes cheer{from{transform:translateY(0)}to{transform:translateY(-6px)}}
+@media (prefers-reduced-motion:reduce){.champ{animation:none}}
 .toast{min-height:20px;font-size:14px;color:var(--good);text-align:center}
 @media (prefers-reduced-motion:reduce){.lockbar{animation:none}}
 </style>
@@ -189,31 +201,58 @@ const NOTE = "Tryk Del startlink, og vælg Beskeder eller Mail. Der er plads til
 const SHARE_URL = "";
 
 const CATS = [
-["hoved","Hoved\u00ADstæder","Land til hovedstad",false,"Norge|Oslo;Sverige|Stockholm;Finland|Helsinki;Island|Reykjavik;Tyskland|Berlin;Frankrig|Paris;Spanien|Madrid;Portugal|Lissabon;Italien|Rom;Grækenland|Athen;Polen|Warszawa;Holland|Amsterdam;Belgien|Bruxelles;Schweiz|Bern;Østrig|Wien;Tjekkiet|Prag;Ungarn|Budapest;Rumænien|Bukarest;Bulgarien|Sofia;Serbien|Beograd;Kroatien|Zagreb;Irland|Dublin;Estland|Tallinn;Letland|Riga;Litauen|Vilnius;Ukraine|Kyiv;Tyrkiet|Ankara;Egypten|Kairo;Marokko|Rabat;Kenya|Nairobi;Nigeria|Abuja;Ghana|Accra;Etiopien|Addis Abeba;Japan|Tokyo;Kina|Beijing;Sydkorea|Seoul;Thailand|Bangkok;Vietnam|Hanoi;Indien|New Delhi;Indonesien|Jakarta;Australien|Canberra;New Zealand|Wellington;Canada|Ottawa;USA|Washington D.C.;Mexico|Mexico City;Brasilien|Brasília;Argentina|Buenos Aires;Chile|Santiago;Peru|Lima;Colombia|Bogotá;Cuba|Havana;Grønland|Nuuk;Færøerne|Tórshavn"],
-["flag","Flag","Flag til land",true,"🇩🇰|Danmark;🇳🇴|Norge;🇸🇪|Sverige;🇫🇮|Finland;🇮🇸|Island;🇩🇪|Tyskland;🇫🇷|Frankrig;🇪🇸|Spanien;🇵🇹|Portugal;🇮🇹|Italien;🇬🇷|Grækenland;🇵🇱|Polen;🇳🇱|Holland;🇧🇪|Belgien;🇨🇭|Schweiz;🇦🇹|Østrig;🇨🇿|Tjekkiet;🇭🇺|Ungarn;🇷🇴|Rumænien;🇧🇬|Bulgarien;🇭🇷|Kroatien;🇮🇪|Irland;🇪🇪|Estland;🇱🇻|Letland;🇱🇹|Litauen;🇺🇦|Ukraine;🇹🇷|Tyrkiet;🇪🇬|Egypten;🇲🇦|Marokko;🇰🇪|Kenya;🇳🇬|Nigeria;🇿🇦|Sydafrika;🇯🇵|Japan;🇨🇳|Kina;🇰🇷|Sydkorea;🇹🇭|Thailand;🇻🇳|Vietnam;🇮🇳|Indien;🇮🇩|Indonesien;🇦🇺|Australien;🇳🇿|New Zealand;🇨🇦|Canada;🇺🇸|USA;🇲🇽|Mexico;🇧🇷|Brasilien;🇦🇷|Argentina;🇨🇱|Chile;🇵🇪|Peru;🇨🇴|Colombia;🇨🇺|Cuba;🇬🇱|Grønland;🇬🇧|Storbritannien"],
+["hoved","Hoved\u00ADstæder","Land til hovedstad",false,"Norge|Oslo;Sverige|Stockholm;Finland|Helsinki;Island|Reykjavik;Tyskland|Berlin;Frankrig|Paris;Spanien|Madrid;Portugal|Lissabon;Italien|Rom;Grækenland|Athen;Polen|Warszawa;Holland|Amsterdam;Belgien|Bruxelles;Schweiz|Bern;Østrig|Wien;Tjekkiet|Prag;Ungarn|Budapest;Rumænien|Bukarest;Bulgarien|Sofia;Serbien|Beograd;Kroatien|Zagreb;Irland|Dublin;Estland|Tallinn;Letland|Riga;Litauen|Vilnius;Ukraine|Kyiv;Tyrkiet|Ankara;Egypten|Kairo;Marokko|Rabat;Kenya|Nairobi;Nigeria|Abuja;Ghana|Accra;Etiopien|Addis Abeba;Japan|Tokyo;Kina|Beijing;Sydkorea|Seoul;Thailand|Bangkok;Vietnam|Hanoi;Indien|New Delhi;Indonesien|Jakarta;Australien|Canberra;New Zealand|Wellington;Canada|Ottawa;USA|Washington D.C.;Mexico|Mexico City;Brasilien|Brasília;Argentina|Buenos Aires;Chile|Santiago;Peru|Lima;Colombia|Bogotá;Cuba|Havana;Grønland|Nuuk;Færøerne|Tórshavn;Albanien|Tirana;Slovenien|Ljubljana;Slovakiet|Bratislava;Malta|Valletta;Cypern|Nicosia;Belarus|Minsk;Moldova|Chisinau;Georgien|Tbilisi;Armenien|Jerevan;Iran|Teheran;Irak|Bagdad;Jordan|Amman;Libanon|Beirut;Syrien|Damaskus;Saudi-Arabien|Riyadh;Afghanistan|Kabul;Pakistan|Islamabad;Bangladesh|Dhaka;Nepal|Kathmandu;Filippinerne|Manila;Malaysia|Kuala Lumpur;Mongoliet|Ulaanbaatar;Nordkorea|Pyongyang;Algeriet|Algier;Tunesien|Tunis;Libyen|Tripoli;Sudan|Khartoum;Uganda|Kampala;Angola|Luanda;Zambia|Lusaka;Zimbabwe|Harare;Mali|Bamako;Senegal|Dakar;Venezuela|Caracas;Ecuador|Quito;Uruguay|Montevideo;Paraguay|Asunción;Jamaica|Kingston"],
+["flag","Flag","Flag til land",true,"🇩🇰|Danmark;🇳🇴|Norge;🇸🇪|Sverige;🇫🇮|Finland;🇮🇸|Island;🇩🇪|Tyskland;🇫🇷|Frankrig;🇪🇸|Spanien;🇵🇹|Portugal;🇮🇹|Italien;🇬🇷|Grækenland;🇵🇱|Polen;🇳🇱|Holland;🇧🇪|Belgien;🇨🇭|Schweiz;🇦🇹|Østrig;🇨🇿|Tjekkiet;🇭🇺|Ungarn;🇷🇴|Rumænien;🇧🇬|Bulgarien;🇭🇷|Kroatien;🇮🇪|Irland;🇪🇪|Estland;🇱🇻|Letland;🇱🇹|Litauen;🇺🇦|Ukraine;🇹🇷|Tyrkiet;🇪🇬|Egypten;🇲🇦|Marokko;🇰🇪|Kenya;🇳🇬|Nigeria;🇿🇦|Sydafrika;🇯🇵|Japan;🇨🇳|Kina;🇰🇷|Sydkorea;🇹🇭|Thailand;🇻🇳|Vietnam;🇮🇳|Indien;🇮🇩|Indonesien;🇦🇺|Australien;🇳🇿|New Zealand;🇨🇦|Canada;🇺🇸|USA;🇲🇽|Mexico;🇧🇷|Brasilien;🇦🇷|Argentina;🇨🇱|Chile;🇵🇪|Peru;🇨🇴|Colombia;🇨🇺|Cuba;🇬🇱|Grønland;🇬🇧|Storbritannien;🇸🇰|Slovakiet;🇸🇮|Slovenien;🇷🇸|Serbien;🇱🇺|Luxembourg;🇲🇹|Malta;🇨🇾|Cypern;🇦🇱|Albanien;🇧🇦|Bosnien-Hercegovina;🇮🇱|Israel;🇸🇦|Saudi-Arabien;🇮🇷|Iran;🇮🇶|Irak;🇵🇰|Pakistan;🇵🇭|Filippinerne;🇲🇾|Malaysia;🇸🇬|Singapore;🇳🇵|Nepal;🇻🇪|Venezuela;🇺🇾|Uruguay;🇯🇲|Jamaica;🇬🇭|Ghana;🇪🇹|Etiopien;🇸🇳|Senegal;🇹🇳|Tunesien;🇩🇿|Algeriet"],
 ["kemi","Grund\u00ADstoffer","Kemisk tegn til grundstof",true,"H|Brint;He|Helium;Li|Litium;C|Kulstof;N|Kvælstof;O|Ilt;F|Fluor;Ne|Neon;Na|Natrium;Mg|Magnesium;Al|Aluminium;Si|Silicium;P|Fosfor;S|Svovl;Cl|Klor;Ar|Argon;K|Kalium;Ca|Calcium;Ti|Titan;Cr|Krom;Mn|Mangan;Fe|Jern;Co|Kobolt;Ni|Nikkel;Cu|Kobber;Zn|Zink;As|Arsen;Br|Brom;Ag|Sølv;Sn|Tin;I|Jod;Ba|Barium;W|Wolfram;Pt|Platin;Au|Guld;Hg|Kviksølv;Pb|Bly;Rn|Radon;U|Uran;Pu|Plutonium"],
 ["dyr","Dyr","Billede til dyr",true,"🦁|Løve;🐯|Tiger;🐻|Bjørn;🐼|Panda;🐨|Koala;🦊|Ræv;🐺|Ulv;🦝|Vaskebjørn;🦘|Kænguru;🦒|Giraf;🦓|Zebra;🦏|Næsehorn;🦛|Flodhest;🐘|Elefant;🦬|Bison;🦌|Hjort;🦔|Pindsvin;🦦|Odder;🦫|Bæver;🦥|Dovendyr;🦇|Flagermus;🐧|Pingvin;🦉|Ugle;🦅|Ørn;🦩|Flamingo;🦚|Påfugl;🦜|Papegøje;🦢|Svane;🦆|And;🐊|Krokodille;🐢|Skildpadde;🦎|Firben;🐍|Slange;🦈|Haj;🐙|Blæksprutte;🦀|Krabbe;🦞|Hummer;🐬|Delfin;🐳|Hval;🦭|Sæl;🐝|Bi;🦋|Sommerfugl;🐌|Snegl;🦂|Skorpion"],
 ["post","Post\u00ADnumre","Postnummer til by",true,"5000|Odense;8000|Aarhus;9000|Aalborg;6000|Kolding;7100|Vejle;8700|Horsens;8900|Randers;7400|Herning;6700|Esbjerg;4000|Roskilde;3000|Helsingør;3400|Hillerød;4700|Næstved;4200|Slagelse;7500|Holstebro;8600|Silkeborg;8800|Viborg;6400|Sønderborg;6200|Aabenraa;6100|Haderslev;7000|Fredericia;4600|Køge;5700|Svendborg;3700|Rønne;9800|Hjørring;9900|Frederikshavn;7800|Skive;4300|Holbæk;4400|Kalundborg;8500|Grenaa;9400|Nørresundby;6800|Varde;6900|Skjern;7700|Thisted;9500|Hobro;3600|Frederikssund;4100|Ringsted;4900|Nakskov;6270|Tønder;6760|Ribe"],
-["film","Danske film","Film til instruktør",false,"Festen|Thomas Vinterberg;Jagten|Thomas Vinterberg;Druk|Thomas Vinterberg;Breaking the Waves|Lars von Trier;Dancer in the Dark|Lars von Trier;Melancholia|Lars von Trier;Babettes gæstebud|Gabriel Axel;Hævnen|Susanne Bier;Efter brylluppet|Susanne Bier;Den eneste ene|Susanne Bier;Pusher|Nicolas Winding Refn;Drive|Nicolas Winding Refn;Blinkende lygter|Anders Thomas Jensen;Adams æbler|Anders Thomas Jensen;Retfærdighedens ryttere|Anders Thomas Jensen;Olsen-Banden|Erik Balling;Italiensk for begyndere|Lone Scherfig;Flugt|Jonas Poher Rasmussen;Krigen|Tobias Lindholm;Kapringen|Tobias Lindholm;Klovn the Movie|Mikkel Nørgaard;Kvinden i buret|Mikkel Nørgaard;Nattevagten|Ole Bornedal;Kunsten at græde i kor|Peter Schønau Fog;Bænken|Per Fly;Arven|Per Fly;Flammen & Citronen|Ole Christian Madsen;Superclásico|Ole Christian Madsen;En kongelig affære|Nikolaj Arcel;Bastarden|Nikolaj Arcel;Kongekabale|Nikolaj Arcel;Under sandet|Martin Zandvliet;Pelle Erobreren|Bille August;Zappa|Bille August;Gertrud|Carl Th. Dreyer;Ordet|Carl Th. Dreyer","Annette K. Olesen,Natasha Arthy,Lasse Spang Olsen,Hella Joof,Niels Arden Oplev,Søren Kragh-Jacobsen,Henrik Ruben Genz,Pernille Fischer Christensen"],
+["film","Danske film","Film til instruktør",false,"Festen|Thomas Vinterberg;Jagten|Thomas Vinterberg;Druk|Thomas Vinterberg;Babettes gæstebud|Gabriel Axel;Hævnen|Susanne Bier;Efter brylluppet|Susanne Bier;Den eneste ene|Susanne Bier;Pusher|Nicolas Winding Refn;Blinkende lygter|Anders Thomas Jensen;Adams æbler|Anders Thomas Jensen;Retfærdighedens ryttere|Anders Thomas Jensen;Olsen-Banden|Erik Balling;Italiensk for begyndere|Lone Scherfig;Flugt|Jonas Poher Rasmussen;Krigen|Tobias Lindholm;Kapringen|Tobias Lindholm;Klovn – Filmen|Mikkel Nørgaard;Kvinden i buret|Mikkel Nørgaard;Nattevagten|Ole Bornedal;Kunsten at græde i kor|Peter Schønau Fog;Bænken|Per Fly;Arven|Per Fly;Flammen & Citronen|Ole Christian Madsen;Superclásico|Ole Christian Madsen;En kongelig affære|Nikolaj Arcel;Bastarden|Nikolaj Arcel;Kongekabale|Nikolaj Arcel;Under sandet|Martin Zandvliet;Pelle Erobreren|Bille August;Zappa|Bille August;Gertrud|Carl Th. Dreyer;Ordet|Carl Th. Dreyer;Riget|Lars von Trier;Idioterne|Lars von Trier","Annette K. Olesen,Natasha Arthy,Lasse Spang Olsen,Hella Joof,Niels Arden Oplev,Søren Kragh-Jacobsen,Henrik Ruben Genz,Pernille Fischer Christensen"],
 ["bog","Danske bøger","Bog til forfatter",false,"Den grimme ælling|H.C. Andersen;Den lille havfrue|H.C. Andersen;Kongens Fald|Johannes V. Jensen;Pelle Erobreren|Martin Andersen Nexø;Ditte Menneskebarn|Martin Andersen Nexø;Den afrikanske farm|Karen Blixen;Babettes Gæstebud|Karen Blixen;Frøken Smillas fornemmelse for sne|Peter Høeg;Kvinden i buret|Jussi Adler-Olsen;Flaskepost fra P|Jussi Adler-Olsen;Kastanjemanden|Søren Sveistrup;Løgneren|Martin A. Hansen;Barndommens gade|Tove Ditlevsen;Gift|Tove Ditlevsen;Hærværk|Tom Kristensen;Niels Lyhne|J.P. Jacobsen;Fru Marie Grubbe|J.P. Jacobsen;Lykke-Per|Henrik Pontoppidan;Det forsømte forår|Hans Scherfig;Den forsvundne fuldmægtig|Hans Scherfig;Hundehoved|Morten Ramsland;Vi, de druknede|Carsten Jensen;Jeg har set verden begynde|Carsten Jensen;Drengene fra Sankt Petri|Bjarne Reuter;Zappa|Bjarne Reuter;Gummi-Tarzan|Ole Lund Kirkegaard;Hodja fra Pjort|Ole Lund Kirkegaard;Orla Frøsnapper|Ole Lund Kirkegaard;Erasmus Montanus|Ludvig Holberg;Jeppe på Bjerget|Ludvig Holberg;Den kroniske uskyld|Klaus Rifbjerg;Anna (jeg) Anna|Klaus Rifbjerg;Forførerens dagbog|Søren Kierkegaard;Frygt og bæven|Søren Kierkegaard;Nøddebo Præstegård|Henrik Scharling","Helle Helle,Dorrit Willumsen,Kirsten Thorup,Jens Christian Grøndahl,Naja Marie Aidt,Yahya Hassan,Dan Turèll,Sara Omar,Michael Strunge"],
-["hits","Store hits","Sang til kunstner",false,"Barbie Girl|Aqua;Bohemian Rhapsody|Queen;Dancing Queen|ABBA;Thriller|Michael Jackson;Smells Like Teen Spirit|Nirvana;Hey Jude|The Beatles;Wonderwall|Oasis;Purple Rain|Prince;Like a Prayer|Madonna;Enter Sandman|Metallica;Rolling in the Deep|Adele;Shape of You|Ed Sheeran;Halo|Beyoncé;Viva la Vida|Coldplay;Angie|The Rolling Stones;Take On Me|a-ha;Stairway to Heaven|Led Zeppelin;Hotel California|Eagles;Sweet Child o' Mine|Guns N' Roses;Livin' on a Prayer|Bon Jovi;Poker Face|Lady Gaga;Toxic|Britney Spears;Umbrella|Rihanna;Shake It Off|Taylor Swift;Lose Yourself|Eminem;Blinding Lights|The Weeknd;Bad Guy|Billie Eilish;In the End|Linkin Park;Zombie|The Cranberries;Creep|Radiohead;Heroes|David Bowie;Imagine|John Lennon;Rocket Man|Elton John;Like a Rolling Stone|Bob Dylan;My Way|Frank Sinatra;Jailhouse Rock|Elvis Presley;Purple Haze|Jimi Hendrix;Back to Black|Amy Winehouse;Wake Me Up|Avicii;The Final Countdown|Europe"],
+["hits","Danske sange","Sang til forfatter",false,"Der er et yndigt land|Adam Oehlenschläger;I Danmark er jeg født|H.C. Andersen;Det er hvidt herude|Steen Steensen Blicher;Jeg ved en lærkerede|Harald Bergstedt;Altid frejdig når du går|Christian Richardt;Dejlig er jorden|B.S. Ingemann;Højt fra træets grønne top|Peter Faber;Kirken den er et gammelt hus|N.F.S. Grundtvig;Se, nu stiger solen|Jakob Knudsen;Jeg er havren|Jeppe Aakjær;Danmark, nu blunder den lyse nat|Thøger Larsen;Sikken voldsom trængsel og alarm|Peter Faber","Benny Andersen,Halfdan Rasmussen,Johannes V. Jensen,Piet Hein,Tove Ditlevsen"],
 ["sport","Sports\u00ADstjerner","Navn til sportsgren",false,"Caroline Wozniacki|Tennis;Holger Rune|Tennis;Clara Tauson|Tennis;Jonas Vingegaard|Cykling;Bjarne Riis|Cykling;Mads Pedersen|Cykling;Mikkel Hansen|Håndbold;Niklas Landin|Håndbold;Anja Andersen|Håndbold;Michael Laudrup|Fodbold;Peter Schmeichel|Fodbold;Christian Eriksen|Fodbold;Pernille Harder|Fodbold;Viktor Axelsen|Badminton;Peter Gade|Badminton;Camilla Martin|Badminton;Pernille Blume|Svømning;Rikke Møller Pedersen|Svømning;Kevin Magnussen|Motorsport;Tom Kristensen|Motorsport;Nicolai Højgaard|Golf;Thomas Bjørn|Golf;Mikkel Kessler|Boksning;Johnny Bredahl|Boksning;Wilson Kipketer|Atletik;Eskild Ebbesen|Roning;Paul Elvstrøm|Sejlsport;Anne-Marie Rindom|Sejlsport;Hans Nielsen|Speedway;Nicki Pedersen|Speedway;Ole Olsen|Speedway;Emma Aastrand Jørgensen|Kajak;Kim Wraae Knudsen|Kajak","Bueskydning,Ishockey,Skydning,Ridning,Bordtennis,Basketball,Volleyball,Curling"],
 ["maerke","Mærker","Mærke til hjemland",false,"LEGO|Danmark;Carlsberg|Danmark;Bang & Olufsen|Danmark;IKEA|Sverige;Volvo|Sverige;H&M|Sverige;Spotify|Sverige;Nokia|Finland;Supercell|Finland;Samsung|Sydkorea;Hyundai|Sydkorea;Nestlé|Schweiz;Rolex|Schweiz;Ferrari|Italien;Lamborghini|Italien;Fiat|Italien;Renault|Frankrig;Peugeot|Frankrig;Zara|Spanien;Seat|Spanien;Heineken|Holland;Philips|Holland;Guinness|Irland;Apple|USA;Nike|USA;Toyota|Japan;Sony|Japan;BMW|Tyskland;Adidas|Tyskland;Škoda|Tjekkiet;Stella Artois|Belgien;Huawei|Kina;Tata|Indien;Burberry|Storbritannien;Rolls-Royce|Storbritannien;Red Bull|Østrig","Canada,Norge,Polen,Australien,Mexico,Brasilien,Tyrkiet"],
-["ord","Mund\u00ADheld","Find det sidste ord",false,"Morgenstund har guld i …|munden;Den der ler sidst, ler …|bedst;Mange bække små gør en stor …|å;Man skal ikke skue hunden på …|hårene;Når katten er ude, spiller musene på …|bordet;Bedre en fugl i hånden end ti på …|taget;Lediggang er roden til alt …|ondt;Selv en blind høne kan finde et …|korn;Som man råber i skoven, får man …|svar;Stille vand har dybest …|grund;Øvelse gør …|mester;Af skade bliver man …|klog;Alle gode gange …|tre;Ingen roser uden …|torne;Talen er sølv, tavshed er …|guld;Tiden læger alle …|sår;Fra asken til …|ilden;Kærlighed gør …|blind;Gammel kærlighed …|ruster;Den enes død, den andens …|brød;Bedre sent end …|aldrig;Ud af øjet, ud af …|sind;Blod er tykkere end …|vand;Man skal smede, mens jernet er …|varmt;Små gryder har også …|ører;Krage søger …|mage;Æblet falder ikke langt fra …|stammen;En ulykke kommer sjældent …|alene;Uden mad og drikke duer helten …|ikke"],
+["ord","Mund\u00ADheld","Find det sidste ord",false,"Morgenstund har guld i …|munden;Den der ler sidst, ler …|bedst;Mange bække små gør en stor …|å;Man skal ikke skue hunden på …|hårene;Når katten er ude, spiller musene på …|bordet;Bedre en fugl i hånden end ti på …|taget;Lediggang er roden til alt …|ondt;Selv en blind høne kan finde et …|korn;Som man råber i skoven, får man …|svar;Stille vand har dybest …|grund;Øvelse gør …|mester;Af skade bliver man …|klog;Alle gode gange …|tre;Ingen roser uden …|torne;Talen er sølv, tavshed er …|guld;Tiden læger alle …|sår;Fra asken til …|ilden;Kærlighed gør …|blind;Gammel kærlighed …|ruster;Den enes død, den andens …|brød;Bedre sent end …|aldrig;Ud af øjet, ud af …|sind;Blod er tykkere end …|vand;Man skal smede, mens jernet er …|varmt;Små gryder har også …|ører;Krage søger …|mage;Æblet falder ikke langt fra …|stammen;En ulykke kommer sjældent …|alene;Uden mad og drikke duer helten …|ikke;Slå to fluer med ét …|smæk;Have en ræv bag …|øret;Gå som katten om den varme …|grød;Have hår på …|brystet;Få kolde …|fødder;Træde i …|spinaten;Hoppe over, hvor gærdet er …|lavest;Kaste håndklædet i …|ringen;Skære alle over én …|kam;Tage tyren ved …|hornene;Have rent mel i …|posen;Sætte en kæp i …|hjulet;Falde mellem to …|stole;Have ben i …|næsen;Stikke halen mellem …|benene;Male fanden på …|væggen;Sælg ikke skindet, før bjørnen er …|skudt"],
 ["valuta","Valutaer","Land til valuta",false,"USA|Dollar;Storbritannien|Pund;Japan|Yen;Kina|Yuan;Indien|Rupee;Rusland|Rubel;Schweiz|Franc;Tyrkiet|Lira;Mexico|Peso;Brasilien|Real;Sydafrika|Rand;Sydkorea|Won;Polen|Zloty;Thailand|Baht;Vietnam|Dong;Ungarn|Forint;Tjekkiet|Koruna;Rumænien|Leu;Israel|Shekel;Saudi-Arabien|Riyal;Danmark|Krone;Tyskland|Euro;Indonesien|Rupiah;Malaysia|Ringgit"],
-["kunst","Malerier","Værk til kunstner",false,"Mona Lisa|Leonardo da Vinci;Stjernenatten|Vincent van Gogh;Skriget|Edvard Munch;Guernica|Pablo Picasso;Pigen med perleøreringen|Johannes Vermeer;Nattevagten|Rembrandt;Kysset|Gustav Klimt;Venus' fødsel|Sandro Botticelli;Vandliljer|Claude Monet;Erindringens vedholdenhed|Salvador Dalí;Campbell's suppedåser|Andy Warhol;Danseklassen|Edgar Degas;Den store bølge ud for Kanagawa|Hokusai;De to Fridaer|Frida Kahlo;American Gothic|Grant Wood;Nighthawks|Edward Hopper;Sommeraften på Skagens strand|P.S. Krøyer;Skabelsen af Adam|Michelangelo;Menneskets søn|René Magritte","Jackson Pollock,Paul Cézanne,Henri Matisse,J.M.W. Turner"],
-["tegne","Tegnefilm","Figur til film",false,"Pumba|Løvernes Konge;Elsa|Frost;Dory|Find Nemo;Woody|Toy Story;Ursula|Den Lille Havfrue;Jasmin|Aladdin;Baloo|Junglebogen;Belle|Skønheden og Udyret;Sulley|Monsters, Inc.;Lightning McQueen|Biler;Remy|Ratatouille;Jack Skellington|The Nightmare Before Christmas;Merida|Modig;Mirabel|Encanto;Riley|Inderst inde;Carl Fredricksen|Op;Maui|Vaiana;Rapunzel|To på flugt;Mufasa|Løvernes Konge","Peter Pan,Bambi,Ice Age,Shrek"],
+["kunst","Malerier","Værk til kunstner",false,"Mona Lisa|Leonardo da Vinci;Stjernenatten|Vincent van Gogh;Skriget|Edvard Munch;Guernica|Pablo Picasso;Pigen med perleøreringen|Johannes Vermeer;Nattevagten|Rembrandt;Kysset|Gustav Klimt;Venus' fødsel|Sandro Botticelli;Vandliljer|Claude Monet;Erindringens vedholdenhed|Salvador Dalí;Campbell's suppedåser|Andy Warhol;Danseklassen|Edgar Degas;Den store bølge ud for Kanagawa|Hokusai;De to Fridaer|Frida Kahlo;Natteravne|Edward Hopper;Sommeraften på Skagens strand|P.S. Krøyer;Skabelsen af Adam|Michelangelo;Menneskets søn|René Magritte","Jackson Pollock,Paul Cézanne,Henri Matisse,J.M.W. Turner"],
+["tegne","Tegnefilm","Figur til film",false,"Pumba|Løvernes Konge;Elsa|Frost;Dory|Find Nemo;Woody|Toy Story;Ursula|Den Lille Havfrue;Jasmin|Aladdin;Baloo|Junglebogen;Belle|Skønheden og Udyret;Lightning McQueen|Biler;Remy|Ratatouille;Merida|Modig;Mirabel|Encanto;Riley|Inderst inde;Carl Fredricksen|Op;Maui|Vaiana;Rapunzel|To på flugt;Mufasa|Løvernes Konge","Peter Pan,Bambi,Istid,Shrek"],
 ["stadion","Stadioner","Stadion til klub",false,"Parken|FC København;Anfield|Liverpool;Old Trafford|Manchester United;Camp Nou|FC Barcelona;Santiago Bernabéu|Real Madrid;Allianz Arena|Bayern München;Signal Iduna Park|Borussia Dortmund;Stamford Bridge|Chelsea;Emirates Stadium|Arsenal;Etihad Stadium|Manchester City;Parc des Princes|Paris Saint-Germain;Ceres Park|AGF;St James' Park|Newcastle United;Ibrox|Rangers;Johan Cruijff Arena|Ajax;Estádio da Luz|Benfica;Estádio do Dragão|FC Porto;MCH Arena|FC Midtjylland","Juventus,AC Milan,Brøndby IF,Odense Boldklub"],
 ["sevaerd","Se\u00ADværdig\u00ADheder","Seværdighed til by",false,"Eiffeltårnet|Paris;Colosseum|Rom;Big Ben|London;Frihedsgudinden|New York;Akropolis|Athen;Den Røde Plads|Moskva;Sagrada Família|Barcelona;Brandenburger Tor|Berlin;Burj Khalifa|Dubai;Cristo Redentor|Rio de Janeiro;Den Lille Havfrue|København;Hagia Sofia|Istanbul;Den Forbudte By|Beijing;Golden Gate-broen|San Francisco;Karlsbroen|Prag;Rijksmuseum|Amsterdam;Alhambra|Granada;Det skæve tårn|Pisa;Vasamuseet|Stockholm;Taj Mahal|Agra;Marina Bay Sands|Singapore;Petronas Towers|Kuala Lumpur;Manneken Pis|Bruxelles;Rialtobroen|Venedig;Operahuset ved Bennelong Point|Sydney"],
-["serier","Tv-serier","Figur til serie",false,"Birgitte Nyborg|Borgen;Sarah Lund|Forbrydelsen;Mads Skjern|Matador;Walter White|Breaking Bad;Jon Snow|Game of Thrones;Michael Scott|The Office;Eleven|Stranger Things;Ross Geller|Friends;Don Draper|Mad Men;Geralt|The Witcher;Carrie Bradshaw|Sex and the City;Sheldon Cooper|The Big Bang Theory;Thomas Shelby|Peaky Blinders;Logan Roy|Succession;Frank Underwood|House of Cards;Carmy|The Bear;Frank Hvam|Klovn;Michael Scofield|Prison Break;Jack Bauer|24 Timer;Carrie Mathison|Homeland;Rick Grimes|The Walking Dead"],
-["mad","Mad fra verden","Ret til land",false,"Paella|Spanien;Sushi|Japan;Pizza|Italien;Smørrebrød|Danmark;Moussaka|Grækenland;Tacos|Mexico;Pad thai|Thailand;Pho|Vietnam;Kimchi|Sydkorea;Gullasch|Ungarn;Feijoada|Brasilien;Haggis|Skotland;Pierogi|Polen;Borsjtj|Ukraine;Fish and chips|England;Wienerschnitzel|Østrig;Poutine|Canada;Döner kebab|Tyrkiet;Hamburger|USA;Surströmming|Sverige;Fårikål|Norge;Ceviche|Peru;Moules frites|Belgien;Butter chicken|Indien;Bouillabaisse|Frankrig;Pekingand|Kina;Injera|Etiopien;Tajine|Marokko"],
+["serier","Danske tv-serier","Figur til serie",false,"Birgitte Nyborg|Borgen;Sarah Lund|Forbrydelsen;Mads Skjern|Matador;Frank Hvam|Klovn;Fru Drusse|Riget;Saga Norén|Broen;Gro Grønnegaard|Arvingerne;Fie Kjær|Badehotellet;Emma|Huset på Christianshavn;Søs|Far til fire;Egon Olsen|Olsen-Banden;Pyrus|Alletiders Jul;Mads Justesen|Bedrag","Rejseholdet,Taxa,Krøniken,Nikolaj og Julie,Anna Pihl,Dicte,Strisser på Samsø"],
+["mad","Mad fra verden","Ret til land",false,"Paella|Spanien;Sushi|Japan;Pizza|Italien;Smørrebrød|Danmark;Moussaka|Grækenland;Tacos|Mexico;Pad thai|Thailand;Pho|Vietnam;Kimchi|Sydkorea;Gullasch|Ungarn;Feijoada|Brasilien;Haggis|Skotland;Pierogi|Polen;Borsjtj|Ukraine;Fisk med pommes frites|England;Wienerschnitzel|Østrig;Poutine|Canada;Döner kebab|Tyrkiet;Hamburger|USA;Surströmming|Sverige;Fårikål|Norge;Ceviche|Peru;Moules frites|Belgien;Smørkylling|Indien;Bouillabaisse|Frankrig;Pekingand|Kina;Injera|Etiopien;Tajine|Marokko"],
 ["dkgo","Oplev Danmark","Seværdighed til sted",false,"LEGOLAND|Billund;Råbjerg Mile|Skagen;Kronborg|Helsingør;ARoS|Aarhus;Louisiana|Humlebæk;Egeskov Slot|Kværndrup;Frederiksborg Slot|Hillerød;Vikingeskibsmuseet|Roskilde;H.C. Andersens Hus|Odense;Djurs Sommerland|Nimtofte;Fårup Sommerland|Blokhus;Knuthenborg Safaripark|Maribo;Tirpitz|Blåvand;Utzon Center|Aalborg;Hammershus|Bornholm;Tivoli|København;Bakken|Klampenborg;Jellingstenene|Jelling;Den Blå Planet|Kastrup;Arken|Ishøj;Mennesket ved Havet|Esbjerg;Fregatten Jylland|Ebeltoft"],
-["sportord","Sports\u00ADudtryk","Udtryk til sport",false,"Ace|Tennis;Birdie|Golf;Strike|Bowling;Offside|Fodbold;Touchdown|Amerikansk fodbold;Slam dunk|Basketball;Skakmat|Skak;180|Dart;Scrum|Rugby;Homerun|Baseball;Knockout|Boksning;Bodycheck|Ishockey;Peloton|Cykling;Butterfly|Svømning;Dressur|Ridning;En garde|Fægtning;Ollie|Skateboard;Ippon|Judo;Stenen og fejekosten|Curling;Break|Snooker"],
+["sportord","Sportsudstyr","Udstyr til sport",false,"Ketsjer og fjerbold|Badminton;Puck og stav|Ishockey;Køller og hul|Golf;Pile og skive|Dart;Sadel og stigbøjler|Ridning;Kugle og kegler|Bowling;Konge og dronning|Skak;Kurv og bold|Basketball;Mål og hjørneflag|Fodbold;Filtbold og net|Tennis;Åre og rulleskinne|Roning;Kårde og maske|Fægtning;Styr og pedaler|Cykling;Svømmebriller og bane|Svømning;Handsker og ring|Boksning;Sejl og skøde|Sejlsport;Ski og stave|Langrend;Bue og pil|Bueskydning;Lang stang og skumpude|Stangspring;Sten og kost|Curling;Kælk og isbane|Kælkning;Disk og cirkel|Diskoskast;Skumbræt og bølger|Surfing"],
 ["aar","Årstal","År til begivenhed",true,"1864|Slaget ved Dybbøl;1945|Danmark blev befriet;1989|Berlinmuren faldt;1492|Columbus nåede Amerika;1969|Første månelanding;1912|Titanic sank;1789|Den Franske Revolution;1973|Danmark kom med i EF;1849|Danmarks første grundlov;1914|1. verdenskrig brød ud;1939|2. verdenskrig brød ud;2001|Angrebet 11. september;1801|Slaget på Reden;1807|Københavns bombardement;1920|Genforeningen;1536|Reformationen i Danmark;1397|Kalmarunionen;1660|Enevælden i Danmark;1915|Danske kvinder fik stemmeret;1963|Kennedy blev myrdet;1986|Tjernobyl-ulykken;1992|Danmark blev europamester;1066|Slaget ved Hastings;1453|Konstantinopels fald;1776|USA's uafhængighed;1991|Sovjetunionen blev opløst"],
 ["viden","Op\u00ADdagelser","Opdagelse til person",false,"Telefonen|Alexander Graham Bell;Bogtrykkerkunsten|Johannes Gutenberg;Dynamit|Alfred Nobel;Penicillin|Alexander Fleming;Relativitetsteorien|Albert Einstein;Tyngdeloven|Isaac Newton;Evolutionsteorien|Charles Darwin;Radium|Marie Curie;Elektromagnetismen|H.C. Ørsted;Atommodellen fra 1913|Niels Bohr;World Wide Web|Tim Berners-Lee;Radioen|Guglielmo Marconi;Den første benzinbil|Karl Benz;Koppevaccinen|Edward Jenner;Det periodiske system|Dmitrij Mendelejev;Solen i centrum|Nikolaus Kopernikus;Lysets endelige hastighed|Ole Rømer;Røntgenstråler|Wilhelm Röntgen","Galileo Galilei,Nikola Tesla,Louis Pasteur"],
 ["frugt","Frugt og grønt","Billede til navn",true,"🍎|Æble;🍌|Banan;🍇|Vindruer;🍉|Vandmelon;🍊|Appelsin;🍋|Citron;🍍|Ananas;🥭|Mango;🍑|Fersken;🍐|Pære;🍓|Jordbær;🥝|Kiwi;🥥|Kokosnød;🍒|Kirsebær;🥑|Avocado;🥦|Broccoli;🥕|Gulerod;🌽|Majs;🍆|Aubergine;🍅|Tomat;🥒|Agurk;🧄|Hvidløg;🧅|Løg;🥔|Kartoffel;🍄|Svamp;🥜|Jordnødder;🌰|Kastanje"],
-["dkmusik","Dansk musik","Sang til kunstner",false,"Midt om natten|Kim Larsen;Kun for mig|Medina;Natteravn|Rasmus Seebach;7 Years|Lukas Graham;Still Counting|Volbeat;Sleeping My Day Away|D-A-D;Fascination|Alphabeat;Comforting Sounds|Mew;Slingrer ned ad Vestergade|Gnags;Militskvinder|Kliché;Stupid Man|Thomas Helmig;Smuk og dejlig|Anne Linnet;Silverflame|Dizzy Mizz Lizzy;Aicha|Outlandish;Saturday Night|Whigfield;Played-A-Live|Safri Duo;Move Your Feet|Junior Senior;Only Teardrops|Emmelie de Forest;Fly on the Wings of Love|Olsen Brothers;Rocket Brothers|Kashmir;Kvinde min|Gasolin'","Nephew,TV-2,Shu-bi-dua,Sanne Salomonsen,Lars Lilholt"]
+["dkmusik","Dansk musik","Sang til kunstner",false,"Papirsklip|Kim Larsen;Den jeg elsker, elsker jeg|Sanne Salomonsen;Vi maler byen rød|Birthe Kjær;Kald det kærlighed|Lars Lilholt;Model|Gulddreng;Okay|Tessa;Midt om natten|Kim Larsen;Kun for mig|Medina;Natteravn|Rasmus Seebach;Slingrer ned ad Vestergade|Gnags;Militskvinder|Kliché;Smuk og dejlig|Anne Linnet;Kvinde min|Gasolin'","Nephew,TV-2,Shu-bi-dua,Volbeat,Thomas Helmig,Alphabeat,Medina,Lukas Graham"],
+["floder","Floder og bjerge","Sted til land eller by",false,"Seinen|Paris;Themsen|London;Spree|Berlin;Tiberen|Rom;Moldau|Prag;Tajo|Lissabon;Hudsonfloden|New York;Mount Everest|Nepal;Kilimanjaro|Tanzania;Fuji|Japan;Matterhorn|Schweiz;Vesuv|Italien;Olympen|Grækenland;Galdhøpiggen|Norge;Ararat|Tyrkiet;Ejer Bavnehøj|Danmark;Nilen|Egypten;Ganges|Indien;Gudenåen|Jylland;Odense Å|Fyn","Budapest,Wien,Sverige,Peru,Kina,Bornholm"],
+["nordisk","Nordisk mytologi","Navn til forklaring",false,"Thor|Tordenguden;Odin|Alfader;Freja|Kærlighedens gudinde;Loke|Den snu drilleånd;Balder|Lysets gud;Frigg|Odins hustru;Tyr|Krigsguden;Heimdal|Vogter af Bifrost;Njord|Havets gud;Hel|Dødsrigets gudinde;Sleipner|Odins ottebenede hest;Mjølner|Thors hammer;Yggdrasil|Verdenstræet;Gungner|Odins spyd;Valhal|Odins hal for faldne krigere;Ragnarok|Verdens undergang;Bifrost|Regnbuebroen;Hugin|Odins ravn;Asgård|Gudernes hjem;Midgård|Menneskenes verden;Jotunheim|Jætternes land"],
+["job","Hvem bruger det?","Ting til fag",false,"Stetoskop|Læge;Murerske|Murer;Saks og kam|Frisør;Hammer og søm|Tømrer;Dej og ovn|Bager;Net og trawl|Fisker;Rørtang|Blikkenslager;Kridt og tavle|Lærer;Brandslange|Brandmand;Håndjern|Politibetjent;Traktor|Landmand;Kontrolstik og ledning|Elektriker;Dommerhammer|Dommer;Kamera og stativ|Fotograf;Bor og tandspejl|Tandlæge;Pensel og maling|Maler;Symaskine|Skrædder;Gaffel og sigte|Gartner;Kniv og forklæde|Kok;Rat og taksameter|Taxachauffør;Sekstant|Styrmand;Kobbel og halsbånd|Hundetræner;Skovl og rive|Anlægsgartner","Revisor,Journalist,Pilot,Sygeplejerske"],
+["modsat","Modsætninger","Find det modsatte ord",false,"Varm|Kold;Stor|Lille;Lang|Kort;Høj|Lav;Tyk|Tynd;Gammel|Ny;Hurtig|Langsom;Tung|Let;Lys|Mørk;Våd|Tør;Rig|Fattig;Stærk|Svag;Glad|Ked af det;Fyldt|Tom;Ren|Beskidt;Blød|Hård;Åben|Lukket;Op|Ned;Foran|Bagved;Først|Sidst;Sand|Falsk;Billig|Dyr;Modig|Fej;Bred|Smal;Dyb|Lavvandet;Ung|Gammel;Sød|Sur;Vinde|Tabe;Købe|Sælge;Sige ja|Sige nej"],
+["konge","Danmarkshistorie","Spørgsmål om historien",false,"Harald …|Blåtand;Svend …|Tveskæg;Gorm …|den Gamle;Knud …|den Store;Valdemar …|Sejr;Erik …|Klipping;Hvem byggede Rundetårn?|Christian 4.;Hvem lod den store Jellingsten rejse?|Harald Blåtand;Hvem underskrev Grundloven i 1849?|Frederik 7.;Hvem var konge under besættelsen?|Christian 10.;Hvem samlede Kalmarunionen?|Margrete 1.;Hvem var konge ved Genforeningen?|Christian 10. til hest;Hvem blev konge i 2024?|Frederik 10.","Atterdag,Menved,Den Unge,Skøtkonge,Christian 7.,Struensee"],
+["krop","Kroppen","Del af kroppen til opgave",false,"Hjertet|Pumper blodet rundt;Lungerne|Optager ilt;Nyrerne|Renser blodet;Maven|Nedbryder maden;Tarmene|Optager næring;Hjernen|Styrer kroppen;Leveren|Afgifter blodet;Huden|Beskytter kroppen;Knoglerne|Bærer kroppen;Musklerne|Bevæger kroppen;Øjnene|Opfatter lys;Ørerne|Opfatter lyd;Tænderne|Tygger maden;Næsen|Lugter"],
+["enhed","Måleenheder","Hvad måles der?",false,"Meter|Længde;Kilogram|Masse;Sekund|Tid;Ampere|Strømstyrke;Volt|Spænding;Newton|Kraft;Watt|Effekt;Pascal|Tryk;Kelvin|Temperatur;Joule|Energi;Hertz|Frekvens;Ohm|Modstand;Mol|Stofmængde;Decibel|Lydniveau;Liter|Rumfang;Hektar|Areal;Knob|Fart til søs"],
+["dkmad","Dansk mad","Ret til hovedingrediens",false,"Stegt flæsk|Svinekød;Risalamande|Ris;Rødgrød|Bær;Brunkål|Hvidkål;Koldskål|Kærnemælk;Æbleskiver|Vaffeldej;Karrysild|Sild;Rugbrød|Rug;Hønsesalat|Kylling;Biksemad|Kartofler;Gammeldags æblekage|Æbler;Rabarbergrød|Rabarber;Fiskefrikadeller|Fiskefars;Kogt torsk|Torsk","Oksekød,Lever,Rødbeder,Fløde,Mel"]
 ].map(([id,name,hint,big,raw,extra])=>({id,name,hint,big,extra:extra?extra.split(","):[],items:raw.split(";").map(s=>{const [p,a]=s.split("|");return {p,a}})}));
+
+
+const mkCat=([id,name,big,raw,extra])=>({id,name,hint:"",big,extra:extra?extra.split(","):[],items:raw.split(";").map(x=>{const [p,a]=x.split("|");return {p,a}})});
+const regn=[];
+for(let a=3;a<=9;a++)for(let b=a;b<=9;b++)regn.push(a+" + "+b+"|"+(a+b));
+for(let a=2;a<=5;a++)for(let b=2;b<=9;b++)regn.push(a+" × "+b+"|"+(a*b));
+const KIDS=[
+["regn","Regn hurtigt",true,regn.join(";")],
+["taal","Tal og fakta",false,"Hvor mange ben har en edderkop?|8;Hvor mange ben har et insekt?|6;Hvor mange måneder er der i et år?|12;Hvor mange uger er der i et år?|52;Hvor mange dage er der i en uge?|7;Hvor mange timer er der i et døgn?|24;Hvor mange minutter er der i en time?|60;Hvor mange spillere har et fodboldhold på banen?|11;Hvor mange ringe er der i OL-flaget?|5;Hvor mange årstider er der?|4;Hvor mange sider har en trekant?|3;Hvor mange bogstaver er der i det danske alfabet?|29;Hvor mange tænder har en voksen normalt?|32;Hvor mange farver har Dannebrog?|2;Hvor mange sider har en terning?|6 sider","1,10,14,20,100"],
+["unger","Dyreunger",false,"Ko|Kalv;Hest|Føl;Får|Lam;Gris|Pattegris;Hund|Hvalp;Kat|Killing;Høne|Kylling;And|Ælling;Gås|Gæsling;Frø|Haletudse;Ged|Gedekid;Sommerfugl|Larve","Unge,Puppe,Fisk,Fugl"],
+["kbog","Børnebøger",false,"Pippi Langstrømpe|Astrid Lindgren;Harry Potter|J.K. Rowling;Rasmus Klump|Carla og Vilhelm Hansen;Gummi-Tarzan|Ole Lund Kirkegaard;Alfons Åberg|Gunilla Bergström;Den grimme ælling|H.C. Andersen;Mumitroldene|Tove Jansson;Peter Plys|A.A. Milne;Charlie og chokoladefabrikken|Roald Dahl;Tintin|Hergé;Ternet Ninja|Anders Matthesen","Jeff Kinney,Enid Blyton"],
+["kdk","Danmark",false,"Hvad hedder Danmarks hovedstad?|København;Hvad hedder Danmarks flag?|Dannebrog;Hvad hedder Danmarks konge?|Frederik;Hvilken by har H.C. Andersens Hus?|Odense;Hvor kommer LEGO fra?|Billund;Hvilken ø har Hammershus?|Bornholm;Hvad hedder havet vest for Jylland?|Vesterhavet;Hvilken dronning gik af i 2024?|Margrethe;Hvad hedder kronprinsen?|Christian;Hvilket land grænser op til Jylland?|Tyskland;Hvad betaler man med i Danmark?|Krone;Hvad hedder Danmarks nationalsang?|Der er et yndigt land","Aarhus,Sjælland,Østersøen,Sverige,Euro"],
+["nflag","Nemme flag",true,"🇩🇰|Danmark;🇳🇴|Norge;🇸🇪|Sverige;🇩🇪|Tyskland;🇫🇷|Frankrig;🇪🇸|Spanien;🇮🇹|Italien;🇬🇧|Storbritannien;🇺🇸|USA;🇨🇦|Canada;🇯🇵|Japan;🇨🇳|Kina;🇧🇷|Brasilien;🇬🇱|Grønland;🇫🇮|Finland;🇺🇦|Ukraine;🇦🇺|Australien"],
+["nhoved","Nemme byer",false,"Norge|Oslo;Sverige|Stockholm;Tyskland|Berlin;Frankrig|Paris;Spanien|Madrid;Italien|Rom;England|London;Grønland|Nuuk;Finland|Helsinki;Japan|Tokyo;Holland|Amsterdam;Grækenland|Athen;Østrig|Wien"],
+["ksport","Sport",true,"⚽|Fodbold;🏀|Basketball;🎾|Tennis;🏐|Volleyball;🏊|Svømning;🚴|Cykling;🏓|Bordtennis;🏸|Badminton;🥊|Boksning;⛳|Golf;🎳|Bowling;🎯|Dart;⛸️|Skøjteløb;🏒|Ishockey;🏄|Surfing;🛹|Skateboard;🏇|Ridning;🤺|Fægtning"],
+["ting","Hvad er det?",true,"👁️|Øje;👂|Øre;👃|Næse;✋|Hånd;🦶|Fod;🦷|Tand;🧠|Hjerne;🟥|Rød;🟦|Blå;🟩|Grøn;🟨|Gul;🟧|Orange;🟪|Lilla;🟫|Brun;⬛|Sort;⬜|Hvid;🐶|Hund;🐱|Kat;🐮|Ko;🐷|Gris;🐴|Hest;🐰|Kanin;🐭|Mus;🐟|Fisk;🐦|Fugl;🐸|Frø;🚗|Bil;🚌|Bus;🚲|Cykel;🚂|Tog;✈️|Fly;🚁|Helikopter;⛵|Sejlbåd;🚀|Raket;🏠|Hus;🌳|Træ;🌻|Solsikke;⭐|Stjerne;🌙|Måne;☀️|Sol;☔|Paraply;🎈|Ballon;🎸|Guitar;🥁|Tromme;🎹|Klaver;📚|Bøger;⏰|Vækkeur;🔑|Nøgle;🎁|Gave;🍕|Pizza;🍔|Burger;🍦|Is;🎂|Kage"]
+].map(mkCat);
+const KIDMAP={hoved:"nhoved",flag:"nflag",kemi:"regn",dyr:"dyr",post:"kdk",film:"tegne",bog:"kbog",hits:"ting",sport:"ksport",maerke:"ting",ord:"unger",valuta:"regn",kunst:"ting",tegne:"tegne",stadion:"ksport",sevaerd:"nhoved",serier:"tegne",mad:"frugt",dkgo:"kdk",sportord:"ksport",aar:"taal",viden:"taal",frugt:"frugt",dkmusik:"ting"};
+const KIDCATS=[...KIDS,...CATS.filter(c=>["dyr","frugt","tegne"].includes(c.id))];
 
 const CLOCKS=[30,45,60], WRONG=2000, PASS=3000, COUNT=3200, FLASH=650, MAXP=4;
 const $app=document.getElementById("app");
@@ -221,7 +260,7 @@ const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&
 const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
 const store={get(k){try{return localStorage.getItem(k)||""}catch{return ""}},set(k,v){try{localStorage.setItem(k,v)}catch{}}};
 
-const G={room:null,roomState:"loading",open:[],name:store.get("feltet-navn"),invite:null,
+const G={room:null,roomState:"loading",open:[],name:store.get("feltet-navn"),kid:store.get("feltet-barn")==="1",invite:null,
   mode:null,me:0,code:"",gr:null,S:null,S0:null,recvAt:0,seen:0,hostSeen:0,pending:0,actN:0,msg:"",full:false,lost:false,offUnsub:[],renderKey:""};
 function inviteFromHash(){const m=/^#duel-(\d{4})$/.exec(location.hash);G.invite=m?m[1]:null}
 inviteFromHash();
@@ -240,7 +279,7 @@ const nextIn=(S,p)=>{const d=S.duel;for(let k=1;k<=d.length;k++){const q=d[(d.in
 const nextAlive=(S,from)=>{const n=S.names.length;for(let k=1;k<=n;k++){const i=(from+k)%n;if(!S.gone[i])return i}return from};
 const tilesOf=(S,p)=>S.ring.filter(id=>S.owner[id]===p).length;
 
-function newS(name){return {v:0,phase:"wait",names:[name],seats:[null],gone:[false],ack:[0],clock:45000,ring:[],owner:{},picker:0,cat:null,duel:null,out:[],turn:0,clocks:[],run:false,q:null,wrong:[],lock:0,lockWhy:"",reveal:null,right:[],winner:null,loser:null,paused:false,count:0}}
+function newS(name){return {v:0,phase:"wait",names:[name],lvl:[G.kid?1:0],seats:[null],gone:[false],ack:[0],clock:45000,ring:[],owner:{},picker:0,cat:null,duel:null,out:[],turn:0,clocks:[],run:false,q:null,wrong:[],lock:0,lockWhy:"",reveal:null,right:[],winner:null,loser:null,paused:false,count:0}}
 function syncClock(){const t=now();if(G.S.run&&!G.S.paused)G.S.clocks[G.S.turn]=Math.max(0,G.S.clocks[G.S.turn]-(t-H.last));H.last=t}
 function publish(){
   const S=G.S;syncClock();S.v++;
@@ -259,9 +298,11 @@ function takeQ(c){
   return it;
 }
 function nextQ(){
-  let c=H.catObj,it=takeQ(c);
+  /* Spillere under 14 får børnespørgsmål, når det er deres tur */
+  const kid=!!G.S.lvl[G.S.turn],list=kid?KIDCATS:CATS;
+  let c=kid?(KIDCATS.find(x=>x.id===KIDMAP[H.catObj.id])||KIDS.find(x=>x.id==="ting")):H.catObj,it=takeQ(c);
   /* Er kategorien tom midt i en lang duel, fortsætter den med ubrugte spørgsmål fra de andre */
-  if(!it)for(const x of shuffle(CATS)){it=takeQ(x);if(it){c=x;break}}
+  if(!it)for(const x of shuffle(list)){it=takeQ(x);if(it){c=x;break}}
   if(!it){H.used.clear();it=takeQ(c)}
   const pool=[...new Set([...c.items.map(x=>x.a),...c.extra])].filter(a=>a!==it.a);
   const o=shuffle([it.a,...shuffle(pool).slice(0,7)]);
@@ -380,18 +421,18 @@ function onPeers(ch){
   }
 }
 function hostPeers(guests){
-  const S=G.S,before=JSON.stringify([S.names,S.seats,S.gone]);
+  const S=G.S,before=JSON.stringify([S.names,S.lvl,S.seats,S.gone]);
   const nameOf=g=>String(g.presence.name||"Gæst").slice(0,16);
   for(const g of guests){
     if(S.seats.includes(g.peer))continue;
-    if(S.phase==="wait"&&S.names.length<MAXP){S.seats.push(g.peer);S.names.push(nameOf(g));S.gone.push(false);S.ack.push(0);H.lastN[S.seats.length-1]=0}
+    if(S.phase==="wait"&&S.names.length<MAXP){S.seats.push(g.peer);S.names.push(nameOf(g));S.lvl.push(g.presence.lvl?1:0);S.gone.push(false);S.ack.push(0);H.lastN[S.seats.length-1]=0}
     else{const i=S.seats.findIndex((p,x)=>x>0&&S.gone[x]&&S.names[x]===nameOf(g));if(i>0){S.seats[i]=g.peer;H.lastN[i]=0;S.ack[i]=0}}
   }
   for(let i=1;i<S.seats.length;i++){
     const g=guests.find(p=>p.peer===S.seats[i]);
-    if(S.phase==="wait"&&!g){S.seats.splice(i,1);S.names.splice(i,1);S.gone.splice(i,1);S.ack.splice(i,1);H.lastN.splice(i,1);H.lastN.push(0);i--;continue}
+    if(S.phase==="wait"&&!g){S.seats.splice(i,1);S.names.splice(i,1);S.lvl.splice(i,1);S.gone.splice(i,1);S.ack.splice(i,1);H.lastN.splice(i,1);H.lastN.push(0);i--;continue}
     S.gone[i]=!g;
-    if(g)S.names[i]=nameOf(g);
+    if(g){S.names[i]=nameOf(g);S.lvl[i]=g.presence.lvl?1:0}
   }
   if(S.phase==="play"||S.phase==="count"){const away=inPlay(S).some(x=>S.gone[x]);if(away!==S.paused)setPaused(away)}
   if(S.phase==="pick"&&S.gone[S.picker])toPick(nextAlive(S,S.picker));
@@ -399,7 +440,7 @@ function hostPeers(guests){
     const g=guests.find(p=>p.peer===S.seats[i]),a=g?.presence.act;
     if(a&&Number(a.n)>H.lastN[i]){H.lastN[i]=Number(a.n);S.ack[i]=H.lastN[i];hostAct(i,String(a.t),a.t==="cat"?String(a.i):Number(a.i));S.v++}
   }
-  if(JSON.stringify([S.names,S.seats,S.gone])!==before)publish();
+  if(JSON.stringify([S.names,S.lvl,S.seats,S.gone])!==before)publish();
 }
 function gotState(s){
   const old=G.S0;
@@ -430,6 +471,7 @@ function act(t,i){
 
 /* ---------- Start og afslut ---------- */
 function setName(){const v=document.getElementById("navn")?.value.trim().slice(0,16);if(v!==undefined){G.name=v;store.set("feltet-navn",v)}}
+document.addEventListener("change",e=>{if(e.target.id==="barn"){G.kid=e.target.checked;store.set("feltet-barn",G.kid?"1":"0")}});
 function resetHost(){H.used.clear();H.played.clear();H.lastN=[0,0,0,0];H.due=null;H.lockUntil=0;H.botKey="";clearTimeout(H.bot)}
 async function createDuel(){
   setName();G.code=String(1000+Math.floor(Math.random()*9000));
@@ -445,13 +487,13 @@ async function joinDuel(code){
   setName();G.code=code;G.mode="guest";G.me=-1;G.S=null;G.S0=null;G.seen=0;G.hostSeen=0;G.pending=0;G.actN=0;G.full=false;G.lost=false;
   render(true);
   await enterRoom(code);
-  G.gr.presence({code,role:"g",name:G.name||"Gæst"}).catch(()=>{});
+  G.gr.presence({code,role:"g",name:G.name||"Gæst",lvl:G.kid?1:0}).catch(()=>{});
   setTimeout(()=>{if(G.mode==="guest"&&!G.S0){G.msg="Ingen duel med kode "+code+" lige nu. Tjek koden, eller bed værten om at åbne duellen.";leave(true)}},9000);
 }
 function startBot(count){
   setName();G.mode="bot";G.me=0;G.code="";G.gr=null;G.S=newS(G.name||"Dig");G.S0=null;resetHost();
   const S=G.S;
-  for(let i=1;i<=count;i++){S.names.push(count===1?"Computeren":"Computer "+i);S.seats.push(null);S.gone.push(false);S.ack.push(0)}
+  for(let i=1;i<=count;i++){S.names.push(count===1?"Computeren":"Computer "+i);S.lvl.push(0);S.seats.push(null);S.gone.push(false);S.ack.push(0)}
   startHostLoop();toPick(0);
 }
 function leave(keepMsg){
@@ -481,6 +523,7 @@ function homeHTML(){
   ${CAN_SHARE?"":`<a class="btn main" href="https://amigoogfutte.github.io/Flow_cards/dysten/" target="_blank" rel="noopener">Spil på websiden, så modstanderne ikke skal bruge Claude</a>`}
   <label class="field" for="navn"><span class="label">Dit navn</span>
     <input id="navn" maxlength="16" autocomplete="nickname" placeholder="Fx Jesper" value="${esc(G.name)}"></label>
+  <label class="check" for="barn"><input id="barn" type="checkbox" ${G.kid?"checked":""}><span>Jeg er under 14 år og vil have børnespørgsmål</span></label>
   ${inv?`<button class="btn main" data-join="${esc(inv)}" ${canRoom?"":"disabled"}>Deltag i duellen</button>`
        :`<button class="btn ${CAN_SHARE?"main":""}" data-do="create" ${canRoom?"":"disabled"}>${CAN_SHARE?"Opret spil og send startlink":"Opret spil her i Claude"}</button>`}
   ${G.open.length&&!inv?`<div class="open"><span class="label">Åbne spil</span>${G.open.map(o=>`<button data-join="${esc(o.code)}"><span>${esc(o.name)} venter</span><span>Deltag</span></button>`).join("")}</div>`:""}
@@ -495,13 +538,14 @@ function homeHTML(){
     <li><b>2–4</b><span>Spillere på samme gulv med 8 kategorifelter. I skiftes til at vælge felt, og alle er med i hver duel.</span></li>
     <li><b>45 s</b><span>Alle har deres eget ur, og turen går på omgang. Værten kan vælge 30, 45 eller 60 sekunder.</span></li>
     <li><b>8</b><span>Otte svarmuligheder. Rigtigt svar sender turen videre til den næste.</span></li>
+    <li><b>&lt;14</b><span>Er du under 14 år, får du børnespørgsmål, når det er din tur.</span></li>
     <li><b>−2 s</b><span>Forkert svar låser felterne i 2 sekunder, mens dit ur kører.</span></li>
     <li><b>−3 s</b><span>Pas viser svaret i 3 sekunder, mens dit ur kører.</span></li>
     <li><b>0,0</b><span>Løber dit ur ud, er du ude af duellen. Den sidste med tid tager feltet, og flest felter vinder gulvet.</span></li>
   </ul></div>`;
 }
 function playersHTML(S){
-  return `<div class="chips">${S.names.map((n,p)=>`<span class="chip ${S.gone[p]?"off":""}" style="${col(S,p)}"><i></i>${nm(S,p)}<b>${S.ring.length?tilesOf(S,p):""}</b></span>`).join("")}</div>`;
+  return `<div class="chips">${S.names.map((n,p)=>`<span class="chip ${S.gone[p]?"off":""}" style="${col(S,p)}"><i></i>${nm(S,p)}${S.lvl[p]?'<em>Barn</em>':""}<b>${S.ring.length?tilesOf(S,p):""}</b></span>`).join("")}</div>`;
 }
 function lobbyHTML(S){
   const host=G.mode==="host",link=shareLink(),n=S.names.length;
@@ -568,6 +612,23 @@ function duelHTML(S){
   </div>
   <button class="pass" data-pass="1" ${can?"":"disabled"}>Pas (3 sek.)</button></div>`;
 }
+/* Vinderfigur med pokal over hovedet og navnet på brystet */
+function champHTML(S,p){
+  const n=S.names[p],fs=n.length>10?9:n.length>7?11:n.length>5?13:15;
+  return `<figure class="champ" style="${col(S,p)}"><svg viewBox="0 0 120 172" role="img" aria-label="${esc(n)} med pokal">
+   <rect x="42" y="134" width="15" height="32" rx="3" class="fc"/><rect x="63" y="134" width="15" height="32" rx="3" class="fc"/>
+   <path d="M38 88 L46 40 M82 88 L74 40" class="arm"/>
+   <circle cx="46" cy="38" r="5" class="face"/><circle cx="74" cy="38" r="5" class="face"/>
+   <path d="M38 6 h-9 c0 15 5 21 15 23 M82 6 h9 c0 15 -5 21 -15 23" class="hdl"/>
+   <path d="M40 2 h40 v14 c0 14 -9 22 -20 22 s-20 -8 -20 -22 z" class="gold"/>
+   <rect x="56" y="37" width="8" height="7" class="gold"/><rect x="47" y="43" width="26" height="5" rx="1" class="gold"/>
+   <circle cx="60" cy="64" r="14" class="face"/>
+   <circle cx="55" cy="62" r="1.8" class="eye"/><circle cx="65" cy="62" r="1.8" class="eye"/>
+   <path d="M54 69 q6 5 12 0" class="smile"/>
+   <rect x="33" y="80" width="54" height="58" rx="8" class="fc"/>
+   <text x="60" y="111" text-anchor="middle" font-size="${fs}" class="nametag">${esc(n)}</text>
+  </svg></figure>`;
+}
 function endHTML(S){
   const me=G.me,won=S.winner===me,done=S.ring.every(id=>id in S.owner);
   const nx=nextAlive(S,S.picker),canNext=me===0||me===nx;
@@ -575,8 +636,10 @@ function endHTML(S){
   const top=tilesOf(S,rank[0]),leaders=rank.filter(p=>tilesOf(S,p)===top);
   const verdict=done?(leaders.length>1?"Gulvet endte uafgjort mellem "+leaders.map(p=>nm(S,p)).join(" og "):(leaders[0]===me?"Du vandt gulvet":esc(S.names[leaders[0]])+" vandt gulvet")+" med "+top+" felter"):`Næste felt vælges af ${nx===me?"dig":esc(S.names[nx])}.`;
   return `<div class="screen">
-   <div><span class="label">Sidste ur tilbage</span>
-   <h2 class="big win" style="${col(S,S.winner)}">${won?"Du tog feltet":esc(S.names[S.winner])+" tog feltet"}</h2></div>
+   ${done?`<div><span class="label">Spillet er slut</span><h2 class="big win" style="${col(S,leaders[0])}">${leaders.length>1?"Uafgjort":leaders[0]===me?"Du vandt":esc(S.names[leaders[0]])+" vandt"}</h2></div>
+   <div class="champs">${leaders.map(p=>champHTML(S,p)).join("")}</div>`:
+   `<div><span class="label">Sidste ur tilbage</span>
+   <h2 class="big win" style="${col(S,S.winner)}">${won?"Du tog feltet":esc(S.names[S.winner])+" tog feltet"}</h2></div>`}
    <p><strong>${verdict}</strong></p>
    ${ringHTML(S,false)}${playersHTML(S)}
    <span class="label">Rigtige svar i duellen</span><div class="stats">${S.duel.map(p=>`<div><b>${S.right[p]}</b><span>${nm(S,p)}</span></div>`).join("")}</div>
