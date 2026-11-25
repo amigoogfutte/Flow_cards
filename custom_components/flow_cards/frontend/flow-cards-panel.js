@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.6.4";
+const FC_VERSION = "0.6.5";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -799,7 +799,7 @@ function toAdvanced(f) {
 
 const fLeaf = (p) => String(p).split("/").pop();
 const fLabel = (p) => String(p).split("/").join(" › ");
-const HY_RAIL = [["home", "mdi:home", "Hjem", "/"], ["devices", "mdi:view-grid", "Enheder", null], ["flows", "mdi:shuffle-variant", "Flows", null],
+const HY_RAIL = [["home", "mdi:home", "Hjem", null], ["devices", "mdi:view-grid", "Enheder", null], ["flows", "mdi:shuffle-variant", "Flows", null],
   ["insights", "mdi:chart-bar", "Indsigt", null], ["script", "mdi:code-tags", "Script", "/config/script/dashboard"], ["settings", "mdi:cog", "Indstil.", "/config"]];
 const D_ORDER = ["light", "switch", "fan", "cover", "lock", "climate", "media_player", "vacuum", "humidifier", "water_heater", "valve", "siren", "input_boolean", "remote", "alarm_control_panel", "camera", "binary_sensor", "event", "sensor", "button", "number", "select"];
 const dPrio = (eid) => { const i = D_ORDER.indexOf(eid.split(".")[0]); return i < 0 ? 99 : i; };
@@ -807,6 +807,7 @@ const DEV_STATE = { on: "Tændt", off: "Slukket", open: "Åben", closed: "Lukket
 const DEV_OFF = new Set(["off", "closed", "idle", "standby", "paused", "docked", "not_home", "unknown"]);
 const DEV_TOGGLE = new Set(["light", "switch", "fan", "input_boolean", "siren", "humidifier", "remote", "media_player", "climate", "water_heater", "vacuum", "valve"]);
 const APP_COLORS = { time: "#e5281e", sun: "#ff9f0a", logic: "#28a745", notify: "#1f4e79", flows: "#34c759", events: "#ffcc00", system: "#0a84ff", advanced: "#8e8e93" };
+const WEATHER_DA = { "clear-night": "Klart", cloudy: "Overskyet", exceptional: "Usædvanligt vejr", fog: "Tåge", hail: "Hagl", lightning: "Torden", "lightning-rainy": "Torden og regn", partlycloudy: "Delvist skyet", pouring: "Skybrud", rainy: "Regn", snowy: "Sne", "snowy-rainy": "Slud", sunny: "Sol", windy: "Blæsende", "windy-variant": "Blæsende og skyet" };
 const INS_RANGES = { "1h": { label: "Seneste time", ms: 3600000 }, today: { label: "I dag", day: 0 }, yesterday: { label: "I går", day: -1 }, "24h": { label: "Seneste 24 timer", ms: 86400000 }, "7d": { label: "Seneste 7 dage", ms: 7 * 86400000 }, "30d": { label: "Seneste 30 dage", ms: 30 * 86400000 } };
 const insWindow = (key) => {
   const r = INS_RANGES[key] || INS_RANGES["7d"];
@@ -1289,6 +1290,21 @@ svg.wires .wire.temp{stroke-dasharray:4 4}
 .ins-i.on .bul{width:11px;height:11px;background:var(--ic);box-shadow:0 0 0 2px var(--h-panel),0 0 0 3.5px var(--ic)}
 .pl.big{height:36px;font-size:14px;padding:0 16px}
 .ins-range{height:38px;font-size:15px}
+/* ---------- Home */
+.hy-main.home{padding:0 60px 40px}
+.hm h1{font-size:44px;font-weight:700;margin:72px 0 6px;letter-spacing:-.02em}
+.hm-w{font-size:22px;color:var(--h-muted);cursor:pointer;display:inline-block}
+.hm-ps{display:flex;flex-wrap:wrap;gap:22px;margin-top:22px}
+.hm-p{display:flex;flex-direction:column;align-items:center;gap:6px;width:84px}
+.hm-p .av{width:80px;height:80px;border-radius:50%;background:linear-gradient(#ffd60a,#f5c400);color:#fff;font-size:28px;font-weight:700;display:flex;align-items:center;justify-content:center;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.12)}
+.hm-p .av img{width:100%;height:100%;object-fit:cover}
+.hm-p.away .av{filter:grayscale(.85);opacity:.6}
+.hm-p .nm{font-size:17px}.hm-p .st{font-size:12px;color:var(--h-muted);margin-top:-4px}
+.hm h2{font-size:24px;font-weight:700;margin:40px 0 14px}
+.hm-e{font-size:17px;margin:0;color:var(--h-text)}.hm-e a{color:var(--h-blue);cursor:pointer}
+.hy-tile .fav{position:absolute;left:auto;right:6px;bottom:6px;--mdc-icon-size:12px;color:#ffcc00}
+.hy-tile.big .fav{--mdc-icon-size:16px;right:10px;bottom:10px}
+.hy.narrow .hy-main.home{padding:0 16px 24px}.hy.narrow .hm h1{font-size:30px;margin-top:24px}
 `;
 
 /* ------------------------------------------------------------------ panel */
@@ -1533,7 +1549,7 @@ class FlowCardsPanel extends HTMLElement {
     if (!this._loaded) return;
     this._snapshot();
     this._stashDraft();
-    const body = this._view === "insights" ? this._renderInsights() : this._view === "embed" ? this._renderEmbed() : this._view === "devices" ? this._renderDevices() : this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
+    const body = this._view === "home" ? this._renderHome() : this._view === "insights" ? this._renderInsights() : this._view === "embed" ? this._renderEmbed() : this._view === "devices" ? this._renderDevices() : this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
     const listen = this._listen && this._view === "edit" && !this._picker ? this._renderListen() : "";
     const modal = this._vars ? this._renderVars() : this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : this._nr ? this._renderNodeRed() : "";
     const menu = this._menu && this._view !== "edit" ? this._renderMenu() : "";
@@ -1588,7 +1604,7 @@ class FlowCardsPanel extends HTMLElement {
       <button class="hy-ri sm ${active === "devices" ? "sel" : ""}" data-action="hy-nav" data-to="devices" title="Enheder"><span class="b"><ha-icon icon="mdi:view-grid"></ha-icon></span></button>
       <button class="hy-ri sm ${active === "flows" ? "sel" : ""}" data-action="hy-nav" data-to="flows" title="Flows"><span class="b"><ha-icon icon="mdi:shuffle-variant"></ha-icon></span></button>
       ${plus ? `<button class="hy-plus" data-action="${plus}" title="${esc(plusTitle)}"><ha-icon icon="mdi:plus"></ha-icon></button>` : ""}</div>`;
-    return `<div class="hy ${u.dark ? "dark" : ""} ${this._narrow ? "narrow" : ""} ${mainCls === "emb" ? "railonly" : ""}">
+    return `<div class="hy ${u.dark ? "dark" : ""} ${this._narrow ? "narrow" : ""} ${mainCls === "emb" || mainCls === "home" ? "railonly" : ""}">
       <aside class="hy-nav">
         <div class="hy-head"><span class="hy-logo"><ha-icon icon="mdi:graph-outline"></ha-icon></span><h1>${esc(title)}</h1>${plus ? `<button class="hy-plus" data-action="${plus}" title="${esc(plusTitle)}"><ha-icon icon="mdi:plus"></ha-icon></button>` : ""}</div>
         <div class="hy-navbody">
@@ -1598,7 +1614,7 @@ class FlowCardsPanel extends HTMLElement {
           <div class="hy-tree">${tree}</div>
         </div>
       </aside>
-      <main class="hy-main ${mainCls}">${mainCls ? "" : mtop}${main}</main>
+      <main class="hy-main ${mainCls}">${mainCls && mainCls !== "home" ? "" : mtop}${main}</main>
     </div>`;
   }
 
@@ -1616,11 +1632,12 @@ class FlowCardsPanel extends HTMLElement {
     const mode = this._ui().mode || "grid";
     const playBtn = play ? `<button class="hy-play" data-action="${play}" data-id="${esc(id)}" title="Kør nu"><ha-icon icon="mdi:play"></ha-icon></button>` : "";
     const st = `<span class="st ${scls}">${scls === "err" ? `<ha-icon icon="mdi:alert"></ha-icon>` : ""}${esc(status)}</span>`;
+    const isFav = menu === "flow" ? this._favs().flows.includes(id) : menu === "device" ? this._favs().devices.includes(id) : false;
     const attrs = `data-action="${action}" data-id="${esc(id)}" data-menu="${menu}" ${drag ? `draggable="true" data-drag-flow="${esc(id)}"` : ""}`;
     if (mode === "list") {
       return `<div class="hy-row ${off ? "off" : ""}" ${attrs}><span class="ic"><ha-icon icon="${icon}"></ha-icon></span><span class="t"><b>${esc(name)}</b>${sub ? `<span class="s">${esc(sub)}</span>` : ""}</span>${st}${playBtn}<button class="hy-dots" data-action="hy-menu" data-kind="${menu}" data-id="${esc(id)}" title="Valg"><ha-icon icon="mdi:dots-horizontal"></ha-icon></button></div>`;
     }
-    return `<div class="hy-tile ${mode} ${off ? "off" : ""}" ${attrs} title="${esc(name)}"><span class="ic"><ha-icon icon="${icon}"></ha-icon></span>${playBtn}
+    return `<div class="hy-tile ${mode} ${off ? "off" : ""}" ${attrs} title="${esc(name)}"><span class="ic"><ha-icon icon="${icon}"></ha-icon></span>${playBtn}${isFav ? `<ha-icon class="fav" icon="mdi:star"></ha-icon>` : ""}
       <span class="nm">${esc(name)}</span>${mode === "big" && sub ? `<span class="sb">${esc(sub)}</span>` : ""}${st}</div>`;
   }
 
@@ -1797,6 +1814,7 @@ class FlowCardsPanel extends HTMLElement {
           ${it("open", "mdi:pencil", "Rediger", d)}${it("run", "mdi:play", "Kør nu", d)}${it("history", "mdi:history", "Historik", d)}
           ${it("duplicate", "mdi:content-copy", "Dupliker", d)}${it("m-move", "mdi:folder-move-outline", "Flyt til mappe…", d)}
           ${it("toggle", f.enabled ? "mdi:pause-circle-outline" : "mdi:play-circle-outline", f.enabled ? "Slå fra" : "Slå til", d)}
+          ${it("fav-flow", this._favs().flows.includes(f.id) ? "mdi:star" : "mdi:star-outline", this._favs().flows.includes(f.id) ? "Fjern fra favoritter" : "Føj til favoritter", d)}
           <div class="sep"></div>${it("m-delete", "mdi:delete-outline", "Slet", d, "danger")}`;
       }
     } else if (m.kind === "device") {
@@ -1805,6 +1823,7 @@ class FlowCardsPanel extends HTMLElement {
       items = `<div class="mh t">${esc(d.name_by_user || d.name || "")}</div>
         ${it("dev-tap", "mdi:toggle-switch-outline", "Tænd/sluk", `data-id="${esc(m.id)}"`)}
         ${eid ? it("dev-info", "mdi:information-outline", "Vis detaljer", `data-eid="${esc(eid)}"`) : ""}
+        ${it("fav-dev", this._favs().devices.includes(m.id) ? "mdi:star" : "mdi:star-outline", this._favs().devices.includes(m.id) ? "Fjern fra favoritter" : "Føj til favoritter", `data-id="${esc(m.id)}"`)}
         ${it("hy-goto", "mdi:cog-outline", "Enhedsindstillinger", `data-path="/config/devices/device/${esc(m.id)}"`)}`;
     } else {
       const u = this._ui();
@@ -1823,7 +1842,7 @@ class FlowCardsPanel extends HTMLElement {
         const to = el.dataset.to;
         if (this._view === "edit") { if (!this._confirmLeave()) return true; this._stopListen(); this._clearStash(); this._draft = null; this._dirty = false; }
         if (el.dataset.path) { this._embed = { path: el.dataset.path, id: to, back: this._view === "devices" ? "devices" : "list" }; this._view = "embed"; this._render(); return true; }
-        this._view = to === "devices" ? "devices" : to === "insights" ? "insights" : "list"; this._hySearch = false; this._render(); return true;
+        this._view = to === "devices" ? "devices" : to === "insights" ? "insights" : to === "home" ? "home" : "list"; this._hySearch = false; this._render(); return true;
       }
       case "embed-back": this._view = (this._embed && this._embed.back) || "list"; this._embed = null; this._render(); return true;
       case "embed-open": { const path = this._embed.path; this._view = this._embed.back || "list"; this._embed = null; this._navigate(path); return true;
@@ -1945,6 +1964,63 @@ class FlowCardsPanel extends HTMLElement {
       if (!done && tries < 40) setTimeout(tick, 250); else fr.classList.add("ready");
     };
     fr.addEventListener("load", () => setTimeout(tick, 100));
+  }
+
+  /* ================================================================ Home (Homey "Hjem") */
+
+  _favs() {
+    if (!this._fav) {
+      try { this._fav = JSON.parse(localStorage.getItem("flow_cards_favorites") || "null"); } catch (e) { this._fav = null; }
+      if (!this._fav || !Array.isArray(this._fav.flows) || !Array.isArray(this._fav.devices)) this._fav = { flows: [], devices: [] };
+    }
+    return this._fav;
+  }
+  _toggleFav(kind, id) {
+    const f = this._favs();
+    const list = f[kind];
+    const i = list.indexOf(id);
+    if (i >= 0) list.splice(i, 1); else list.push(id);
+    try { localStorage.setItem("flow_cards_favorites", JSON.stringify(f)); } catch (e) { /* ignore */ }
+    this._toast(i >= 0 ? "Fjernet fra favoritter" : "Tilføjet til favoritter");
+  }
+
+  _renderHome() {
+    const h = this._hass;
+    const hr = new Date().getHours();
+    const greet = hr < 5 ? "Godnat" : hr < 10 ? "Godmorgen" : hr < 12 ? "God formiddag" : hr < 18 ? "God eftermiddag" : "Godaften";
+    const first = ((h.user && h.user.name) || "").split(/\s+/)[0];
+    const weather = Object.values(h.states).find((s) => s.entity_id.startsWith("weather."));
+    const wtxt = weather ? `${weather.attributes.temperature !== undefined ? `${String(weather.attributes.temperature).replace(".", ",")} ${weather.attributes.temperature_unit || "°C"} • ` : ""}${WEATHER_DA[weather.state] || weather.state}` : "";
+    const persons = Object.values(h.states).filter((s) => s.entity_id.startsWith("person.")).sort((a, b) => this._entityName(a.entity_id).localeCompare(this._entityName(b.entity_id), "da"));
+    const pHtml = persons.map((p) => {
+      const name = this._entityName(p.entity_id);
+      const ini = name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+      const home = p.state === "home";
+      const pic = p.attributes.entity_picture;
+      return `<button class="hm-p ${home ? "home" : "away"}" data-action="dev-info" data-eid="${esc(p.entity_id)}" title="${esc(name)}: ${home ? "hjemme" : p.state === "not_home" ? "ude" : esc(p.state)}">
+        <span class="av">${pic ? `<img src="${esc(pic)}" alt="">` : esc(ini)}</span><span class="nm">${esc(name.split(/\s+/)[0])}</span><span class="st">${home ? "Hjemme" : p.state === "not_home" ? "Ude" : esc(p.state)}</span></button>`;
+    }).join("");
+    const fav = this._favs();
+    const model = this._deviceModel();
+    const devTiles = fav.devices.map((id) => model.devices.find((d) => d.id === id)).filter(Boolean).map((d) => {
+      const [status, scls, off] = this._devState(d.primary);
+      return this._hyTile({ id: d.id, icon: this._entityIcon(d.primary), name: d.name, status, scls, off, action: "dev-tap", menu: "device", sub: this._entityName(d.primary) });
+    }).join("");
+    const flowTiles = fav.flows.map((id) => this._flows.find((f) => f.id === id)).filter(Boolean).map((f) => {
+      const [status, scls] = this._flowStatus(f);
+      return this._hyTile({ id: f.id, icon: f.type === "advanced" ? "mdi:vector-polyline" : "mdi:shuffle-variant", name: f.name, status, scls, off: !f.enabled, play: "run", action: "open", menu: "flow", sub: this._flowSummary(f) });
+    }).join("");
+    const mode = this._ui().mode || "grid";
+    const main = `<div class="hm">
+      <h1>${greet}${first ? `, ${esc(first)}` : ""}!</h1>
+      ${wtxt ? `<div class="hm-w" data-action="dev-info" data-eid="${esc(weather.entity_id)}" role="button">${esc(wtxt)}</div>` : ""}
+      ${pHtml ? `<div class="hm-ps">${pHtml}</div>` : ""}
+      <h2>Favoritenheder</h2>
+      ${devTiles ? `<div class="hy-tiles ${mode}">${devTiles}</div>` : `<p class="hm-e">Du har ingen favoritenheder endnu. Højreklik (eller hold fingeren) på en enhed under <a data-action="hy-nav" data-to="devices">Enheder</a> og vælg <b>Føj til favoritter</b>.</p>`}
+      <h2>Favoritflows</h2>
+      ${flowTiles ? `<div class="hy-tiles ${mode}">${flowTiles}</div>` : `<p class="hm-e">Du har ingen favoritflows endnu. Højreklik (eller hold fingeren) på et flow under <a data-action="hy-nav" data-to="flows">Flows</a> og vælg <b>Føj til favoritter</b>.</p>`}
+    </div>`;
+    return this._hyShell({ title: "Hjem", plus: null, tree: "", main, active: "home", mainCls: "home" });
   }
 
   /* ================================================================ Insights (Homey "Indsigt") */
@@ -2164,6 +2240,8 @@ class FlowCardsPanel extends HTMLElement {
         setTimeout(() => { const m = this.shadowRoot.querySelector(".hy-main"); if (m) m.scrollTop = m.scrollHeight; }, 0);
         return true;
       }
+      case "fav-flow": this._menu = null; this._toggleFav("flows", el.dataset.id); this._render(); return true;
+      case "fav-dev": this._menu = null; this._toggleFav("devices", el.dataset.id); this._render(); return true;
       case "ins-target": this._insTarget = this._insTarget === el.dataset.chart ? null : el.dataset.chart; this._render(); return true;
       case "ins-close-all": ins.charts = []; this._insTarget = null; this._insSave(); this._render(); return true;
       case "ins-del":

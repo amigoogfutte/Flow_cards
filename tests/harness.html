@@ -26,6 +26,8 @@ const states = {};
   st("sensor.kontor_temperatur", "21.4", { friendly_name: "Kontor temperatur", unit_of_measurement: "°C", state_class: "measurement" }),
   st("input_boolean.kontorlys", "on", { friendly_name: "Kontorlys" }),
   st("person.jesper", "home", { friendly_name: "Jesper Fløjborg" }),
+  st("person.rikke", "not_home", { friendly_name: "Rikke" }),
+  st("weather.forecast_home", "cloudy", { friendly_name: "Vejr", temperature: 1, temperature_unit: "°C" }),
   st("cover.gardin_sovevaerelse", "open", { friendly_name: "Gardin soveværelse" }),
   st("lock.hovededor", "locked", { friendly_name: "Hovededør" }),
   st("sun.sun", "below_horizon", { friendly_name: "Sun" }),
@@ -134,7 +136,7 @@ const hass = {
   callWS: async (msg) => {
     window.calls.push(msg);
     const t = msg.type.split("/")[1];
-    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.6.4" };
+    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.6.5" };
     if (t === "save") {
       const f = JSON.parse(JSON.stringify(msg.flow)); delete f.status;
       if (!f.name) throw new Error("Flowet skal have et navn");
