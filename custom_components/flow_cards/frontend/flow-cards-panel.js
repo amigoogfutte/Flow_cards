@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.6.5";
+const FC_VERSION = "0.6.6";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -800,13 +800,40 @@ function toAdvanced(f) {
 const fLeaf = (p) => String(p).split("/").pop();
 const fLabel = (p) => String(p).split("/").join(" › ");
 const HY_RAIL = [["home", "mdi:home", "Hjem", null], ["devices", "mdi:view-grid", "Enheder", null], ["flows", "mdi:shuffle-variant", "Flows", null],
-  ["insights", "mdi:chart-bar", "Indsigt", null], ["script", "mdi:code-tags", "Script", "/config/script/dashboard"], ["settings", "mdi:cog", "Indstil.", "/config"]];
+  ["insights", "mdi:chart-bar", "Indsigt", null], ["script", "mdi:code-tags", "Script", "/config/script/dashboard"], ["settings", "mdi:cog", "Indstil.", null]];
 const D_ORDER = ["light", "switch", "fan", "cover", "lock", "climate", "media_player", "vacuum", "humidifier", "water_heater", "valve", "siren", "input_boolean", "remote", "alarm_control_panel", "camera", "binary_sensor", "event", "sensor", "button", "number", "select"];
 const dPrio = (eid) => { const i = D_ORDER.indexOf(eid.split(".")[0]); return i < 0 ? 99 : i; };
 const DEV_STATE = { on: "Tændt", off: "Slukket", open: "Åben", closed: "Lukket", opening: "Åbner", closing: "Lukker", locked: "Låst", unlocked: "Ulåst", playing: "Afspiller", paused: "Pause", idle: "Inaktiv", standby: "Standby", home: "Hjemme", not_home: "Ude", unknown: "Ukendt", heat: "Varme", cool: "Køl", auto: "Auto", cleaning: "Gør rent", docked: "I dock", returning: "På vej hjem" };
 const DEV_OFF = new Set(["off", "closed", "idle", "standby", "paused", "docked", "not_home", "unknown"]);
 const DEV_TOGGLE = new Set(["light", "switch", "fan", "input_boolean", "siren", "humidifier", "remote", "media_player", "climate", "water_heater", "vacuum", "valve"]);
 const APP_COLORS = { time: "#e5281e", sun: "#ff9f0a", logic: "#28a745", notify: "#1f4e79", flows: "#34c759", events: "#ffcc00", system: "#0a84ff", advanced: "#8e8e93" };
+const SETTINGS = [
+  { name: "System", items: [
+    { id: "general", label: "Generelt", icon: "mdi:cog", color: "#3a3a3c", path: "/config/general" },
+    { id: "updates", label: "Systemopdateringer", icon: "mdi:sync", color: "#d633c9", path: "/config/updates" },
+    { id: "backup", label: "Sikkerhedskopier", icon: "mdi:cloud-upload", color: "#6e3ad9", path: "/config/backup" },
+    { id: "repairs", label: "Reparationer", icon: "mdi:wrench", color: "#e5281e", path: "/config/repairs" },
+    { id: "language", label: "Sprog og profil", icon: "mdi:translate", color: "#30b0c7", path: "/profile/general" },
+    { id: "zones", label: "Placering og zoner", icon: "mdi:map-marker", color: "#34c759", path: "/config/zone" },
+    { id: "timeline", label: "Tidslinje", icon: "mdi:format-list-bulleted", color: "#ffcc00", path: "/logbook" },
+    { id: "people", label: "Familie og gæster", icon: "mdi:account-group", color: "#0a84ff", path: "/config/person" },
+    { id: "tokens", label: "API-nøgler", icon: "mdi:key-variant", color: "#4a3ad9", path: "/profile/security" },
+    { id: "system", label: "System", icon: "mdi:flask-outline", color: "#2e7d5b", path: "/config/system" },
+  ] },
+  { name: "Integrationer", items: [
+    { id: "integrations", label: "Enheder og tjenester", icon: "mdi:puzzle", color: "#0a84ff", path: "/config/integrations/dashboard" },
+    { id: "areas", label: "Etager og rum", icon: "mdi:floor-plan", color: "#ff9f0a", path: "/config/areas/dashboard" },
+    { id: "helpers", label: "Hjælpere (variabler)", icon: "mdi:variable", color: "#8e8e93", path: "/config/helpers" },
+    { id: "voice", label: "Stemmeassistenter", icon: "mdi:microphone", color: "#30b0c7", path: "/config/voice-assistants/assistants" },
+    { id: "cloud", label: "Home Assistant Cloud", icon: "mdi:cloud", color: "#5e5ce6", path: "/config/cloud" },
+    { id: "automations", label: "Automatiseringer", icon: "mdi:robot", color: "#e5281e", path: "/config/automation/dashboard" },
+    { id: "scenes", label: "Scener", icon: "mdi:palette", color: "#f26b1d", path: "/config/scene/dashboard" },
+    { id: "dashboards", label: "Dashboards", icon: "mdi:view-dashboard", color: "#34c759", path: "/config/lovelace/dashboards" },
+  ] },
+  { name: "Flow Cards", items: [
+    { id: "flowcards", label: "Om Flow Cards", icon: "mdi:graph-outline", color: "linear-gradient(135deg,#0a84ff,#5e5ce6)", path: null },
+  ] },
+];
 const WEATHER_DA = { "clear-night": "Klart", cloudy: "Overskyet", exceptional: "Usædvanligt vejr", fog: "Tåge", hail: "Hagl", lightning: "Torden", "lightning-rainy": "Torden og regn", partlycloudy: "Delvist skyet", pouring: "Skybrud", rainy: "Regn", snowy: "Sne", "snowy-rainy": "Slud", sunny: "Sol", windy: "Blæsende", "windy-variant": "Blæsende og skyet" };
 const INS_RANGES = { "1h": { label: "Seneste time", ms: 3600000 }, today: { label: "I dag", day: 0 }, yesterday: { label: "I går", day: -1 }, "24h": { label: "Seneste 24 timer", ms: 86400000 }, "7d": { label: "Seneste 7 dage", ms: 7 * 86400000 }, "30d": { label: "Seneste 30 dage", ms: 30 * 86400000 } };
 const insWindow = (key) => {
@@ -1305,6 +1332,21 @@ svg.wires .wire.temp{stroke-dasharray:4 4}
 .hy-tile .fav{position:absolute;left:auto;right:6px;bottom:6px;--mdc-icon-size:12px;color:#ffcc00}
 .hy-tile.big .fav{--mdc-icon-size:16px;right:10px;bottom:10px}
 .hy.narrow .hy-main.home{padding:0 16px 24px}.hy.narrow .hm h1{font-size:30px;margin-top:24px}
+/* ---------- Settings */
+.st-g{font-size:17px;font-weight:700;margin:14px 8px 8px}
+.st-i{display:flex;align-items:center;gap:12px;width:100%;padding:6px 8px;border-radius:8px;text-align:left;font-size:14px;color:var(--h-text)}
+.st-i:hover{background:var(--h-hover)}.st-i.sel{color:var(--h-blue);font-weight:500}
+.st-i .pc{width:28px;height:28px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}.st-i .pc ha-icon{--mdc-icon-size:16px}
+.hy:not(.railonly) .hy-nav:has(.st-g){width:300px}
+.st-embed{height:100vh}
+.st-page{max-width:720px;margin:60px auto 0}.st-page h1{font-size:26px;margin:0 0 18px}
+.st-card{background:var(--h-panel);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.06);padding:6px 18px;margin-bottom:16px}
+.st-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 0;border-bottom:1px solid var(--h-line);font-size:14px}.st-row:last-child{border-bottom:0}
+.st-row span:first-child{color:var(--h-muted)}
+.st-warn{color:var(--h-red);font-size:13px;margin:4px 0 8px}
+.hy-seg.inl{margin:0;padding:3px;border-radius:9px;box-shadow:none;background:var(--h-bg)}.hy-seg.inl button{width:auto;padding:0 10px;height:26px;font-size:12.5px}
+.st-btn{display:flex;align-items:center;gap:10px;width:100%;padding:12px 0;border-bottom:1px solid var(--h-line);font-size:14px;color:var(--h-blue);text-decoration:none}.st-btn:last-child{border-bottom:0}
+.st-embed .hy-msel{margin:8px}
 `;
 
 /* ------------------------------------------------------------------ panel */
@@ -1429,6 +1471,7 @@ class FlowCardsPanel extends HTMLElement {
   }
 
   _safeRender() {
+    if ((this._view === "embed" || this._view === "settings") && this.shadowRoot.querySelector(".hy-embed iframe")) return;
     if (this._ptr) { this._pending = true; return; }
     const a = this.shadowRoot.activeElement;
     if (a && ["INPUT", "TEXTAREA", "SELECT"].includes(a.tagName)) { this._pending = true; return; }
@@ -1549,7 +1592,7 @@ class FlowCardsPanel extends HTMLElement {
     if (!this._loaded) return;
     this._snapshot();
     this._stashDraft();
-    const body = this._view === "home" ? this._renderHome() : this._view === "insights" ? this._renderInsights() : this._view === "embed" ? this._renderEmbed() : this._view === "devices" ? this._renderDevices() : this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
+    const body = this._view === "settings" ? this._renderSettings() : this._view === "home" ? this._renderHome() : this._view === "insights" ? this._renderInsights() : this._view === "embed" ? this._renderEmbed() : this._view === "devices" ? this._renderDevices() : this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
     const listen = this._listen && this._view === "edit" && !this._picker ? this._renderListen() : "";
     const modal = this._vars ? this._renderVars() : this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : this._nr ? this._renderNodeRed() : "";
     const menu = this._menu && this._view !== "edit" ? this._renderMenu() : "";
@@ -1560,7 +1603,7 @@ class FlowCardsPanel extends HTMLElement {
     const sc = this.shadowRoot.querySelector(".content");
     if (sc && this._keepScroll) sc.scrollTop = top;
     this._keepScroll = false;
-    if (this._view === "embed") this._tameFrame();
+    if (this._view === "embed" || this._view === "settings") this._tameFrame();
     if (this._view === "edit" && this._draft && this._draft.type === "advanced") this._afterCanvasRender();
     else if (this._view === "edit" && this._draft) { const lr = this._latestRun[this._draft.id]; if (lr && lr.status !== "running") setTimeout(() => { this._seenRun = lr.id + lr.status; }, 0); }
   }
@@ -1604,7 +1647,7 @@ class FlowCardsPanel extends HTMLElement {
       <button class="hy-ri sm ${active === "devices" ? "sel" : ""}" data-action="hy-nav" data-to="devices" title="Enheder"><span class="b"><ha-icon icon="mdi:view-grid"></ha-icon></span></button>
       <button class="hy-ri sm ${active === "flows" ? "sel" : ""}" data-action="hy-nav" data-to="flows" title="Flows"><span class="b"><ha-icon icon="mdi:shuffle-variant"></ha-icon></span></button>
       ${plus ? `<button class="hy-plus" data-action="${plus}" title="${esc(plusTitle)}"><ha-icon icon="mdi:plus"></ha-icon></button>` : ""}</div>`;
-    return `<div class="hy ${u.dark ? "dark" : ""} ${this._narrow ? "narrow" : ""} ${mainCls === "emb" || mainCls === "home" ? "railonly" : ""}">
+    return `<div class="hy ${u.dark ? "dark" : ""} ${this._narrow ? "narrow" : ""} ${(mainCls === "emb" && active !== "settings") || mainCls === "home" ? "railonly" : ""}">
       <aside class="hy-nav">
         <div class="hy-head"><span class="hy-logo"><ha-icon icon="mdi:graph-outline"></ha-icon></span><h1>${esc(title)}</h1>${plus ? `<button class="hy-plus" data-action="${plus}" title="${esc(plusTitle)}"><ha-icon icon="mdi:plus"></ha-icon></button>` : ""}</div>
         <div class="hy-navbody">
@@ -1842,7 +1885,7 @@ class FlowCardsPanel extends HTMLElement {
         const to = el.dataset.to;
         if (this._view === "edit") { if (!this._confirmLeave()) return true; this._stopListen(); this._clearStash(); this._draft = null; this._dirty = false; }
         if (el.dataset.path) { this._embed = { path: el.dataset.path, id: to, back: this._view === "devices" ? "devices" : "list" }; this._view = "embed"; this._render(); return true; }
-        this._view = to === "devices" ? "devices" : to === "insights" ? "insights" : to === "home" ? "home" : "list"; this._hySearch = false; this._render(); return true;
+        this._view = { devices: "devices", insights: "insights", home: "home", settings: "settings" }[to] || "list"; this._hySearch = false; this._render(); return true;
       }
       case "embed-back": this._view = (this._embed && this._embed.back) || "list"; this._embed = null; this._render(); return true;
       case "embed-open": { const path = this._embed.path; this._view = this._embed.back || "list"; this._embed = null; this._navigate(path); return true;
@@ -1964,6 +2007,38 @@ class FlowCardsPanel extends HTMLElement {
       if (!done && tries < 40) setTimeout(tick, 250); else fr.classList.add("ready");
     };
     fr.addEventListener("load", () => setTimeout(tick, 100));
+  }
+
+  /* ================================================================ Settings (Homey "Indstillinger") */
+
+  _renderSettings() {
+    const cur = SETTINGS.flatMap((g) => g.items).find((i) => i.id === this._setPage) || SETTINGS[0].items[0];
+    this._setPage = cur.id;
+    let tree = "";
+    for (const g of SETTINGS) {
+      tree += `<div class="st-g">${esc(g.name)}</div>`;
+      tree += g.items.map((i) => `<button class="st-i ${i.id === cur.id ? "sel" : ""}" data-action="set-page" data-page="${i.id}"><span class="pc" style="background:${i.color}"><ha-icon icon="${i.icon}"></ha-icon></span><span>${esc(i.label)}</span></button>`).join("");
+    }
+    const msel = `<select class="hy-msel" data-field="set-select">${SETTINGS.map((g) => `<optgroup label="${esc(g.name)}">${g.items.map((i) => `<option value="${i.id}" ${i.id === cur.id ? "selected" : ""}>${esc(i.label)}</option>`).join("")}</optgroup>`).join("")}</select>`;
+    let main;
+    if (cur.path) {
+      main = `<div class="hy-embed st-embed">${this._narrow ? msel : ""}<iframe src="${esc(cur.path)}" title="${esc(cur.label)}"></iframe></div>`;
+    } else {
+      const u = this._ui();
+      const sv = this._serverVersion || FC_VERSION;
+      main = `${msel}<div class="st-page"><h1>${esc(cur.label)}</h1>
+        <div class="st-card"><div class="st-row"><span>Version</span><b>v${esc(sv)}</b></div>
+        <div class="st-row"><span>Siden viser</span><b>v${FC_VERSION}</b></div>
+        ${sv !== FC_VERSION ? `<p class="st-warn">Versionerne passer ikke. Tryk Ctrl+F5, eller genstart Home Assistant.</p>` : ""}
+        <div class="st-row"><span>Flows</span><b>${this._flows.length} (${this._flows.filter((f) => f.enabled).length} slået til)</b></div>
+        <div class="st-row"><span>Mapper</span><b>${this._folderTree().length}</b></div></div>
+        <div class="st-card"><div class="st-row"><span>Mørkt tema</span><button class="switch ${u.dark ? "on" : ""}" data-action="hy-dark"></button></div>
+        <div class="st-row"><span>Visning af fliser</span><span class="hy-seg inl">${[["list", "Liste"], ["grid", "Små"], ["big", "Store"]].map(([m, l]) => `<button class="${(u.mode || "grid") === m ? "sel" : ""}" data-action="hy-mode" data-mode="${m}">${l}</button>`).join("")}</span></div></div>
+        <div class="st-card"><button class="st-btn" data-action="nr-open"><ha-icon icon="mdi:import"></ha-icon>Importér fra Node-RED</button>
+        <button class="st-btn" data-action="set-page" data-page="updates"><ha-icon icon="mdi:update"></ha-icon>Søg efter opdateringer</button>
+        <a class="st-btn" href="https://github.com/amigoogfutte/Flow_cards" target="_blank" rel="noopener"><ha-icon icon="mdi:github"></ha-icon>Flow Cards på GitHub</a></div></div>`;
+    }
+    return this._hyShell({ title: "Indstillinger", plus: null, tree, main, active: "settings", mainCls: cur.path ? "emb" : "" });
   }
 
   /* ================================================================ Home (Homey "Hjem") */
@@ -2240,6 +2315,7 @@ class FlowCardsPanel extends HTMLElement {
         setTimeout(() => { const m = this.shadowRoot.querySelector(".hy-main"); if (m) m.scrollTop = m.scrollHeight; }, 0);
         return true;
       }
+      case "set-page": this._setPage = el.dataset.page; this._render(); return true;
       case "fav-flow": this._menu = null; this._toggleFav("flows", el.dataset.id); this._render(); return true;
       case "fav-dev": this._menu = null; this._toggleFav("devices", el.dataset.id); this._render(); return true;
       case "ins-target": this._insTarget = this._insTarget === el.dataset.chart ? null : el.dataset.chart; this._render(); return true;
@@ -3026,6 +3102,7 @@ class FlowCardsPanel extends HTMLElement {
     const field = t.dataset && t.dataset.field;
     if (field === "folder-select") { this._folder = t.value; this._render(); return; }
     if (field === "area-select") { this._area = t.value; this._render(); return; }
+    if (field === "set-select") { this._setPage = t.value; this._render(); return; }
     if (field === "ins-add-select") { if (t.value) this._insDrop(t.value, null); return; }
     if (field === "new-folder") {
       this._newOpts.folder = t.value; this._render();

@@ -74,7 +74,8 @@ Den lytter også på knapper og fjernbetjeninger, der ikke har deres egen entite
 - **Kortvælger i tre kolonner:** Zoner og System → etager, rum og enheder → kort.
 - **Indsigt (0.6.4):** dine målinger pr. enhed med filter. Klik eller træk en måling ind for en graf, og træk flere ind i samme graf (op til 4). Tidsrum: seneste time, i dag, i går, 24 timer, 7 dage, 30 dage. Hold musen over grafen for at se værdierne.
 - **Hjem (0.6.5):** hilsen, vejret, hvem der er hjemme, og dine favoritenheder og favoritflows. Højreklik på et flow eller en enhed og vælg *Føj til favoritter*.
-- **Mørkt tema** kan slås til under ⋯.
+- **Indstillinger (0.6.6):** System, Integrationer og Flow Cards med runde ikoner som hos Homey. Siderne er Home Assistants egne, vist inde i Flows.
+- **Mørkt tema** kan slås til under ⋯ eller i Indstillinger → Om Flow Cards.
 
 ## Genstart
 
