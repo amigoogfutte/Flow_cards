@@ -1,0 +1,8 @@
+<!doctype html><html><body style="margin:0">
+<script>
+// mimics Home Assistant's frontend structure: home-assistant > home-assistant-main > ha-drawer + ha-sidebar
+customElements.define("ha-drawer", class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: "open" }).innerHTML = `<style>:host{display:flex}.mdc-drawer{width:var(--mdc-drawer-width,256px);background:#222;color:#fff;height:100vh}.mdc-drawer-app-content{margin-left:0;flex:1}</style><aside class="mdc-drawer"><slot name="appContent"></slot></aside><div class="mdc-drawer-app-content"><slot></slot></div>`; } });
+customElements.define("home-assistant-main", class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: "open" }).innerHTML = `<ha-drawer><ha-sidebar slot="appContent">SIDEMENU</ha-sidebar><partial-panel-resolver><div>Historik <ha-menu-button>≡</ha-menu-button></div></partial-panel-resolver></ha-drawer>`; } });
+customElements.define("home-assistant", class extends HTMLElement { constructor() { super(); this.attachShadow({ mode: "open" }).innerHTML = `<home-assistant-main></home-assistant-main>`; } });
+document.body.appendChild(document.createElement("home-assistant"));
+</script></body></html>

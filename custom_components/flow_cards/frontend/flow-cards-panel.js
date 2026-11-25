@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.6.2";
+const FC_VERSION = "0.6.3";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -1230,6 +1230,8 @@ svg.wires .wire.temp{stroke-dasharray:4 4}
 .hy-ebar .grow{flex:1}.hy-ebar b{font-size:14px}
 .hy-embed iframe{flex:1;width:100%;border:0;background:var(--h-panel)}
 .hy.narrow .hy-ebar .pl span{display:inline}
+.hy.railonly .hy-nav{width:58px}.hy.railonly .hy-tree{display:none}.hy.railonly .hy-head h1,.hy.railonly .hy-head .hy-plus{display:none}.hy.railonly .hy-rail{border-right:0}
+.hy-embed iframe{opacity:0;transition:opacity .15s}.hy-embed iframe.ready{opacity:1}
 `;
 
 /* ------------------------------------------------------------------ panel */
@@ -1484,6 +1486,7 @@ class FlowCardsPanel extends HTMLElement {
     const sc = this.shadowRoot.querySelector(".content");
     if (sc && this._keepScroll) sc.scrollTop = top;
     this._keepScroll = false;
+    if (this._view === "embed") this._tameFrame();
     if (this._view === "edit" && this._draft && this._draft.type === "advanced") this._afterCanvasRender();
     else if (this._view === "edit" && this._draft) { const lr = this._latestRun[this._draft.id]; if (lr && lr.status !== "running") setTimeout(() => { this._seenRun = lr.id + lr.status; }, 0); }
   }
@@ -1527,7 +1530,7 @@ class FlowCardsPanel extends HTMLElement {
       <button class="hy-ri sm ${active === "devices" ? "sel" : ""}" data-action="hy-nav" data-to="devices" title="Enheder"><span class="b"><ha-icon icon="mdi:view-grid"></ha-icon></span></button>
       <button class="hy-ri sm ${active === "flows" ? "sel" : ""}" data-action="hy-nav" data-to="flows" title="Flows"><span class="b"><ha-icon icon="mdi:shuffle-variant"></ha-icon></span></button>
       ${plus ? `<button class="hy-plus" data-action="${plus}" title="${esc(plusTitle)}"><ha-icon icon="mdi:plus"></ha-icon></button>` : ""}</div>`;
-    return `<div class="hy ${u.dark ? "dark" : ""} ${this._narrow ? "narrow" : ""}">
+    return `<div class="hy ${u.dark ? "dark" : ""} ${this._narrow ? "narrow" : ""} ${mainCls === "emb" ? "railonly" : ""}">
       <aside class="hy-nav">
         <div class="hy-head"><span class="hy-logo"><ha-icon icon="mdi:graph-outline"></ha-icon></span><h1>${esc(title)}</h1>${plus ? `<button class="hy-plus" data-action="${plus}" title="${esc(plusTitle)}"><ha-icon icon="mdi:plus"></ha-icon></button>` : ""}</div>
         <div class="hy-navbody">
@@ -1851,7 +1854,39 @@ class FlowCardsPanel extends HTMLElement {
     const main = `<div class="hy-embed"><div class="hy-ebar"><button class="pl act" data-action="embed-back"><ha-icon icon="mdi:arrow-left"></ha-icon><span>Tilbage til ${backTo}</span></button>
         <b>${esc(label)}</b><span class="grow"></span><button class="pl" data-action="embed-open" title="Åbn som almindelig side i Home Assistant"><ha-icon icon="mdi:open-in-new"></ha-icon><span>Åbn som side</span></button></div>
         <iframe src="${esc(e.path)}" title="${esc(label)}"></iframe></div>`;
-    return this._hyShell({ title: label, plus: null, tree: `<button class="hy-ti" data-action="embed-back"><ha-icon icon="mdi:arrow-left"></ha-icon><span class="lb">Tilbage til ${backTo}</span></button>`, main, active: e.id, mainCls: "emb" });
+    return this._hyShell({ title: label, plus: null, tree: "", main, active: e.id, mainCls: "emb" });
+  }
+
+  // the embedded page is Home Assistant itself: hide its own sidebar so only one menu is shown
+  _tameFrame() {
+    const fr = this.shadowRoot.querySelector(".hy-embed iframe");
+    if (!fr || fr._tamed) return;
+    fr._tamed = true;
+    const css = (root, id, text) => { if (root && !root.getElementById(id)) { const st = document.createElement("style"); st.id = id; st.textContent = text; root.appendChild(st); } };
+    let tries = 0;
+    const tick = () => {
+      tries += 1;
+      let done = false;
+      try {
+        const doc = fr.contentDocument;
+        const ha = doc && doc.querySelector("home-assistant");
+        const main = ha && ha.shadowRoot && ha.shadowRoot.querySelector("home-assistant-main");
+        const mroot = main && main.shadowRoot;
+        const drawer = mroot && mroot.querySelector("ha-drawer");
+        if (drawer && drawer.shadowRoot) {
+          css(mroot, "fc-hide", "ha-sidebar{display:none!important}ha-drawer{--mdc-drawer-width:0px!important}");
+          css(drawer.shadowRoot, "fc-hide", ".mdc-drawer{display:none!important}.mdc-drawer-app-content{margin-left:0!important;margin-right:0!important;padding-left:0!important}");
+          // the hamburger button would only open the hidden menu
+          const panel = mroot.querySelector("partial-panel-resolver");
+          const deep = (root) => { if (!root) return; root.querySelectorAll("ha-menu-button").forEach((b) => { b.style.display = "none"; }); root.querySelectorAll("*").forEach((n) => n.shadowRoot && deep(n.shadowRoot)); };
+          if (panel) deep(panel.shadowRoot || panel);
+          fr.classList.add("ready");
+          done = tries > 12;
+        }
+      } catch (err) { done = true; fr.classList.add("ready"); }
+      if (!done && tries < 40) setTimeout(tick, 250); else fr.classList.add("ready");
+    };
+    fr.addEventListener("load", () => setTimeout(tick, 100));
   }
 
   _navigate(path) {
