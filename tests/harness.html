@@ -134,7 +134,7 @@ const hass = {
   callWS: async (msg) => {
     window.calls.push(msg);
     const t = msg.type.split("/")[1];
-    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.6.3" };
+    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.6.4" };
     if (t === "save") {
       const f = JSON.parse(JSON.stringify(msg.flow)); delete f.status;
       if (!f.name) throw new Error("Flowet skal have et navn");
@@ -173,6 +173,15 @@ const hass = {
       { platform: "device", domain: "mqtt", device_id: "d8", type: "action", subtype: "brightness_move_up", metadata: {} },
       { platform: "device", domain: "sensor", device_id: "d8", entity_id: "sensor.x", type: "battery_level", metadata: {} }]
       : msg.device_id === "d9" ? [{ platform: "device", domain: "mqtt", device_id: "d9", type: "action", subtype: "single", discovery_id: "0x00158d00079a70f5 action_single", metadata: {} }] : [];
+    if (msg.type === "history/history_during_period") {
+      const out = {}; const st = Date.parse(msg.start_time) / 1000, en = Date.parse(msg.end_time) / 1000;
+      for (const e of msg.entity_ids) {
+        const pts = []; const n = 60;
+        for (let i = 0; i < n; i++) { const t = st + ((en - st) * i) / n; pts.push({ s: e.startsWith("sensor.") ? String((20 + 3 * Math.sin(i / 6)).toFixed(1)) : (i % 10 < 4 ? "on" : "off"), lu: t }); }
+        out[e] = pts;
+      }
+      return out;
+    }
     if (msg.type === "frontend/get_translations") return { resources: {} };
     if (msg.type === "supervisor/api") {
       if (msg.endpoint === "/addons") return { addons: [{ slug: "a0d7b954_nodered", name: "Node-RED" }] };

@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.6.3";
+const FC_VERSION = "0.6.4";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -800,13 +800,21 @@ function toAdvanced(f) {
 const fLeaf = (p) => String(p).split("/").pop();
 const fLabel = (p) => String(p).split("/").join(" › ");
 const HY_RAIL = [["home", "mdi:home", "Hjem", "/"], ["devices", "mdi:view-grid", "Enheder", null], ["flows", "mdi:shuffle-variant", "Flows", null],
-  ["insights", "mdi:chart-bar", "Indsigt", "/history"], ["script", "mdi:code-tags", "Script", "/config/script/dashboard"], ["settings", "mdi:cog", "Indstil.", "/config"]];
+  ["insights", "mdi:chart-bar", "Indsigt", null], ["script", "mdi:code-tags", "Script", "/config/script/dashboard"], ["settings", "mdi:cog", "Indstil.", "/config"]];
 const D_ORDER = ["light", "switch", "fan", "cover", "lock", "climate", "media_player", "vacuum", "humidifier", "water_heater", "valve", "siren", "input_boolean", "remote", "alarm_control_panel", "camera", "binary_sensor", "event", "sensor", "button", "number", "select"];
 const dPrio = (eid) => { const i = D_ORDER.indexOf(eid.split(".")[0]); return i < 0 ? 99 : i; };
 const DEV_STATE = { on: "Tændt", off: "Slukket", open: "Åben", closed: "Lukket", opening: "Åbner", closing: "Lukker", locked: "Låst", unlocked: "Ulåst", playing: "Afspiller", paused: "Pause", idle: "Inaktiv", standby: "Standby", home: "Hjemme", not_home: "Ude", unknown: "Ukendt", heat: "Varme", cool: "Køl", auto: "Auto", cleaning: "Gør rent", docked: "I dock", returning: "På vej hjem" };
 const DEV_OFF = new Set(["off", "closed", "idle", "standby", "paused", "docked", "not_home", "unknown"]);
 const DEV_TOGGLE = new Set(["light", "switch", "fan", "input_boolean", "siren", "humidifier", "remote", "media_player", "climate", "water_heater", "vacuum", "valve"]);
 const APP_COLORS = { time: "#e5281e", sun: "#ff9f0a", logic: "#28a745", notify: "#1f4e79", flows: "#34c759", events: "#ffcc00", system: "#0a84ff", advanced: "#8e8e93" };
+const INS_RANGES = { "1h": { label: "Seneste time", ms: 3600000 }, today: { label: "I dag", day: 0 }, yesterday: { label: "I går", day: -1 }, "24h": { label: "Seneste 24 timer", ms: 86400000 }, "7d": { label: "Seneste 7 dage", ms: 7 * 86400000 }, "30d": { label: "Seneste 30 dage", ms: 30 * 86400000 } };
+const insWindow = (key) => {
+  const r = INS_RANGES[key] || INS_RANGES["7d"];
+  if (r.day !== undefined) { const s0 = new Date(); s0.setHours(0, 0, 0, 0); s0.setDate(s0.getDate() + r.day); const e0 = new Date(s0); e0.setDate(e0.getDate() + 1); return [s0.getTime(), Math.min(e0.getTime(), Date.now())]; }
+  const e = Date.now(); return [e - r.ms, e];
+};
+const INS_COLORS = ["#e5281e", "#f26b1d", "#0a84ff", "#34c759"];
+const INS_ON = new Set(["on", "open", "unlocked", "home", "playing", "opening", "closing"]);
 const STYLE = `
 :host{display:block;min-height:100%;--fc-when:#3b6fd8;--fc-and:#d4891a;--fc-then:#1f9d6b;--fc-else:#c8553d;
   --fc-bg:var(--primary-background-color,#f3f4f6);--fc-card:var(--card-background-color,#fff);--fc-text:var(--primary-text-color,#1f2328);
@@ -1232,6 +1240,55 @@ svg.wires .wire.temp{stroke-dasharray:4 4}
 .hy.narrow .hy-ebar .pl span{display:inline}
 .hy.railonly .hy-nav{width:58px}.hy.railonly .hy-tree{display:none}.hy.railonly .hy-head h1,.hy.railonly .hy-head .hy-plus{display:none}.hy.railonly .hy-rail{border-right:0}
 .hy-embed iframe{opacity:0;transition:opacity .15s}.hy-embed iframe.ready{opacity:1}
+/* ---------- Insights */
+.ins-g{padding:12px 6px 4px;font-size:12.5px}.ins-g span{color:var(--h-muted);font-weight:400}
+.ins-i{display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:7px;cursor:pointer;font-size:12.5px;user-select:none;-webkit-user-select:none}
+.ins-i:hover{background:var(--h-hover)}.ins-i.on{color:var(--h-blue)}
+.ins-i .bul{width:5px;height:5px;border-radius:50%;background:var(--h-muted);flex:none}.ins-i.on .bul{background:var(--h-blue)}
+.ins-i .lb{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ins-top{display:flex;align-items:center;gap:10px;padding:14px 0 6px;position:sticky;top:0;z-index:4;background:var(--h-bg)}
+.ins-range{display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 18px 0 12px;border-radius:999px;background:linear-gradient(#3b93ff,#0a6cff);color:#fff;font-weight:600;font-size:14px;box-shadow:0 2px 6px rgba(10,108,255,.35)}
+.ins-range ha-icon{--mdc-icon-size:20px}
+.ins-rm{min-width:190px}.ins-rm button.cur{color:var(--h-blue);font-weight:600}
+.ins-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:14px;margin-top:8px}
+.ins-card{background:var(--h-panel);border-radius:12px;box-shadow:0 1px 3px rgba(0,0,0,.08);padding:10px 12px 8px;border:2px solid transparent}
+.ins-card.ins-hot,.ins-dropzone.ins-hot,.ins-empty.ins-hot{border-color:var(--h-blue);background:var(--h-selbg)}
+.ins-ch{display:flex;align-items:flex-start;gap:8px}.ins-lgs{flex:1;display:flex;flex-wrap:wrap;gap:4px 14px}
+.lg{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:500}.lg i{width:10px;height:10px;border-radius:3px;display:inline-block}
+.lg small{color:var(--h-muted);font-weight:400}.lg button{color:var(--h-muted);font-size:14px;padding:0 2px}.lg button:hover{color:var(--h-red)}
+.ins-plot{position:relative;margin-top:6px}
+.ins-svg{width:100%;height:190px;display:block;overflow:visible}
+.ins-svg text{font-size:10px;fill:var(--h-muted)}
+.ins-svg .gl{stroke:var(--h-line);stroke-width:1}
+.ins-svg path{fill:none;stroke-width:2;vector-effect:non-scaling-stroke;stroke-linejoin:round}
+.ins-svg .cur{stroke:var(--h-muted);stroke-width:1;stroke-dasharray:3 3;vector-effect:non-scaling-stroke}
+.ins-tip{position:absolute;top:4px;z-index:3;background:var(--h-panel);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.18);padding:6px 10px;font-size:12px;pointer-events:none;min-width:150px}
+.ins-tip small{color:var(--h-muted);display:block;margin-bottom:2px}.ins-tip i{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:6px}
+.ins-load{height:190px;display:flex;align-items:center;justify-content:center;color:var(--h-muted)}.ins-load.err{color:var(--h-red)}
+.ins-load.abs{position:absolute;inset:0;height:auto;pointer-events:none}
+.ins-dropzone{border:2px dashed var(--h-line);border-radius:12px;min-height:120px;display:flex;align-items:center;justify-content:center;gap:8px;color:var(--h-muted)}
+.ins-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--h-muted);min-height:60vh;border:2px solid transparent;border-radius:16px}
+.ins-empty ha-icon{--mdc-icon-size:44px;opacity:.7}.ins-empty h3{font-size:22px;margin:12px 0 6px;color:var(--h-muted);font-weight:500}.ins-empty p{margin:0}
+.hy.narrow .ins-grid{grid-template-columns:1fr}
+.ins-grid{grid-template-columns:1fr!important}
+.ins-card{position:relative;border-radius:16px;padding:16px 22px 14px}
+.ins-card.target{border-color:var(--h-blue)}
+.ins-x{position:absolute;top:8px;right:8px;z-index:2;opacity:.5}.ins-card:hover .ins-x{opacity:1}
+.ins-svg{height:260px}
+.ins-svg text{font-size:12px}
+.ins-svg .gl{stroke-dasharray:4 4}
+.ins-load{height:260px}
+.ins-foot{display:flex;align-items:flex-end;gap:12px;margin-top:10px}
+.ins-lgs{flex-direction:column;flex-wrap:nowrap;gap:2px}
+.ins-dev{font-size:15px}.ins-dev span{color:var(--h-muted)}
+.lg{font-size:15px;font-weight:400}.lg i{width:9px;height:9px;border-radius:50%}
+.ins-addc{display:inline-flex;align-items:center;gap:8px;padding:8px 18px;border:1.5px dashed var(--h-line);border-radius:8px;font-size:14px;color:var(--h-text);white-space:nowrap}
+.ins-addc:hover{border-color:var(--h-blue);color:var(--h-blue)}
+.ins-addc ha-icon{--mdc-icon-size:20px}
+.ins-i.on{background:color-mix(in srgb,var(--ic) 14%,transparent);color:var(--h-text);font-weight:500}
+.ins-i.on .bul{width:11px;height:11px;background:var(--ic);box-shadow:0 0 0 2px var(--h-panel),0 0 0 3.5px var(--ic)}
+.pl.big{height:36px;font-size:14px;padding:0 16px}
+.ins-range{height:38px;font-size:15px}
 `;
 
 /* ------------------------------------------------------------------ panel */
@@ -1270,6 +1327,7 @@ class FlowCardsPanel extends HTMLElement {
     this.shadowRoot.addEventListener("pointerdown", (e) => this._hyLongDown(e));
     this.shadowRoot.addEventListener("pointermove", (e) => this._hyLongMove(e));
     this.shadowRoot.addEventListener("pointerup", () => this._hyLongUp());
+    this.shadowRoot.addEventListener("pointermove", (e) => { if (this._view === "insights") this._insHover(e); });
     this.shadowRoot.addEventListener("wheel", (e) => this._cvWheel(e), { passive: false });
     this.shadowRoot.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && (this._vars || this._addMenu || this._setMenu)) { this._vars = false; this._addMenu = false; this._setMenu = false; this._render(); return; }
@@ -1475,7 +1533,7 @@ class FlowCardsPanel extends HTMLElement {
     if (!this._loaded) return;
     this._snapshot();
     this._stashDraft();
-    const body = this._view === "embed" ? this._renderEmbed() : this._view === "devices" ? this._renderDevices() : this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
+    const body = this._view === "insights" ? this._renderInsights() : this._view === "embed" ? this._renderEmbed() : this._view === "devices" ? this._renderDevices() : this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
     const listen = this._listen && this._view === "edit" && !this._picker ? this._renderListen() : "";
     const modal = this._vars ? this._renderVars() : this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : this._nr ? this._renderNodeRed() : "";
     const menu = this._menu && this._view !== "edit" ? this._renderMenu() : "";
@@ -1765,7 +1823,7 @@ class FlowCardsPanel extends HTMLElement {
         const to = el.dataset.to;
         if (this._view === "edit") { if (!this._confirmLeave()) return true; this._stopListen(); this._clearStash(); this._draft = null; this._dirty = false; }
         if (el.dataset.path) { this._embed = { path: el.dataset.path, id: to, back: this._view === "devices" ? "devices" : "list" }; this._view = "embed"; this._render(); return true; }
-        this._view = to === "devices" ? "devices" : "list"; this._hySearch = false; this._render(); return true;
+        this._view = to === "devices" ? "devices" : to === "insights" ? "insights" : "list"; this._hySearch = false; this._render(); return true;
       }
       case "embed-back": this._view = (this._embed && this._embed.back) || "list"; this._embed = null; this._render(); return true;
       case "embed-open": { const path = this._embed.path; this._view = this._embed.back || "list"; this._embed = null; this._navigate(path); return true;
@@ -1843,7 +1901,7 @@ class FlowCardsPanel extends HTMLElement {
         this._stopListen(); this._clearStash();
         this._draft = clone(f); this._tf = null; this._dirty = false; this._view = "edit"; this._render(); return true;
       }
-      default: return false;
+      default: return this._insClick(a, el);
     }
   }
 
@@ -1887,6 +1945,251 @@ class FlowCardsPanel extends HTMLElement {
       if (!done && tries < 40) setTimeout(tick, 250); else fr.classList.add("ready");
     };
     fr.addEventListener("load", () => setTimeout(tick, 100));
+  }
+
+  /* ================================================================ Insights (Homey "Indsigt") */
+
+  _insState() {
+    if (!this._ins) {
+      try { this._ins = JSON.parse(localStorage.getItem("flow_cards_insights") || "null"); } catch (e) { this._ins = null; }
+      if (!this._ins || !Array.isArray(this._ins.charts)) this._ins = { range: "7d", charts: [] };
+      if (!INS_RANGES[this._ins.range]) this._ins.range = "7d";
+    }
+    this._insData = this._insData || {};
+    return this._ins;
+  }
+  _insSave() { try { localStorage.setItem("flow_cards_insights", JSON.stringify(this._ins)); } catch (e) { /* ignore */ } }
+
+  _insEligible(eid) {
+    const st = this._hass.states[eid];
+    if (!st) return null;
+    const dom = eid.split(".")[0];
+    if (["binary_sensor", "light", "switch", "fan", "input_boolean", "lock", "cover", "media_player", "person", "device_tracker"].includes(dom)) return "bin";
+    if (["sensor", "input_number", "number", "counter"].includes(dom)) {
+      if (st.attributes.unit_of_measurement || st.attributes.state_class || !Number.isNaN(parseFloat(st.state))) return "num";
+    }
+    return null;
+  }
+
+  _insTree() {
+    const h = this._hass;
+    const ents = h.entities || {}, devs = h.devices || {}, areas = h.areas || {};
+    const groups = new Map();
+    for (const eid of Object.keys(h.states)) {
+      const r = ents[eid] || {};
+      if (r.hidden || !this._insEligible(eid)) continue;
+      const dev = r.device_id && devs[r.device_id];
+      if (!dev && !["sensor", "binary_sensor"].includes(eid.split(".")[0])) continue;
+      const key = dev ? r.device_id : "__other";
+      if (!groups.has(key)) {
+        const area = areas[(dev && dev.area_id) || r.area_id];
+        groups.set(key, { key, name: dev ? dev.name_by_user || dev.name || "Enhed" : "Andre målinger", area: area ? area.name : "", devName: dev ? dev.name_by_user || dev.name || "" : "", items: [] });
+      }
+      const g = groups.get(key);
+      let label = this._entityName(eid);
+      if (g.devName && label.toLowerCase().startsWith(g.devName.toLowerCase()) && label.length > g.devName.length + 1) label = label.slice(g.devName.length).trim();
+      g.items.push({ eid, label: label || this._entityName(eid) });
+    }
+    const list = [...groups.values()].sort((a, b) => (a.key === "__other") - (b.key === "__other") || a.name.localeCompare(b.name, "da"));
+    for (const g of list) g.items.sort((a, b) => a.label.localeCompare(b.label, "da"));
+    return list;
+  }
+
+  _renderInsights() {
+    const ins = this._insState();
+    const q = (this._insQ || "").trim().toLowerCase();
+    const colorOf = {};
+    ins.charts.forEach((c) => c.series.forEach((e, i) => { if (!colorOf[e]) colorOf[e] = INS_COLORS[i % INS_COLORS.length]; }));
+    const used = new Set(Object.keys(colorOf));
+    let tree = `<div class="hy-filter"><ha-icon icon="mdi:magnify"></ha-icon><input type="search" data-field="ins-filter" placeholder="Filtrér…" value="${esc(this._insQ || "")}"></div>`;
+    const groups = this._insTree();
+    let shown = 0;
+    for (const g of groups) {
+      const items = g.items.filter((it) => !q || `${g.name} ${g.area} ${it.label} ${it.eid}`.toLowerCase().includes(q));
+      if (!items.length) continue;
+      if (shown > 400) break;
+      shown += items.length;
+      tree += `<div class="ins-g"><b>${esc(g.name)}</b>${g.area ? ` <span>${esc(g.area)}</span>` : ""}</div>`;
+      tree += items.map((it) => `<div class="ins-i ${used.has(it.eid) ? "on" : ""}" style="${used.has(it.eid) ? `--ic:${colorOf[it.eid]}` : ""}" draggable="true" data-ins-eid="${esc(it.eid)}" data-action="ins-add" data-eid="${esc(it.eid)}" title="${this._insTarget ? "Klik for at tilføje til grafen" : used.has(it.eid) ? "Klik for at fjerne grafen" : "Klik for en ny graf, eller træk den ind på en graf"}"><span class="bul"></span><span class="lb">${esc(it.label)}</span></div>`).join("");
+    }
+    if (!shown) tree += `<div class="empty" style="padding:16px 8px">Ingen målinger fundet</div>`;
+
+    const range = INS_RANGES[ins.range];
+    const rangeMenu = this._insRangeOpen ? `<div class="hy-layer" data-action="ins-range-close"></div><div class="cv-pop ins-rm">${Object.entries(INS_RANGES).map(([k, r]) => `<button data-action="ins-range" data-range="${k}" class="${k === ins.range ? "cur" : ""}">${r.label}</button>`).join("")}</div>` : "";
+    const [start, end] = insWindow(ins.range);
+    const charts = ins.charts.map((c) => {
+      const key = this._insKey(c);
+      const d = this._insData[key];
+      if (!d) setTimeout(() => this._insLoad(c), 0);
+      const reg = (this._hass.entities || {})[c.series[0]] || {};
+      const dev = reg.device_id && (this._hass.devices || {})[reg.device_id];
+      const area = (this._hass.areas || {})[(dev && dev.area_id) || reg.area_id];
+      const legend = c.series.map((eid, i) => {
+        const st = this._hass.states[eid];
+        const cur = st ? (this._insEligible(eid) === "bin" ? (DEV_STATE[st.state] || st.state) : `${st.state}${st.attributes.unit_of_measurement ? ` ${st.attributes.unit_of_measurement}` : ""}`) : "";
+        return `<span class="lg"><i style="background:${INS_COLORS[i % INS_COLORS.length]}"></i>${esc(this._entityName(eid))}<small>${esc(cur)}</small>${c.series.length > 1 ? `<button data-action="ins-del-series" data-chart="${c.id}" data-eid="${esc(eid)}" title="Fjern fra grafen">×</button>` : ""}</span>`;
+      }).join("");
+      const body = !d || d.loading ? `<div class="ins-load">Henter data…</div>` : d.error ? `<div class="ins-load err">${esc(d.error)}</div>` : this._insSvg(c, d, start, end);
+      return `<div class="ins-card ${this._insTarget === c.id ? "target" : ""}" data-ins-chart="${c.id}"><button class="hy-dots ins-x" data-action="ins-del" data-chart="${c.id}" title="Fjern graf"><ha-icon icon="mdi:close"></ha-icon></button>${body}
+        <div class="ins-foot"><div class="ins-lgs"><div class="ins-dev"><b>${esc(dev ? dev.name_by_user || dev.name : this._entityName(c.series[0]))}</b>${area ? ` <span>${esc(area.name)}</span>` : ""}</div>${legend}</div>
+        <button class="ins-addc" data-action="ins-target" data-chart="${c.id}">${this._insTarget === c.id ? "Vælg en måling til venstre…" : `<ha-icon icon="mdi:plus"></ha-icon>Tilføj graf`}</button></div></div>`;
+    }).join("");
+    const empty = `<div class="ins-empty" data-ins-drop="1"><ha-icon icon="mdi:chart-bar"></ha-icon><h3>Træk og slip dine grafer her</h3><p>Vælg en måling i listen til venstre for at komme i gang</p></div>`;
+    const msel = `<select class="hy-msel" data-field="ins-add-select"><option value="">+ Tilføj graf…</option>${groups.map((g) => `<optgroup label="${esc(g.name)}">${g.items.map((it) => `<option value="${esc(it.eid)}">${esc(it.label)}</option>`).join("")}</optgroup>`).join("")}</select>`;
+    const main = `<div class="ins-top"><span class="pw"><button class="ins-range" data-action="ins-range-open"><ha-icon icon="mdi:clock-time-four"></ha-icon>${range.label}</button>${rangeMenu}</span>
+        ${ins.charts.length ? `<button class="pl big" data-action="ins-close-all"><ha-icon icon="mdi:close"></ha-icon><span>Luk alle</span></button><button class="pl big" data-action="ins-refresh" title="Hent nye data"><ha-icon icon="mdi:refresh"></ha-icon></button>` : ""}</div>${msel}
+      <div class="ins-grid" data-ins-drop="1">${charts}${ins.charts.length ? `<div class="ins-dropzone" data-ins-drop="1"><ha-icon icon="mdi:plus"></ha-icon>Træk en måling hertil for en ny graf</div>` : ""}</div>${ins.charts.length ? "" : empty}`;
+    return this._hyShell({ title: "Indsigt", plus: null, tree, main, active: "insights" });
+  }
+
+  _insKey(c) { return `${this._ins.range}|${c.series.join(",")}|${this._insNonce || 0}`; }
+
+  async _insLoad(c) {
+    const key = this._insKey(c);
+    if (this._insData[key]) return;
+    this._insData[key] = { loading: true };
+    const [s0, e0] = insWindow(this._ins.range); const start = new Date(s0), end = new Date(e0);
+    try {
+      const res = await this._hass.callWS({ type: "history/history_during_period", start_time: start.toISOString(), end_time: end.toISOString(), entity_ids: c.series, minimal_response: true, no_attributes: true, significant_changes_only: false });
+      const series = {};
+      for (const eid of c.series) {
+        const bin = this._insEligible(eid) === "bin";
+        series[eid] = (res[eid] || []).map((p) => {
+          const t = p.lu !== undefined ? p.lu * 1000 : p.lc !== undefined ? p.lc * 1000 : Date.parse(p.last_updated || p.last_changed);
+          const s = p.s !== undefined ? p.s : p.state;
+          const v = bin ? (INS_ON.has(s) ? 1 : ["unavailable", "unknown"].includes(s) ? null : 0) : parseFloat(s);
+          return [Math.max(t, start.getTime()), v === null || Number.isNaN(v) ? null : v];
+        }).filter((x) => !Number.isNaN(x[0]));
+      }
+      this._insData[key] = { series, start: start.getTime(), end: end.getTime() };
+    } catch (err) {
+      this._insData[key] = { error: `Kunne ikke hente historik: ${err.message || err}` };
+    }
+    if (this._view === "insights") this._safeRender();
+  }
+
+  _insSvg(c, d, start, end) {
+    const W = 1000, H = 260, L = 56, R = 12, T = 14, B = 26;
+    const bins = c.series.map((eid) => this._insEligible(eid) === "bin");
+    const allBin = bins.every(Boolean);
+    const vals = c.series.flatMap((eid, i) => (bins[i] ? [] : (d.series[eid] || []).map((p) => p[1]).filter((v) => v !== null)));
+    let lo = allBin ? 0 : Math.min(...vals), hi = allBin ? 1 : Math.max(...vals);
+    if (!Number.isFinite(lo)) { lo = 0; hi = 1; }
+    if (hi === lo) { hi += 1; lo -= 1; }
+    const pad = (hi - lo) * 0.08; if (!allBin) { lo -= pad; hi += pad; }
+    const X = (t) => L + ((t - start) / (end - start)) * (W - L - R);
+    const Y = (v) => T + (1 - (v - lo) / (hi - lo)) * (H - T - B);
+    const fmt = (v) => (Math.abs(v) >= 100 ? v.toFixed(0) : Math.abs(v) >= 10 ? v.toFixed(1) : v.toFixed(2)).replace(".", ",");
+    let grid = "";
+    const ticksY = allBin ? [[0, "Fra"], [1, "Til"]] : [0, 0.5, 1].map((f) => { const v = lo + (hi - lo) * f; return [v, fmt(v)]; });
+    for (const [v, lab] of ticksY) grid += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" class="gl"/><text x="${L - 6}" y="${Y(v) + 4}" text-anchor="end">${lab}</text>`;
+    const span = end - start;
+    const step = span <= 2 * 3600000 ? 15 * 60000 : span <= 26 * 3600000 ? 3 * 3600000 : span <= 8 * 86400000 ? 86400000 : 5 * 86400000;
+    const first = new Date(start);
+    if (step >= 86400000) first.setHours(0, 0, 0, 0); else first.setMinutes(0, 0, 0);
+    let tt = first.getTime();
+    while (tt < start) tt += step;
+    for (; tt <= end; tt += step) {
+      const dt = new Date(tt);
+      const lab = step >= 86400000 || (dt.getHours() === 0 && dt.getMinutes() === 0 && span > 3 * 3600000) ? dt.toLocaleDateString("da-DK", { day: "numeric", month: "short" }) : dt.toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit" });
+      grid += `<line x1="${X(tt)}" x2="${X(tt)}" y1="${H - B}" y2="${H - B + 4}" class="gl"/><text x="${X(tt)}" y="${H - 6}" text-anchor="middle">${lab}</text>`;
+    }
+    let paths = `<defs>${c.series.map((e, i) => `<linearGradient id="g${i}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${INS_COLORS[i % INS_COLORS.length]}" stop-opacity="${c.series.length > 1 ? ".18" : ".3"}"/><stop offset="1" stop-color="${INS_COLORS[i % INS_COLORS.length]}" stop-opacity="0"/></linearGradient>`).join("")}</defs>`;
+    const unit = !allBin && (this._hass.states[c.series.find((e, i) => !bins[i])] || { attributes: {} }).attributes.unit_of_measurement;
+    if (unit) grid += `<text x="10" y="${(T + H - B) / 2}" transform="rotate(-90 10 ${(T + H - B) / 2})" text-anchor="middle">${esc(unit)}</text>`;
+    c.series.forEach((eid, i) => {
+      const pts = d.series[eid] || [];
+      const col = INS_COLORS[i % INS_COLORS.length];
+      let dstr = "", fill = "", prev = null;
+      pts.forEach((p, k) => {
+        const next = pts[k + 1] ? pts[k + 1][0] : end;
+        if (p[1] === null) { prev = null; return; }
+        const v = bins[i] && !allBin ? lo + (hi - lo) * (p[1] ? 0.95 : 0.05) : p[1];
+        const x = X(p[0]), y = Y(v);
+        if (bins[i]) {
+          dstr += `${prev === null ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)} H${X(next).toFixed(1)} `;
+          if (p[1]) fill += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(0.5, X(next) - x).toFixed(1)}" height="${(Y(allBin ? 0 : lo) - y).toFixed(1)}" fill="${col}" opacity=".18"/>`;
+        } else {
+          dstr += `${prev === null ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)} H${X(next).toFixed(1)} `;
+          fill += `<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${Math.max(0.5, X(next) - x).toFixed(1)}" height="${Math.max(0, Y(lo) - y).toFixed(1)}" fill="url(#g${i})"/>`;
+        }
+        prev = v;
+      });
+      paths += `${fill}<path d="${dstr}" stroke="${col}" />`;
+    });
+    const none = c.series.every((eid) => !(d.series[eid] || []).length);
+    return `<div class="ins-plot"><svg class="ins-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" data-ins-svg="${c.id}" data-start="${start}" data-end="${end}" data-l="${L}" data-r="${R}" data-w="${W}">${grid}${paths}<line class="cur" x1="-10" x2="-10" y1="${T}" y2="${H - B}"/></svg><div class="ins-tip" hidden></div>${none ? `<div class="ins-load abs">Ingen data i perioden</div>` : ""}</div>`;
+  }
+
+  _insHover(e) {
+    const svg = e.composedPath().find((n) => n.dataset && n.dataset.insSvg);
+    if (!svg) { if (this._insTipOn) { this.shadowRoot.querySelectorAll(".ins-tip").forEach((t) => { t.hidden = true; }); this.shadowRoot.querySelectorAll(".ins-svg .cur").forEach((l) => { l.setAttribute("x1", -10); l.setAttribute("x2", -10); }); this._insTipOn = false; } return; }
+    const c = this._ins.charts.find((x) => x.id === svg.dataset.insSvg);
+    const d = c && this._insData[this._insKey(c)];
+    if (!d || !d.series) return;
+    const r = svg.getBoundingClientRect();
+    const W = Number(svg.dataset.w), L = Number(svg.dataset.l), R = Number(svg.dataset.r);
+    const sx = ((e.clientX - r.left) / r.width) * W;
+    const start = Number(svg.dataset.start), end = Number(svg.dataset.end);
+    const t = start + ((sx - L) / (W - L - R)) * (end - start);
+    if (t < start || t > end) return;
+    const line = svg.querySelector(".cur"); line.setAttribute("x1", sx); line.setAttribute("x2", sx);
+    const rows = c.series.map((eid, i) => {
+      const pts = d.series[eid] || [];
+      let v = null; for (const p of pts) { if (p[0] <= t) v = p[1]; else break; }
+      const st = this._hass.states[eid];
+      const bin = this._insEligible(eid) === "bin";
+      const txt = v === null ? "–" : bin ? (v ? "Til" : "Fra") : `${String(Math.round(v * 100) / 100).replace(".", ",")}${st && st.attributes.unit_of_measurement ? ` ${st.attributes.unit_of_measurement}` : ""}`;
+      return `<div><i style="background:${INS_COLORS[i % INS_COLORS.length]}"></i>${esc(this._entityName(eid))}: <b>${esc(txt)}</b></div>`;
+    }).join("");
+    const tip = svg.parentElement.querySelector(".ins-tip");
+    tip.innerHTML = `<small>${new Date(t).toLocaleString("da-DK", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</small>${rows}`;
+    tip.hidden = false;
+    const px = e.clientX - r.left;
+    tip.style.left = `${Math.min(Math.max(px + 12, 0), r.width - 180)}px`;
+    this._insTipOn = true;
+  }
+
+  async _insClick(a, el) {
+    const ins = this._insState();
+    switch (a) {
+      case "ins-add": {
+        const eid = el.dataset.eid;
+        if (this._insTarget) { const t = this._insTarget; this._insTarget = null; this._insDrop(eid, t); return true; }
+        if (ins.charts.some((c) => c.series.includes(eid))) {
+          ins.charts = ins.charts.map((c) => ({ ...c, series: c.series.filter((x) => x !== eid) })).filter((c) => c.series.length);
+          this._insSave(); this._render(); return true;
+        }
+        ins.charts.push({ id: uid(), series: [eid] }); this._insSave(); this._render();
+        setTimeout(() => { const m = this.shadowRoot.querySelector(".hy-main"); if (m) m.scrollTop = m.scrollHeight; }, 0);
+        return true;
+      }
+      case "ins-target": this._insTarget = this._insTarget === el.dataset.chart ? null : el.dataset.chart; this._render(); return true;
+      case "ins-close-all": ins.charts = []; this._insTarget = null; this._insSave(); this._render(); return true;
+      case "ins-del":
+        ins.charts = ins.charts.filter((c) => c.id !== el.dataset.chart); this._insSave(); this._render(); return true;
+      case "ins-del-series": {
+        const c = ins.charts.find((x) => x.id === el.dataset.chart);
+        if (c) c.series = c.series.filter((x) => x !== el.dataset.eid);
+        this._insSave(); this._render(); return true;
+      }
+      case "ins-range-open": this._insRangeOpen = !this._insRangeOpen; this._render(); return true;
+      case "ins-range-close": this._insRangeOpen = false; this._render(); return true;
+      case "ins-range": ins.range = el.dataset.range; this._insRangeOpen = false; this._insSave(); this._render(); return true;
+      case "ins-refresh": this._insNonce = (this._insNonce || 0) + 1; this._render(); return true;
+      default: return false;
+    }
+  }
+
+  _insDrop(eid, chartId) {
+    const ins = this._insState();
+    const c = chartId && ins.charts.find((x) => x.id === chartId);
+    if (c) {
+      if (c.series.includes(eid)) return;
+      if (c.series.length >= 4) { this._toast("Højst 4 målinger i én graf", true); return; }
+      c.series.push(eid);
+    } else ins.charts.push({ id: uid(), series: [eid] });
+    this._insSave(); this._render();
   }
 
   _navigate(path) {
@@ -2615,6 +2918,7 @@ class FlowCardsPanel extends HTMLElement {
     if (field === "search") { this._search = t.value; this._renderListOnly(field); return; }
     if (field === "dsearch") { this._dsearch = t.value; this._renderListOnly(field); return; }
     if (field === "tree-filter") { this._treeQ = t.value; this._renderListOnly(field); return; }
+    if (field === "ins-filter") { this._insQ = t.value; this._renderListOnly(field); return; }
     if (field === "new-name") { this._newOpts.name = t.value; return; }
     if (t.dataset && t.dataset.entAdd && this._picker && (e.inputType === "insertReplacementText" || !e.inputType) && this._hass.states[t.value.trim()]) {
       this._onChange(e); return;
@@ -2644,6 +2948,7 @@ class FlowCardsPanel extends HTMLElement {
     const field = t.dataset && t.dataset.field;
     if (field === "folder-select") { this._folder = t.value; this._render(); return; }
     if (field === "area-select") { this._area = t.value; this._render(); return; }
+    if (field === "ins-add-select") { if (t.value) this._insDrop(t.value, null); return; }
     if (field === "new-folder") {
       this._newOpts.folder = t.value; this._render();
       if (t.value === "__new") setTimeout(() => { const n = this.shadowRoot.querySelector("[data-field=new-folder-name]"); if (n) n.focus(); }, 0);
@@ -2707,6 +3012,8 @@ class FlowCardsPanel extends HTMLElement {
   /* ---------------- drag & drop between/within columns */
 
   _onDragStart(e) {
+    const ie = e.composedPath().find((n) => n.dataset && n.dataset.insEid);
+    if (ie) { this._idrag = ie.dataset.insEid; e.dataTransfer.effectAllowed = "copy"; e.dataTransfer.setData("text/plain", ie.dataset.insEid); return; }
     const fl = e.composedPath().find((n) => n.dataset && n.dataset.dragFlow);
     if (fl) { this._fdrag = fl.dataset.dragFlow; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", "flow"); fl.classList.add("dragging"); return; }
     const card = e.composedPath().find((n) => n.classList && n.classList.contains("card"));
@@ -2717,6 +3024,13 @@ class FlowCardsPanel extends HTMLElement {
     e.dataTransfer.setData("text/plain", "card");
   }
   _onDragOver(e) {
+    if (this._idrag) {
+      const path = e.composedPath();
+      const t = path.find((n) => n.dataset && (n.dataset.insChart || n.dataset.insDrop));
+      this.shadowRoot.querySelectorAll(".ins-hot").forEach((n) => n !== t && n.classList.remove("ins-hot"));
+      if (t) { e.preventDefault(); t.classList.add("ins-hot"); }
+      return;
+    }
     if (this._fdrag) {
       const t = e.composedPath().find((n) => n.dataset && n.dataset.fdrop !== undefined);
       this.shadowRoot.querySelectorAll(".hy-ti.drop").forEach((n) => n !== t && n.classList.remove("drop"));
@@ -2730,6 +3044,12 @@ class FlowCardsPanel extends HTMLElement {
     if (ok) e.preventDefault();
   }
   _onDrop(e) {
+    if (this._idrag) {
+      const t = e.composedPath().find((n) => n.dataset && (n.dataset.insChart || n.dataset.insDrop));
+      const eid = this._idrag; this._idrag = null;
+      if (t) { e.preventDefault(); this._insDrop(eid, t.dataset.insChart || null); } else this._render();
+      return;
+    }
     if (this._fdrag) {
       const t = e.composedPath().find((n) => n.dataset && n.dataset.fdrop !== undefined);
       const id = this._fdrag; this._fdrag = null;
@@ -3438,6 +3758,7 @@ class FlowCardsPanel extends HTMLElement {
   }
 
   _dragEnd() {
+    if (this._idrag) { this._idrag = null; this._render(); return; }
     if (this._fdrag) { this._fdrag = null; this._render(); return; }
     if (this._drag) { this._drag = null; this._render(); }
   }

@@ -72,6 +72,7 @@ Den lytter også på knapper og fjernbetjeninger, der ikke har deres egen entite
 - **Enheder:** dine etager, rum og enheder som Homey-fliser. Tryk for at tænde/slukke, højreklik for detaljer.
 - **Editor:** lyst gitter, kort med runde ikoner, Gem, Fortryd/Gentag, Variabler (hjælpere) og **+ Tilføj** med Når/Og/Så/Vent/Alle/Én af/Note.
 - **Kortvælger i tre kolonner:** Zoner og System → etager, rum og enheder → kort.
+- **Indsigt (0.6.4):** dine målinger pr. enhed med filter. Klik eller træk en måling ind for en graf, og træk flere ind i samme graf (op til 4). Tidsrum: seneste time, i dag, i går, 24 timer, 7 dage, 30 dage. Hold musen over grafen for at se værdierne.
 - **Mørkt tema** kan slås til under ⋯.
 
 ## Genstart
