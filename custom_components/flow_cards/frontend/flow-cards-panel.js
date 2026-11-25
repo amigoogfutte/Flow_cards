@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.6.1";
+const FC_VERSION = "0.6.2";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -1224,6 +1224,12 @@ svg.wires .wire.temp{stroke-dasharray:4 4}
 .vval{padding:4px 10px;border-radius:999px;background:#f2f2f7;font-size:13px}
 @media (max-width:760px){.hpick .cols{display:block;overflow:auto}.hpick .cols>div{border-right:0;border-bottom:1px solid #e5e5ea;overflow:visible}.hpick .cols>div:empty{display:none}.hpick header h3{width:auto}}
 .badge.fresh{animation:pop .6s ease-out 2}@keyframes pop{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.35);opacity:1}100%{transform:scale(1)}}
+.hy-main.emb{padding:0;overflow:hidden}
+.hy-embed{display:flex;flex-direction:column;height:100vh}
+.hy-ebar{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--h-bg)}
+.hy-ebar .grow{flex:1}.hy-ebar b{font-size:14px}
+.hy-embed iframe{flex:1;width:100%;border:0;background:var(--h-panel)}
+.hy.narrow .hy-ebar .pl span{display:inline}
 `;
 
 /* ------------------------------------------------------------------ panel */
@@ -1467,7 +1473,7 @@ class FlowCardsPanel extends HTMLElement {
     if (!this._loaded) return;
     this._snapshot();
     this._stashDraft();
-    const body = this._view === "devices" ? this._renderDevices() : this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
+    const body = this._view === "embed" ? this._renderEmbed() : this._view === "devices" ? this._renderDevices() : this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
     const listen = this._listen && this._view === "edit" && !this._picker ? this._renderListen() : "";
     const modal = this._vars ? this._renderVars() : this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : this._nr ? this._renderNodeRed() : "";
     const menu = this._menu && this._view !== "edit" ? this._renderMenu() : "";
@@ -1531,7 +1537,7 @@ class FlowCardsPanel extends HTMLElement {
           <div class="hy-tree">${tree}</div>
         </div>
       </aside>
-      <main class="hy-main ${mainCls}">${mainCls === "cv" ? "" : mtop}${main}</main>
+      <main class="hy-main ${mainCls}">${mainCls ? "" : mtop}${main}</main>
     </div>`;
   }
 
@@ -1755,8 +1761,11 @@ class FlowCardsPanel extends HTMLElement {
       case "hy-nav": {
         const to = el.dataset.to;
         if (this._view === "edit") { if (!this._confirmLeave()) return true; this._stopListen(); this._clearStash(); this._draft = null; this._dirty = false; }
-        if (el.dataset.path) { this._navigate(el.dataset.path); return true; }
+        if (el.dataset.path) { this._embed = { path: el.dataset.path, id: to, back: this._view === "devices" ? "devices" : "list" }; this._view = "embed"; this._render(); return true; }
         this._view = to === "devices" ? "devices" : "list"; this._hySearch = false; this._render(); return true;
+      }
+      case "embed-back": this._view = (this._embed && this._embed.back) || "list"; this._embed = null; this._render(); return true;
+      case "embed-open": { const path = this._embed.path; this._view = this._embed.back || "list"; this._embed = null; this._navigate(path); return true;
       }
       case "hy-goto": this._menu = null; this._navigate(el.dataset.path); return true;
       case "hy-mode": this._setUi("mode", el.dataset.mode); this._render(); return true;
@@ -1833,6 +1842,16 @@ class FlowCardsPanel extends HTMLElement {
       }
       default: return false;
     }
+  }
+
+  _renderEmbed() {
+    const e = this._embed;
+    const label = (HY_RAIL.find((r) => r[0] === e.id) || [0, 0, "Home Assistant"])[2];
+    const backTo = e.back === "devices" ? "Enheder" : "Flows";
+    const main = `<div class="hy-embed"><div class="hy-ebar"><button class="pl act" data-action="embed-back"><ha-icon icon="mdi:arrow-left"></ha-icon><span>Tilbage til ${backTo}</span></button>
+        <b>${esc(label)}</b><span class="grow"></span><button class="pl" data-action="embed-open" title="Åbn som almindelig side i Home Assistant"><ha-icon icon="mdi:open-in-new"></ha-icon><span>Åbn som side</span></button></div>
+        <iframe src="${esc(e.path)}" title="${esc(label)}"></iframe></div>`;
+    return this._hyShell({ title: label, plus: null, tree: `<button class="hy-ti" data-action="embed-back"><ha-icon icon="mdi:arrow-left"></ha-icon><span class="lb">Tilbage til ${backTo}</span></button>`, main, active: e.id, mainCls: "emb" });
   }
 
   _navigate(path) {
