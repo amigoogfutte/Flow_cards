@@ -64,6 +64,16 @@ Tryk **Lyt** i editoren, og gør noget fysisk: tryk på en knap, tænd en lampe,
 
 Den lytter også på knapper og fjernbetjeninger, der ikke har deres egen entitet (fx Zigbee2MQTT-knapper, der kun sender en hændelse).
 
+## Homey-look (0.6)
+- **Forside som Homey:** lys sidemenu med ikonbjælke (Hjem, Enheder, Flows, Indsigt, Script, Indstillinger) og et mappetræ.
+- **Visninger:** liste, små fliser og store fliser. Flows grupperes efter mappe. Afspil-knap på hver flise, og slåede-fra flows er grå.
+- **Undermapper:** opret en undermappe fra træet. Træk et flow over på en mappe for at flytte det.
+- **Højreklik eller langt tryk** på et flow: Rediger, Kør, Historik, Dupliker, Flyt til mappe, Slå til/fra, Slet.
+- **Enheder:** dine etager, rum og enheder som Homey-fliser. Tryk for at tænde/slukke, højreklik for detaljer.
+- **Editor:** lyst gitter, kort med runde ikoner, Gem, Fortryd/Gentag, Variabler (hjælpere) og **+ Tilføj** med Når/Og/Så/Vent/Alle/Én af/Note.
+- **Kortvælger i tre kolonner:** Zoner og System → etager, rum og enheder → kort.
+- **Mørkt tema** kan slås til under ⋯.
+
 ## Genstart
 
 Når Home Assistant genstarter, kommer enhederne online og får deres tilstand tilbage. Det er ikke rigtige ændringer, så Flows ignorerer tilstands-, tal- og knap-kort det første minut efter opstart, og når en enhed blot kommer tilbage efter at have været utilgængelig. Vil du have noget til at ske ved opstart, så brug kortet "Home Assistant starter".

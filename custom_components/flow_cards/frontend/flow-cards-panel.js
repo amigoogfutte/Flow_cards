@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.5.10";
+const FC_VERSION = "0.6.0";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -797,6 +797,16 @@ function toAdvanced(f) {
 
 /* ------------------------------------------------------------------ styles */
 
+const fLeaf = (p) => String(p).split("/").pop();
+const fLabel = (p) => String(p).split("/").join(" › ");
+const HY_RAIL = [["home", "mdi:home", "Hjem", "/"], ["devices", "mdi:view-grid", "Enheder", null], ["flows", "mdi:shuffle-variant", "Flows", null],
+  ["insights", "mdi:chart-bar", "Indsigt", "/history"], ["script", "mdi:code-tags", "Script", "/config/script/dashboard"], ["settings", "mdi:cog", "Indstil.", "/config"]];
+const D_ORDER = ["light", "switch", "fan", "cover", "lock", "climate", "media_player", "vacuum", "humidifier", "water_heater", "valve", "siren", "input_boolean", "remote", "alarm_control_panel", "camera", "binary_sensor", "event", "sensor", "button", "number", "select"];
+const dPrio = (eid) => { const i = D_ORDER.indexOf(eid.split(".")[0]); return i < 0 ? 99 : i; };
+const DEV_STATE = { on: "Tændt", off: "Slukket", open: "Åben", closed: "Lukket", opening: "Åbner", closing: "Lukker", locked: "Låst", unlocked: "Ulåst", playing: "Afspiller", paused: "Pause", idle: "Inaktiv", standby: "Standby", home: "Hjemme", not_home: "Ude", unknown: "Ukendt", heat: "Varme", cool: "Køl", auto: "Auto", cleaning: "Gør rent", docked: "I dock", returning: "På vej hjem" };
+const DEV_OFF = new Set(["off", "closed", "idle", "standby", "paused", "docked", "not_home", "unknown"]);
+const DEV_TOGGLE = new Set(["light", "switch", "fan", "input_boolean", "siren", "humidifier", "remote", "media_player", "climate", "water_heater", "vacuum", "valve"]);
+const APP_COLORS = { time: "#e5281e", sun: "#ff9f0a", logic: "#28a745", notify: "#1f4e79", flows: "#34c759", events: "#ffcc00", system: "#0a84ff", advanced: "#8e8e93" };
 const STYLE = `
 :host{display:block;min-height:100%;--fc-when:#3b6fd8;--fc-and:#d4891a;--fc-then:#1f9d6b;--fc-else:#c8553d;
   --fc-bg:var(--primary-background-color,#f3f4f6);--fc-card:var(--card-background-color,#fff);--fc-text:var(--primary-text-color,#1f2328);
@@ -1030,6 +1040,189 @@ svg.wires .wire.temp{stroke-dasharray:4 4}
 @media (max-width:600px){.cv-tools select{max-width:130px}.canvas{height:calc(100vh - 56px - 92px)}}
 @media (max-width:980px){.board{grid-template-columns:1fr}}
 @media (max-width:600px){.top .btn{padding:8px 10px}.top{gap:4px;padding:0 6px}.main{padding:12px}.row .when{display:none}.top h1{font-size:18px}.hide-sm{display:none}}
+/* ---------- Homey-style shell */
+.hy{--h-bg:#f2f2f7;--h-panel:#fff;--h-tile:#fff;--h-off:#ececf0;--h-text:#1c1c1e;--h-muted:#8e8e93;--h-line:#e5e5ea;--h-blue:#0a84ff;--h-red:#e0251b;--h-hover:#f2f2f7;--h-selbg:#e8f2ff;
+  display:flex;height:100vh;overflow:hidden;background:var(--h-bg);color:var(--h-text);font-family:Roboto,"Helvetica Neue",Arial,sans-serif;font-size:13px}
+.hy.dark{--h-bg:#111113;--h-panel:#1c1c1e;--h-tile:#2c2c2e;--h-off:#232325;--h-text:#f2f2f7;--h-muted:#8e8e93;--h-line:#2f2f33;--h-hover:#2a2a2d;--h-selbg:#15304f}
+.hy ha-icon{--mdc-icon-size:18px}
+.hy-nav{width:232px;flex:none;background:var(--h-panel);border-radius:0 0 12px 0;display:flex;flex-direction:column;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-bottom:12px}
+.hy-head{display:flex;align-items:center;gap:10px;height:42px;padding:0 10px 0 9px;flex:none}
+.hy-head h1{flex:1;margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.hy-logo{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;background:linear-gradient(135deg,#0a84ff,#5e5ce6)}
+.hy-plus{width:22px;height:22px;border-radius:50%;background:var(--h-blue);color:#fff;display:inline-flex;align-items:center;justify-content:center;flex:none;box-shadow:0 1px 3px rgba(10,132,255,.4)}
+.hy-plus ha-icon{--mdc-icon-size:16px}
+.hy-navbody{flex:1;min-height:0;display:flex}
+.hy-rail{width:46px;flex:none;display:flex;flex-direction:column;align-items:center;gap:6px;padding:8px 0 10px;border-right:1px solid var(--h-line)}
+.hy-rail .grow{flex:1}
+.hy-ri{display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--h-muted);width:44px}
+.hy-ri .b{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+.hy-ri .b ha-icon{--mdc-icon-size:20px}
+.hy-ri .l{font-size:8.5px;line-height:1.1;text-align:center}
+.hy-ri:hover .b{background:var(--h-hover)}
+.hy-ri.sel{color:var(--h-blue)}.hy-ri.sel .b{background:var(--h-selbg)}
+.hy-avatar{width:26px;height:26px;border-radius:50%;background:#ffcc00;color:#fff;font-size:10px;font-weight:700;display:flex;align-items:center;justify-content:center;margin-top:4px}
+.hy-tree{flex:1;min-width:0;overflow:auto;padding:8px 6px}
+.hy-ti{display:flex;align-items:center;gap:7px;width:100%;min-height:27px;padding:3px 6px 3px calc(8px + var(--d,0) * 13px);border-radius:7px;cursor:pointer;text-align:left;color:var(--h-text);font-size:12px;border:1px solid transparent}
+.hy-ti ha-icon{--mdc-icon-size:14px;flex:none}
+.hy-ti .lb{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hy-ti .n{color:var(--h-muted);font-size:10.5px}
+.hy-ti:hover{background:var(--h-hover)}
+.hy-ti.sel{color:var(--h-blue);font-weight:600}
+.hy-ti.add{color:var(--h-muted)}
+.hy-ti.drop{border-color:var(--h-blue);background:var(--h-selbg)}
+.hy-ti .tools{display:none;gap:0}.hy-ti:hover .tools{display:inline-flex}.hy-ti:hover .n{display:none}
+.hy-ti .tools button{padding:2px;color:var(--h-muted);border-radius:4px;display:inline-flex}.hy-ti .tools button:hover{color:var(--h-blue)}
+.hy-ti .tools ha-icon{--mdc-icon-size:14px}
+.hy-main{flex:1;min-width:0;overflow:auto;padding:0 32px 32px}
+.hy-mtop{display:none}
+.hy-toolbar{display:flex;align-items:center;gap:10px;height:40px;position:sticky;top:0;z-index:4;background:var(--h-bg)}
+.hy-toolbar .grow{flex:1}
+.hy-seg{display:flex;background:var(--h-panel);border-radius:0 0 12px 12px;padding:2px 8px 4px;gap:2px;box-shadow:0 1px 3px rgba(0,0,0,.06);margin-top:-4px;padding-top:6px}
+.hy-seg button,.hy-round{width:28px;height:26px;border-radius:7px;display:inline-flex;align-items:center;justify-content:center;color:var(--h-muted)}
+.hy-seg button.sel{color:var(--h-blue)}
+.hy-seg ha-icon,.hy-round ha-icon{--mdc-icon-size:16px}
+.hy-round{width:28px;height:28px;border-radius:50%;background:var(--h-panel);box-shadow:0 1px 3px rgba(0,0,0,.08);margin-top:-2px}
+.hy-search{width:240px;max-width:40vw;height:30px;border-radius:999px;border:1px solid var(--h-line);background:var(--h-panel);color:var(--h-text);padding:4px 14px;font-size:12px}
+.hy .ver{font-size:10px}
+.hy-msel{display:none}
+.hy-sec{margin-top:16px}
+.hy-sec h2{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin:0 0 10px}
+.hy-sec h2 .hb{width:28px;height:28px;border-radius:7px;background:var(--h-off);display:flex;align-items:center;justify-content:center}
+.hy-sec h2 .hb ha-icon{--mdc-icon-size:16px}
+.hy-sec h2 .cnt{font-weight:400;color:var(--h-muted);font-size:12px}
+.hy-tiles{display:flex;flex-wrap:wrap;gap:10px}
+.hy-tiles.list{flex-direction:column;gap:6px;max-width:900px}
+.hy-tile{position:relative;width:80px;height:80px;border-radius:7px;background:var(--h-tile);box-shadow:0 1px 3px rgba(0,0,0,.1);padding:6px;display:flex;flex-direction:column;cursor:pointer;user-select:none;-webkit-user-select:none;transition:transform .08s}
+.hy-tile:hover{transform:translateY(-1px);box-shadow:0 3px 8px rgba(0,0,0,.12)}
+.hy-tile.off{background:var(--h-off);box-shadow:0 1px 2px rgba(0,0,0,.06)}
+.hy-tile .ic{flex:none;height:30px;display:flex;align-items:flex-start;color:var(--h-text)}
+.hy-tile .ic ha-icon{--mdc-icon-size:26px}
+.hy-tile.off .ic{opacity:.75}
+.hy-tile .nm{margin-top:auto;font-size:9.5px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hy-tile .st,.hy-row .st{font-size:8.5px;color:var(--h-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:flex;align-items:center;gap:2px;margin-top:2px}
+.hy .st.err{color:var(--h-red)}.hy .st.run{color:var(--h-blue)}
+.hy .st ha-icon{--mdc-icon-size:10px}
+.hy-play{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:50%;background:rgba(127,127,127,.18);display:flex;align-items:center;justify-content:center;color:var(--h-text)}
+.hy-play:hover{background:var(--h-blue);color:#fff}
+.hy-play ha-icon{--mdc-icon-size:14px}
+.hy-tile.big{width:150px;height:126px;padding:10px}
+.hy-tile.big .ic ha-icon{--mdc-icon-size:32px}
+.hy-tile.big .nm{font-size:12.5px;font-weight:500;white-space:normal;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+.hy-tile.big .sb{font-size:10px;color:var(--h-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.hy-tile.big .st{font-size:10px}
+.hy-tile.big .hy-play{top:10px;right:10px;width:26px;height:26px}
+.hy-tile.dragging,.hy-row.dragging{opacity:.4}
+.hy-row{display:flex;align-items:center;gap:12px;background:var(--h-tile);border-radius:8px;padding:8px 10px;box-shadow:0 1px 2px rgba(0,0,0,.08);cursor:pointer}
+.hy-row.off{background:var(--h-off)}
+.hy-row .ic{width:30px;height:30px;display:flex;align-items:center;justify-content:center}.hy-row .ic ha-icon{--mdc-icon-size:22px}
+.hy-row .t{flex:1;min-width:0;display:flex;flex-direction:column}.hy-row .t b{font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hy-row .t .s{font-size:11px;color:var(--h-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hy-row .st{font-size:11px;margin:0;min-width:80px;justify-content:flex-end}
+.hy-row .hy-play{position:static;width:26px;height:26px}
+.hy-dots{width:26px;height:26px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:var(--h-muted)}.hy-dots:hover{background:var(--h-hover)}
+.hy .empty{color:var(--h-muted)}
+.hy .stash{margin-top:12px}
+.hy-layer{position:fixed;inset:0;z-index:24}
+.hy-menu{position:fixed;z-index:25;min-width:210px;max-width:280px;max-height:70vh;overflow:auto;background:#fff;color:#1c1c1e;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);padding:6px;font-size:13px;font-family:Roboto,"Helvetica Neue",Arial,sans-serif}
+.hy-menu.dark{background:#2c2c2e;color:#f2f2f7}
+.hy-menu .mi{display:flex;align-items:center;gap:10px;width:100%;padding:7px 12px;border-radius:8px;text-align:left}
+.hy-menu .mi ha-icon{--mdc-icon-size:17px;opacity:.75}
+.hy-menu .mi:hover{background:rgba(127,127,127,.14)}
+.hy-menu .mi.danger{color:#e0251b}.hy-menu .mi.cur{color:#0a84ff;font-weight:600}
+.hy-menu .mh.t{padding:6px 12px 8px;font-weight:600;font-size:12px;color:#8e8e93;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hy-menu .mi.back{font-weight:600}
+.hy-menu .sep{height:1px;background:rgba(127,127,127,.2);margin:5px 8px}
+.hy.narrow .hy-nav{display:none}
+.hy.narrow .hy-main{padding:0 12px 24px}
+.hy.narrow .hy-mtop{display:flex;align-items:center;gap:6px;height:52px;margin:0 -12px;padding:0 8px;background:var(--h-panel);position:sticky;top:0;z-index:5}
+.hy.narrow .hy-mtop h1{font-size:18px;margin:0 4px;font-weight:600}.hy.narrow .hy-mtop .grow{flex:1}
+.hy.narrow .hy-mtop .hy-ri{width:36px}.hy.narrow .hy-plus{width:30px;height:30px}
+.hy.narrow .hy-toolbar{top:52px}
+.hy.narrow .hy-msel{display:block;margin:8px 0 0;border-radius:10px;background:var(--h-panel);color:var(--h-text);border-color:var(--h-line)}
+.hy.narrow .hy-tiles:not(.list){display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr))}
+.hy.narrow .hy-tile{width:auto;height:96px}.hy.narrow .hy-tile.big{height:130px}
+.hy.narrow .hy-tiles.big{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+/* ---------- Homey-style editor */
+.hy-main.cv{padding:0;position:relative;overflow:hidden}
+.canvas.hyc{height:100vh;background-color:var(--h-bg);background-image:linear-gradient(rgba(0,0,0,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(0,0,0,.05) 1px,transparent 1px);background-size:16px 16px}
+.hy.dark .canvas.hyc{background-image:linear-gradient(rgba(255,255,255,.05) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.05) 1px,transparent 1px)}
+.hy .node{border-top:0;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.13);background:var(--h-tile);color:var(--h-text);padding-left:46px}
+.hy .node .nic{position:absolute;left:8px;top:15px;width:30px;height:30px;border-radius:50%;background:var(--c);color:#fff;display:flex;align-items:center;justify-content:center}
+.hy .node .nic ha-icon{--mdc-icon-size:17px}
+.hy .node .nhead{color:var(--h-muted);text-transform:none;font-weight:400;font-size:10px;letter-spacing:0;padding:7px 8px 0 0}
+.hy .node .nbody{padding:1px 12px 10px 0;font-size:13px;line-height:1.45}
+.hy .node .nhead button{opacity:0;transition:opacity .1s}.hy .node:hover .nhead button,.hy .node .nhead .not:not(.off){opacity:1}
+.hy .node .pill{background:none;padding:0;font-weight:600;color:inherit}
+.hy .node.note{background:#fff3a6;color:#4a4000;padding-left:0;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+.hy .node.note .nhead{padding-left:12px;color:#8a7a10}.hy .node.note .nbody{padding-left:12px}
+.hy .pin{width:10px;height:10px;border:2px solid var(--h-tile);box-shadow:0 0 0 1px rgba(0,0,0,.08);font-size:0}
+.hy .pin.in{background:#aeaeb2}
+.hy .pin.out,.hy .pin.out.true{background:#0a84ff}.hy .pin.out.false{background:#ff9f0a}.hy .pin.out.error{background:#ff453a;width:10px;height:10px}
+.hy svg.wires .wire{stroke:#0a84ff;stroke-width:2}.hy svg.wires .wire.true{stroke:#0a84ff}.hy svg.wires .wire.false{stroke:#ff9f0a}.hy svg.wires .wire.error{stroke:#ff453a}
+.hy .cv-zoom{background:var(--h-panel);color:var(--h-text)}
+.hy .cv-empty{color:var(--h-muted)}
+.cv-float{position:absolute;top:10px;display:flex;align-items:center;gap:8px;z-index:6;flex-wrap:wrap}
+.cv-float.l{left:16px}.cv-float.r{right:16px}
+.pw{position:relative;display:inline-flex}
+.pl{display:inline-flex;align-items:center;gap:6px;height:30px;padding:0 13px;border-radius:999px;background:var(--h-panel);color:var(--h-text);box-shadow:0 1px 3px rgba(0,0,0,.14);font-size:12.5px;border:0}
+.pl ha-icon{--mdc-icon-size:16px}
+.pl:disabled{color:var(--h-muted);cursor:default}
+.pl.act{color:var(--h-blue);font-weight:600}
+.pl.blue{background:linear-gradient(#3b93ff,#0a6cff);color:#fff;font-weight:600}
+.pl.rec{background:var(--h-red);color:#fff}
+.pl.duo{padding:0 4px;gap:0}.pl.duo button{width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%}.pl.duo button:disabled{opacity:.3;cursor:default}
+.pl.duo i{width:1px;height:16px;background:var(--h-line)}
+.pl.round{width:30px;padding:0;justify-content:center}
+.pl.name{width:230px;font-weight:600;font-size:13px}
+.cv-float .switch{box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.hy .switch.on{background:var(--h-blue)}
+.cv-pop{position:absolute;top:38px;left:0;z-index:25;background:var(--h-panel);color:var(--h-text);border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.2);padding:6px;min-width:170px;display:flex;flex-direction:column}
+.cv-pop.set{left:auto;right:0;min-width:250px}
+.cv-pop button{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:8px;text-align:left;font-size:13px;color:var(--h-text)}
+.cv-pop button:hover{background:var(--h-hover)}.cv-pop button.danger{color:var(--h-red)}
+.cv-pop button ha-icon{--mdc-icon-size:17px;opacity:.75}
+.cv-pop .sep{height:1px;background:var(--h-line);margin:5px 8px}
+.cv-pop label{display:flex;flex-direction:column;gap:4px;font-size:11px;color:var(--h-muted);padding:6px 8px}
+.cv-pop select{background:var(--h-panel);color:var(--h-text);border-color:var(--h-line);padding:6px 8px;font-size:13px}
+.cv-pop .muted{color:var(--h-muted);font-size:12px;padding:6px 12px}
+.hy .chip.unsaved{box-shadow:0 1px 3px rgba(0,0,0,.14)}
+.hy .cv-banner{top:52px}
+.hy-filter{display:flex;align-items:center;gap:6px;border:1px solid var(--h-line);border-radius:999px;padding:3px 10px;margin:2px 2px 10px;color:var(--h-muted)}
+.hy-filter input{border:0;padding:3px 0;background:transparent;font-size:12px;color:var(--h-text)}
+.hy-filter ha-icon{--mdc-icon-size:15px}
+.hy-ti.grp{cursor:default}.hy-ti.grp:hover{background:none}
+.hy-ti .bul{width:4px;height:4px;border-radius:50%;background:var(--h-muted);margin:0 4px;flex:none}
+.hy-ti.dim{opacity:.55}
+@media (max-width:700px){.cv-float.r{top:48px;left:16px;right:auto}.pl.name{width:150px}.pl span{display:none}.pl.blue span,.pl.act span{display:inline}}
+/* ---------- Homey-style card picker */
+.hpick,.hym{background:#fff;color:#1c1c1e;--fc-card:#fff;--fc-text:#1c1c1e;--fc-muted:#8e8e93;--fc-line:#e5e5ea}
+.hpick{width:min(1000px,100%);height:min(680px,100%);max-height:none;border-radius:12px}
+.hpick header,.hym header{background:#f2f2f7;border-bottom:1px solid #e5e5ea;padding:8px 12px 8px 16px}
+.hpick header h3{flex:none;width:200px;font-weight:500;font-size:15px}
+.hsearch{flex:1;max-width:300px;margin:0 auto;display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #d1d1d6;border-radius:6px;padding:0 10px;color:#8e8e93}
+.hsearch input{border:0;padding:6px 0;font-size:13px;background:transparent;color:#1c1c1e}
+.hsearch ha-icon{--mdc-icon-size:16px}
+.hpick .cols{flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}
+.hpick .cols>div{overflow:auto;padding:6px 10px 14px;border-right:1px solid #e5e5ea}
+.hpick .cols>div:last-child{border-right:0}
+.hpick .sub{text-transform:none;letter-spacing:0;font-weight:500;font-size:11px;color:#8e8e93;margin:10px 6px 4px}
+.pk{display:flex;align-items:center;gap:9px;width:100%;padding:4px 6px;border-radius:7px;text-align:left;font-size:13px;color:#1c1c1e}
+.pk:hover,.pk.sel{background:#f2f2f7}.pk.sel{color:#0a84ff}
+.pk .pc{width:24px;height:24px;border-radius:50%;color:#fff;display:flex;align-items:center;justify-content:center;flex:none}.pk .pc ha-icon{--mdc-icon-size:14px}
+.pk .pn{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk .chev{--mdc-icon-size:18px;color:#aeaeb2}.pk.sel .chev{color:#0a84ff}
+.pk.back{font-weight:600;margin-top:4px}
+.hpick .defs{gap:8px}
+.hpick .def{background:#fff;border:0;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.15);font-size:13px;padding:9px 12px;color:#1c1c1e;line-height:1.5}
+.hpick .def:hover{box-shadow:0 2px 8px rgba(0,0,0,.2);background:#fff}
+.hpick .def .pill{background:none;border:1px solid #d1d1d6;font-weight:400;font-size:11px;padding:0 6px;color:#636366}
+.hpick .empty{padding:20px;color:#8e8e93}
+.hpick .unav{font-size:12px;color:#8e8e93;margin:14px 6px 0}
+.hpick .dthint{color:#8e8e93}
+.vrow{display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid #e5e5ea}
+.vt{flex:1;min-width:0;display:flex;flex-direction:column}.vt small{color:#8e8e93;font-size:11px}
+.vval{padding:4px 10px;border-radius:999px;background:#f2f2f7;font-size:13px}
+@media (max-width:760px){.hpick .cols{display:block;overflow:auto}.hpick .cols>div{border-right:0;border-bottom:1px solid #e5e5ea;overflow:visible}.hpick .cols>div:empty{display:none}.hpick header h3{width:auto}}
 `;
 
 /* ------------------------------------------------------------------ panel */
@@ -1064,8 +1257,13 @@ class FlowCardsPanel extends HTMLElement {
     this.shadowRoot.addEventListener("pointermove", (e) => this._cvMove(e));
     this.shadowRoot.addEventListener("pointerup", (e) => this._cvUp(e));
     this.shadowRoot.addEventListener("pointercancel", (e) => this._cvUp(e, true));
+    this.shadowRoot.addEventListener("contextmenu", (e) => this._hyContext(e));
+    this.shadowRoot.addEventListener("pointerdown", (e) => this._hyLongDown(e));
+    this.shadowRoot.addEventListener("pointermove", (e) => this._hyLongMove(e));
+    this.shadowRoot.addEventListener("pointerup", () => this._hyLongUp());
     this.shadowRoot.addEventListener("wheel", (e) => this._cvWheel(e), { passive: false });
     this.shadowRoot.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && (this._vars || this._addMenu || this._setMenu)) { this._vars = false; this._addMenu = false; this._setMenu = false; this._render(); return; }
       if (e.key === "Escape" && (this._picker || this._historyFor || this._newChooser || this._connect || (this._nr && !this._nr.busy))) { this._picker = null; this._historyFor = null; this._newChooser = false; this._connect = null; if (this._nr && !this._nr.busy) this._nr = null; this._render(); }
     });
   }
@@ -1260,14 +1458,16 @@ class FlowCardsPanel extends HTMLElement {
   _render() {
     this._pending = false;
     if (!this._loaded) return;
+    this._snapshot();
     this._stashDraft();
-    const body = this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
+    const body = this._view === "devices" ? this._renderDevices() : this._view !== "edit" ? this._renderList() : this._draft.type === "advanced" ? this._renderCanvas() : this._renderEditor();
     const listen = this._listen && this._view === "edit" && !this._picker ? this._renderListen() : "";
-    const modal = this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : this._nr ? this._renderNodeRed() : "";
+    const modal = this._vars ? this._renderVars() : this._picker ? this._renderPicker() : this._historyFor ? this._renderHistory() : this._newChooser ? this._renderNewChooser() : this._nr ? this._renderNodeRed() : "";
+    const menu = this._menu && this._view !== "edit" ? this._renderMenu() : "";
     const toast = this._toastMsg ? `<div class="toast ${this._toastMsg.error ? "error" : ""}">${esc(this._toastMsg.msg)}</div>` : "";
     const scroll = this.shadowRoot.querySelector(".content");
     const top = scroll ? scroll.scrollTop : 0;
-    this.shadowRoot.innerHTML = `<style>${STYLE}</style><div class="${this._narrow ? "narrow" : ""}" style="min-height:100vh;background:var(--fc-bg)">${body}${listen}${modal}${toast}</div>`;
+    this.shadowRoot.innerHTML = `<style>${STYLE}</style><div class="${this._narrow ? "narrow" : ""}" style="min-height:100vh;background:var(--fc-bg)">${body}${listen}${modal}${menu}${toast}</div>`;
     const sc = this.shadowRoot.querySelector(".content");
     if (sc && this._keepScroll) sc.scrollTop = top;
     this._keepScroll = false;
@@ -1282,48 +1482,384 @@ class FlowCardsPanel extends HTMLElement {
       .sort((a, b) => a.name.localeCompare(b.name, "da"));
   }
 
-  _renderList() {
-    const flows = this._filteredFlows();
-    const count = (fn) => this._flows.filter(fn).length;
-    const folderBtn = (id, label, icon, n, tools = "") =>
-      `<div role="button" tabindex="0" class="f ${this._folder === id ? "sel" : ""}" data-action="folder" data-folder="${esc(id)}"><ha-icon icon="${icon}"></ha-icon><span>${esc(label)}</span><span class="n">${n}</span>${tools}</div>`;
-    const side = `<div class="side">
-      ${folderBtn("__all", "Alle flows", "mdi:folder-multiple-outline", this._flows.length)}
-      ${folderBtn("__none", "Uden mappe", "mdi:folder-outline", count((f) => !f.folder))}
-      <div class="sub">Mapper</div>
-      ${this._folders.map((fo) => folderBtn(fo, fo, "mdi:folder", count((f) => f.folder === fo),
-        `<span class="tools"><button data-action="rename-folder" data-folder="${esc(fo)}" title="Omdøb"><ha-icon icon="mdi:pencil" style="--mdc-icon-size:16px"></ha-icon></button><button data-action="delete-folder" data-folder="${esc(fo)}" title="Slet mappe"><ha-icon icon="mdi:delete-outline" style="--mdc-icon-size:16px"></ha-icon></button></span>`)).join("")}
-      <button class="f" data-action="new-folder" style="color:var(--fc-muted)"><ha-icon icon="mdi:folder-plus-outline"></ha-icon><span>Ny mappe</span></button>
-    </div>`;
-    const rows = flows.map((f) => {
-      const s = f.status || {};
-      const lr = s.last_run;
-      const dot = s.running ? "running" : lr ? (lr.status === "error" ? "error" : "ok") : "";
-      const err = s.arm_error || (lr && lr.status === "error" && s.last_error ? `Fejl ${this._when(s.last_error.start)}: ${s.last_error.error}` : "");
-      return `<div class="row ${f.enabled ? "" : "off"}" data-action="open" data-id="${f.id}">
-        <span class="dot ${dot}" title="${esc(lr ? lr.status : "Ikke kørt endnu")}"></span>
-        <div class="info"><div class="name">${esc(f.name)}</div><div class="sum">${esc(this._flowSummary(f))}</div>${err ? `<div class="err">${esc(err)}</div>` : ""}</div>
-        ${f.folder && this._folder === "__all" ? `<span class="chip hide-sm">${esc(f.folder)}</span>` : ""}
-        <span class="when">${lr ? esc(this._when(lr.start)) : "Ikke kørt"}</span>
-        <button class="icon-btn" data-action="run" data-id="${f.id}" title="Kør nu"><ha-icon icon="mdi:play"></ha-icon></button>
-        <button class="icon-btn hide-sm" data-action="history" data-id="${f.id}" title="Historik"><ha-icon icon="mdi:history"></ha-icon></button>
-        <button class="icon-btn hide-sm" data-action="duplicate" data-id="${f.id}" title="Dupliker"><ha-icon icon="mdi:content-copy"></ha-icon></button>
-        <button class="switch ${f.enabled ? "on" : ""}" data-action="toggle" data-id="${f.id}" title="${f.enabled ? "Slå fra" : "Slå til"}"></button>
-      </div>`;
-    }).join("");
-    const folderSelect = `<select class="folder-select" data-field="folder-select">
-      <option value="__all" ${this._folder === "__all" ? "selected" : ""}>Alle flows</option>
-      <option value="__none" ${this._folder === "__none" ? "selected" : ""}>Uden mappe</option>
-      ${this._folders.map((fo) => `<option value="${esc(fo)}" ${this._folder === fo ? "selected" : ""}>${esc(fo)}</option>`).join("")}</select>`;
-    const empty = this._flows.length
-      ? `<div class="empty"><p>Ingen flows her.</p></div>`
-      : `<div class="empty"><ha-icon icon="mdi:graph-outline"></ha-icon><p><b>Ingen flows endnu</b></p><p>Et flow består af kort: <b>NÅR</b> noget sker, <b>OG</b> betingelserne passer, <b>SÅ</b> gør Home Assistant noget.</p><button class="btn primary" data-action="new">Opret dit første flow</button></div>`;
-    return `${this._topBar(`<h1>Flows</h1><div class="grow"></div><button class="btn ghost" data-action="nr-open" title="Hent flows fra Node-RED"><ha-icon icon="mdi:import"></ha-icon><span class="hide-sm">Importér fra Node-RED</span></button><button class="btn primary" data-action="new"><ha-icon icon="mdi:plus"></ha-icon><span class="hide-sm">Nyt flow</span></button>`)}
-      <div class="layout">${side}<div class="main">${folderSelect}
-        ${(() => { const st = this._readStash(); return st ? `<div class="stash"><ha-icon icon="mdi:content-save-alert-outline"></ha-icon><span>Du har ikke-gemte ændringer i <b>${esc(st.draft.name || "et flow")}</b> fra ${esc(this._when(new Date(st.at).toISOString()))}.</span><span class="grow"></span><button class="btn primary" data-action="restore-draft">Fortsæt redigering</button><button class="btn ghost" data-action="discard-draft">Kassér</button></div>` : ""; })()}
-        <input class="search" type="search" placeholder="Søg i flows…" data-field="search" value="${esc(this._search)}">
-        <div class="list">${rows || empty}</div></div></div>`;
+  /* ================================================================ Homey-style shell (lists) */
+
+  _ui() {
+    if (!this._uiPrefs) { try { this._uiPrefs = JSON.parse(localStorage.getItem("flow_cards_ui") || "{}"); } catch (e) { this._uiPrefs = {}; } }
+    return this._uiPrefs;
   }
+  _setUi(k, v) { this._ui()[k] = v; try { localStorage.setItem("flow_cards_ui", JSON.stringify(this._uiPrefs)); } catch (e) { /* ignore */ } }
+
+  _folderTree() {
+    const all = new Set();
+    for (const fo of [...this._folders, ...this._flows.map((f) => f.folder).filter(Boolean)]) {
+      const parts = fo.split("/").filter(Boolean);
+      for (let i = 1; i <= parts.length; i++) all.add(parts.slice(0, i).join("/"));
+    }
+    const cmp = (a, b) => { const x = a.split("/"), y = b.split("/"); for (let i = 0; i < Math.min(x.length, y.length); i++) { const c = x[i].localeCompare(y[i], "da"); if (c) return c; } return x.length - y.length; };
+    return [...all].sort(cmp).map((p) => ({ path: p, depth: p.split("/").length - 1, leaf: fLeaf(p) }));
+  }
+  _inFolder(f, sel) {
+    if (sel === "__all") return true;
+    if (sel === "__none") return !f.folder;
+    return f.folder === sel || (f.folder || "").startsWith(`${sel}/`);
+  }
+
+  _hyShell({ title, plus, plusTitle, tree, main, active, mainCls = "" }) {
+    const u = this._ui();
+    const initials = ((this._hass.user && this._hass.user.name) || "HA").split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+    const rail = HY_RAIL.map(([id, icon, label, path]) => `<button class="hy-ri ${active === id ? "sel" : ""}" data-action="hy-nav" data-to="${id}" ${path ? `data-path="${path}"` : ""} title="${label}"><span class="b"><ha-icon icon="${icon}"></ha-icon></span><span class="l">${label}</span></button>`).join("");
+    const mtop = `<div class="hy-mtop"><button class="icon-btn" data-action="menu" title="Menu"><ha-icon icon="mdi:menu"></ha-icon></button><h1>${esc(title)}</h1><span class="grow"></span>
+      <button class="hy-ri sm ${active === "devices" ? "sel" : ""}" data-action="hy-nav" data-to="devices" title="Enheder"><span class="b"><ha-icon icon="mdi:view-grid"></ha-icon></span></button>
+      <button class="hy-ri sm ${active === "flows" ? "sel" : ""}" data-action="hy-nav" data-to="flows" title="Flows"><span class="b"><ha-icon icon="mdi:shuffle-variant"></ha-icon></span></button>
+      ${plus ? `<button class="hy-plus" data-action="${plus}" title="${esc(plusTitle)}"><ha-icon icon="mdi:plus"></ha-icon></button>` : ""}</div>`;
+    return `<div class="hy ${u.dark ? "dark" : ""} ${this._narrow ? "narrow" : ""}">
+      <aside class="hy-nav">
+        <div class="hy-head"><span class="hy-logo"><ha-icon icon="mdi:graph-outline"></ha-icon></span><h1>${esc(title)}</h1>${plus ? `<button class="hy-plus" data-action="${plus}" title="${esc(plusTitle)}"><ha-icon icon="mdi:plus"></ha-icon></button>` : ""}</div>
+        <div class="hy-navbody">
+          <nav class="hy-rail">${rail}<span class="grow"></span>
+            <button class="hy-ri" data-action="hy-search" title="Søg"><span class="b"><ha-icon icon="mdi:magnify"></ha-icon></span></button>
+            <span class="hy-avatar" title="${esc((this._hass.user && this._hass.user.name) || "")}">${esc(initials)}</span></nav>
+          <div class="hy-tree">${tree}</div>
+        </div>
+      </aside>
+      <main class="hy-main ${mainCls}">${mainCls === "cv" ? "" : mtop}${main}</main>
+    </div>`;
+  }
+
+  _hyToolbar(searchField, searchVal, placeholder) {
+    const mode = this._ui().mode || "grid";
+    const seg = [["list", "mdi:format-list-bulleted", "Liste"], ["grid", "mdi:dots-grid", "Små fliser"], ["big", "mdi:view-grid-outline", "Store fliser"]]
+      .map(([m, ic, t]) => `<button class="${mode === m ? "sel" : ""}" data-action="hy-mode" data-mode="${m}" title="${t}"><ha-icon icon="${ic}"></ha-icon></button>`).join("");
+    const showSearch = this._hySearch || searchVal;
+    return `<div class="hy-toolbar"><div class="hy-seg">${seg}</div><button class="hy-round" data-action="hy-more" title="Flere valg"><ha-icon icon="mdi:dots-horizontal"></ha-icon></button>
+      ${showSearch ? `<input class="hy-search" type="search" data-field="${searchField}" value="${esc(searchVal)}" placeholder="${esc(placeholder)}">` : ""}
+      <span class="grow"></span>${this._view === "list" ? this._versionChip() : ""}</div>`;
+  }
+
+  _hyTile({ id, icon, name, status, scls = "", off = false, play = null, action, menu, drag = false, sub = "" }) {
+    const mode = this._ui().mode || "grid";
+    const playBtn = play ? `<button class="hy-play" data-action="${play}" data-id="${esc(id)}" title="Kør nu"><ha-icon icon="mdi:play"></ha-icon></button>` : "";
+    const st = `<span class="st ${scls}">${scls === "err" ? `<ha-icon icon="mdi:alert"></ha-icon>` : ""}${esc(status)}</span>`;
+    const attrs = `data-action="${action}" data-id="${esc(id)}" data-menu="${menu}" ${drag ? `draggable="true" data-drag-flow="${esc(id)}"` : ""}`;
+    if (mode === "list") {
+      return `<div class="hy-row ${off ? "off" : ""}" ${attrs}><span class="ic"><ha-icon icon="${icon}"></ha-icon></span><span class="t"><b>${esc(name)}</b>${sub ? `<span class="s">${esc(sub)}</span>` : ""}</span>${st}${playBtn}<button class="hy-dots" data-action="hy-menu" data-kind="${menu}" data-id="${esc(id)}" title="Valg"><ha-icon icon="mdi:dots-horizontal"></ha-icon></button></div>`;
+    }
+    return `<div class="hy-tile ${mode} ${off ? "off" : ""}" ${attrs} title="${esc(name)}"><span class="ic"><ha-icon icon="${icon}"></ha-icon></span>${playBtn}
+      <span class="nm">${esc(name)}</span>${mode === "big" && sub ? `<span class="sb">${esc(sub)}</span>` : ""}${st}</div>`;
+  }
+
+  _hySection(icon, title, tiles, extra = "") {
+    const mode = this._ui().mode || "grid";
+    return `<section class="hy-sec"><h2><span class="hb"><ha-icon icon="${icon}"></ha-icon></span>${esc(title)}${extra}</h2><div class="hy-tiles ${mode}">${tiles}</div></section>`;
+  }
+
+  _flowStatus(f) {
+    const s = f.status || {};
+    const lr = s.last_run;
+    if (s.arm_error) return ["Fejl", "err"];
+    if (!f.enabled) return ["Slået fra", ""];
+    if (s.running) return ["Kører…", "run"];
+    if (lr && lr.status === "error") return ["Fejl", "err"];
+    return [lr ? this._when(lr.start) : "Ikke kørt", ""];
+  }
+
+  _renderList() {
+    const q = this._search.trim().toLowerCase();
+    const sel = this._folder;
+    const tree = this._folderTree();
+    if (sel !== "__all" && sel !== "__none" && !tree.some((t) => t.path === sel)) this._folder = "__all";
+    const count = (p) => this._flows.filter((f) => this._inFolder(f, p)).length;
+    const row = (id, label, icon, depth, tools = "", drop = null) => `<div role="button" tabindex="0" class="hy-ti ${this._folder === id ? "sel" : ""}" style="--d:${depth}" data-action="folder" data-folder="${esc(id)}" ${drop !== null ? `data-fdrop="${esc(drop)}"` : ""}><ha-icon icon="${icon}"></ha-icon><span class="lb">${esc(label)}</span><span class="n">${count(id)}</span>${tools}</div>`;
+    const tools = (p) => `<span class="tools"><button data-action="new-folder" data-parent="${esc(p)}" title="Ny undermappe"><ha-icon icon="mdi:folder-plus-outline"></ha-icon></button><button data-action="rename-folder" data-folder="${esc(p)}" title="Omdøb"><ha-icon icon="mdi:pencil"></ha-icon></button><button data-action="delete-folder" data-folder="${esc(p)}" title="Slet mappe"><ha-icon icon="mdi:delete-outline"></ha-icon></button></span>`;
+    const treeHtml = `${row("__all", "Alle flows", "mdi:shuffle-variant", 0)}
+      ${row("__none", "Uden mappe", "mdi:folder-outline", 1, "", "")}
+      ${tree.map((t) => row(t.path, t.leaf, "mdi:folder", t.depth + 1, tools(t.path), t.path)).join("")}
+      <button class="hy-ti add" style="--d:1" data-action="new-folder" data-parent=""><ha-icon icon="mdi:folder-plus-outline"></ha-icon><span class="lb">Ny mappe</span></button>`;
+
+    const flows = this._flows.filter((f) => this._inFolder(f, this._folder))
+      .filter((f) => !q || f.name.toLowerCase().includes(q) || this._flowSummary(f).toLowerCase().includes(q))
+      .sort((a, b) => a.name.localeCompare(b.name, "da"));
+    const groups = new Map([["", []], ...tree.map((t) => [t.path, []])]);
+    for (const f of flows) { const k = f.folder || ""; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(f); }
+    const tile = (f) => { const [status, scls] = this._flowStatus(f);
+      return this._hyTile({ id: f.id, icon: f.type === "advanced" ? "mdi:vector-polyline" : "mdi:shuffle-variant", name: f.name, status, scls, off: !f.enabled, play: "run", action: "open", menu: "flow", drag: true, sub: this._flowSummary(f) }); };
+    let secs = "";
+    for (const [k, list] of groups) {
+      if (!list.length) continue;
+      const title = k ? fLabel(this._folder !== "__all" && this._folder !== "__none" && k.startsWith(`${this._folder}/`) ? k : k) : "Uden mappe";
+      secs += this._hySection(k ? "mdi:folder" : "mdi:shuffle-variant", title, list.map(tile).join(""), `<span class="cnt">${list.length}</span>`);
+    }
+    const stash = (() => { const st = this._readStash(); return st ? `<div class="stash"><ha-icon icon="mdi:content-save-alert-outline"></ha-icon><span>Du har ikke-gemte ændringer i <b>${esc(st.draft.name || "et flow")}</b> fra ${esc(this._when(new Date(st.at).toISOString()))}.</span><span class="grow"></span><button class="btn primary" data-action="restore-draft">Fortsæt redigering</button><button class="btn ghost" data-action="discard-draft">Kassér</button></div>` : ""; })();
+    const empty = this._flows.length
+      ? `<div class="empty"><p>${q ? "Ingen flows matcher søgningen." : "Ingen flows i denne mappe."}</p></div>`
+      : `<div class="empty"><ha-icon icon="mdi:graph-outline"></ha-icon><p><b>Ingen flows endnu</b></p><p>Et flow består af kort: <b>NÅR</b> noget sker, <b>OG</b> betingelserne passer, <b>SÅ</b> gør Home Assistant noget.</p><button class="btn primary" data-action="new">Opret dit første flow</button></div>`;
+    const msel = `<select class="hy-msel" data-field="folder-select"><option value="__all" ${sel === "__all" ? "selected" : ""}>Alle flows</option><option value="__none" ${sel === "__none" ? "selected" : ""}>Uden mappe</option>${tree.map((t) => `<option value="${esc(t.path)}" ${sel === t.path ? "selected" : ""}>${"  ".repeat(t.depth)}${esc(t.leaf)}</option>`).join("")}</select>`;
+    const main = `${this._hyToolbar("search", this._search, "Søg i flows…")}${msel}${stash}<div class="list">${secs || empty}</div>`;
+    return this._hyShell({ title: "Flows", plus: "new", plusTitle: "Nyt flow", tree: treeHtml, main, active: "flows" });
+  }
+
+  /* ---------------- devices (Homey "Enheder") */
+
+  _deviceModel() {
+    const h = this._hass;
+    const devs = h.devices || {}, ents = h.entities || {}, areas = h.areas || {}, floors = h.floors || {};
+    const byDev = {};
+    for (const [eid, e] of Object.entries(ents)) {
+      if (!e || !e.device_id || e.hidden || e.entity_category || !h.states[eid]) continue;
+      (byDev[e.device_id] = byDev[e.device_id] || []).push(eid);
+    }
+    const out = [];
+    for (const [id, d] of Object.entries(devs)) {
+      const list = byDev[id];
+      if (!list || d.disabled_by || d.entry_type === "service") continue;
+      const primary = [...list].sort((a, b) => dPrio(a) - dPrio(b))[0];
+      const area = d.area_id || (ents[primary] && ents[primary].area_id) || "";
+      out.push({ id, name: d.name_by_user || d.name || primary, area, primary, ents: list });
+    }
+    const fl = Object.entries(floors).map(([id, f]) => ({ id, name: f.name || id, level: f.level, icon: f.icon }))
+      .sort((a, b) => (b.level ?? -99) - (a.level ?? -99) || a.name.localeCompare(b.name, "da"));
+    const ar = Object.entries(areas).map(([id, a]) => ({ id, name: a.name || id, floor: a.floor_id && floors[a.floor_id] ? a.floor_id : "", icon: a.icon }))
+      .sort((a, b) => a.name.localeCompare(b.name, "da"));
+    return { devices: out, floors: fl, areas: ar };
+  }
+
+  _devState(eid) {
+    const st = this._hass.states[eid];
+    if (!st) return ["Ukendt", "", true];
+    const s = st.state, dom = eid.split(".")[0], a = st.attributes || {};
+    if (s === "unavailable") return ["Utilgængelig", "err", false];
+    if (dom === "light" && s === "on" && a.brightness) return [`Tændt · ${Math.round((a.brightness / 255) * 100)}%`, "", false];
+    if (dom === "climate" && a.current_temperature !== undefined) return [`${a.current_temperature}° · ${DEV_STATE[s] || s}`, "", s === "off"];
+    if (["sensor", "number", "input_number"].includes(dom)) return [`${s}${a.unit_of_measurement ? ` ${a.unit_of_measurement}` : ""}`, "", false];
+    if (dom === "event") return [a.event_type ? eventLabel(a.event_type, true) : "Knap", "", false];
+    if (dom === "binary_sensor") return [s === "on" ? "Aktiv" : "Inaktiv", "", s !== "on"];
+    return [DEV_STATE[s] || s, "", DEV_OFF.has(s)];
+  }
+
+  _renderDevices() {
+    const m = this._deviceModel();
+    const sel = this._area || "__all";
+    const q = (this._dsearch || "").trim().toLowerCase();
+    const nOf = (pred) => m.devices.filter(pred).length;
+    const areaPred = (id) => (d) => d.area === id;
+    const floorPred = (fid) => (d) => m.areas.some((a) => a.id === d.area && a.floor === fid);
+    const row = (id, label, icon, depth, n) => `<div role="button" tabindex="0" class="hy-ti ${sel === id ? "sel" : ""}" style="--d:${depth}" data-action="area" data-area="${esc(id)}"><ha-icon icon="${icon}"></ha-icon><span class="lb">${esc(label)}</span><span class="n">${n}</span></div>`;
+    let tree = row("__all", "Hjem", "mdi:home", 0, m.devices.length);
+    for (const f of m.floors) {
+      tree += row(`floor:${f.id}`, f.name, f.icon || "mdi:home-floor-1", 1, nOf(floorPred(f.id)));
+      for (const a of m.areas.filter((x) => x.floor === f.id)) tree += row(`area:${a.id}`, a.name, a.icon || "mdi:texture-box", 2, nOf(areaPred(a.id)));
+    }
+    for (const a of m.areas.filter((x) => !x.floor)) tree += row(`area:${a.id}`, a.name, a.icon || "mdi:texture-box", 1, nOf(areaPred(a.id)));
+    const unassigned = nOf((d) => !d.area || !m.areas.some((a) => a.id === d.area));
+    if (unassigned) tree += row("area:", "Uden rum", "mdi:help-box-outline", 1, unassigned);
+
+    let areaList = m.areas;
+    if (sel.startsWith("floor:")) areaList = m.areas.filter((a) => a.floor === sel.slice(6));
+    else if (sel.startsWith("area:")) areaList = m.areas.filter((a) => a.id === sel.slice(5));
+    const sections = areaList.map((a) => ({ icon: a.icon || "mdi:texture-box", name: a.name, list: m.devices.filter(areaPred(a.id)) }));
+    if (sel === "__all" || sel === "area:") sections.push({ icon: "mdi:help-box-outline", name: "Uden rum", list: m.devices.filter((d) => !d.area || !m.areas.some((a) => a.id === d.area)) });
+    let secs = "";
+    for (const s of sections) {
+      const list = s.list.filter((d) => !q || d.name.toLowerCase().includes(q)).sort((a, b) => a.name.localeCompare(b.name, "da"));
+      if (!list.length) continue;
+      secs += this._hySection(s.icon, s.name, list.map((d) => {
+        const [status, scls, off] = this._devState(d.primary);
+        return this._hyTile({ id: d.id, icon: this._entityIcon(d.primary), name: d.name, status, scls, off, action: "dev-tap", menu: "device", sub: this._entityName(d.primary) });
+      }).join(""));
+    }
+    const msel = `<select class="hy-msel" data-field="area-select">${[["__all", "Hjem"], ...m.floors.flatMap((f) => [[`floor:${f.id}`, f.name], ...m.areas.filter((a) => a.floor === f.id).map((a) => [`area:${a.id}`, `  ${a.name}`])]), ...m.areas.filter((a) => !a.floor).map((a) => [`area:${a.id}`, a.name])]
+      .map(([v, l]) => `<option value="${esc(v)}" ${sel === v ? "selected" : ""}>${esc(l)}</option>`).join("")}</select>`;
+    const main = `${this._hyToolbar("dsearch", this._dsearch || "", "Søg i enheder…")}${msel}<div class="list">${secs || `<div class="empty"><p>${q ? "Ingen enheder matcher søgningen." : "Ingen enheder her."}</p></div>`}</div>`;
+    return this._hyShell({ title: "Enheder", plus: null, tree, main, active: "devices" });
+  }
+
+  _devPrimary(id) { const d = this._deviceModel().devices.find((x) => x.id === id); return d ? d.primary : null; }
+  _moreInfo(entityId) { this.dispatchEvent(new CustomEvent("hass-more-info", { detail: { entityId }, bubbles: true, composed: true })); }
+  async _devToggle(id) {
+    const eid = this._devPrimary(id);
+    if (!eid) return;
+    const dom = eid.split(".")[0];
+    const s = (this._hass.states[eid] || {}).state;
+    if (s === "unavailable") { this._toast("Enheden er utilgængelig", true); return; }
+    let call = null;
+    if (dom === "lock") call = ["lock", s === "locked" ? "unlock" : "lock"];
+    else if (dom === "cover") call = ["cover", "toggle"];
+    else if (dom === "scene") call = ["scene", "turn_on"];
+    else if (["button", "input_button"].includes(dom)) call = [dom, "press"];
+    else if (DEV_TOGGLE.has(dom)) call = ["homeassistant", "toggle"];
+    if (!call) { this._moreInfo(eid); return; }
+    if (dom === "lock" && s === "locked" && !window.confirm(`Lås "${this._entityName(eid)}" op?`)) return;
+    try { await this._hass.callService(call[0], call[1], { entity_id: eid }); } catch (err) { this._toast(err.message || String(err), true); }
+  }
+
+  /* ---------------- context menu */
+
+  _openMenu(kind, id, x, y) {
+    this._menu = { kind, id, x, y, step: "main" };
+    this._render();
+    const m = this.shadowRoot.querySelector(".hy-menu");
+    if (!m) return;
+    const r = m.getBoundingClientRect();
+    if (r.right > window.innerWidth - 8) m.style.left = `${Math.max(8, window.innerWidth - r.width - 8)}px`;
+    if (r.bottom > window.innerHeight - 8) m.style.top = `${Math.max(8, window.innerHeight - r.height - 8)}px`;
+  }
+
+  _renderMenu() {
+    const m = this._menu;
+    const it = (action, icon, label, extra = "", cls = "") => `<button class="mi ${cls}" data-action="${action}" ${extra}><ha-icon icon="${icon}"></ha-icon><span>${label}</span></button>`;
+    let items = "";
+    if (m.kind === "flow") {
+      const f = this._flows.find((x) => x.id === m.id);
+      if (!f) { this._menu = null; return ""; }
+      const d = `data-id="${esc(f.id)}"`;
+      if (m.step === "move") {
+        items = `<div class="mh"><button class="mi back" data-action="m-back"><ha-icon icon="mdi:chevron-left"></ha-icon><span>Flyt til mappe</span></button></div>
+          ${it("m-moveto", f.folder ? "mdi:folder-outline" : "mdi:check", "Uden mappe", `${d} data-folder=""`, f.folder ? "" : "cur")}
+          ${this._folderTree().map((t) => it("m-moveto", f.folder === t.path ? "mdi:check" : "mdi:folder", esc(t.leaf), `${d} data-folder="${esc(t.path)}" style="padding-left:${12 + t.depth * 14}px"`, f.folder === t.path ? "cur" : "")).join("")}`;
+      } else {
+        items = `<div class="mh t">${esc(f.name)}</div>
+          ${it("open", "mdi:pencil", "Rediger", d)}${it("run", "mdi:play", "Kør nu", d)}${it("history", "mdi:history", "Historik", d)}
+          ${it("duplicate", "mdi:content-copy", "Dupliker", d)}${it("m-move", "mdi:folder-move-outline", "Flyt til mappe…", d)}
+          ${it("toggle", f.enabled ? "mdi:pause-circle-outline" : "mdi:play-circle-outline", f.enabled ? "Slå fra" : "Slå til", d)}
+          <div class="sep"></div>${it("m-delete", "mdi:delete-outline", "Slet", d, "danger")}`;
+      }
+    } else if (m.kind === "device") {
+      const d = (this._hass.devices || {})[m.id] || {};
+      const eid = this._devPrimary(m.id);
+      items = `<div class="mh t">${esc(d.name_by_user || d.name || "")}</div>
+        ${it("dev-tap", "mdi:toggle-switch-outline", "Tænd/sluk", `data-id="${esc(m.id)}"`)}
+        ${eid ? it("dev-info", "mdi:information-outline", "Vis detaljer", `data-eid="${esc(eid)}"`) : ""}
+        ${it("hy-goto", "mdi:cog-outline", "Enhedsindstillinger", `data-path="/config/devices/device/${esc(m.id)}"`)}`;
+    } else {
+      const u = this._ui();
+      items = this._view === "devices"
+        ? `${it("hy-goto", "mdi:plus", "Tilføj enhed", `data-path="/config/integrations/dashboard"`)}${it("hy-goto", "mdi:texture-box", "Rum og etager", `data-path="/config/areas/dashboard"`)}`
+        : `${it("new", "mdi:plus", "Nyt flow")}${it("new-folder", "mdi:folder-plus-outline", "Ny mappe", `data-parent=""`)}${it("nr-open", "mdi:import", "Importér fra Node-RED")}`;
+      items += `${it("hy-search", "mdi:magnify", "Søg")}<div class="sep"></div>${it("hy-dark", u.dark ? "mdi:white-balance-sunny" : "mdi:weather-night", u.dark ? "Lyst tema" : "Mørkt tema")}`;
+    }
+    return `<div class="hy-layer" data-action="menu-close"></div><div class="hy-menu ${this._ui().dark ? "dark" : ""}" style="left:${m.x}px;top:${m.y}px">${items}</div>`;
+  }
+
+  async _hyClick(a, el, e) {
+    const id = el.dataset.id;
+    switch (a) {
+      case "hy-nav": {
+        const to = el.dataset.to;
+        if (this._view === "edit") { if (!this._confirmLeave()) return true; this._stopListen(); this._clearStash(); this._draft = null; this._dirty = false; }
+        if (el.dataset.path) { this._navigate(el.dataset.path); return true; }
+        this._view = to === "devices" ? "devices" : "list"; this._hySearch = false; this._render(); return true;
+      }
+      case "hy-goto": this._menu = null; this._navigate(el.dataset.path); return true;
+      case "hy-mode": this._setUi("mode", el.dataset.mode); this._render(); return true;
+      case "hy-dark": this._menu = null; this._setUi("dark", !this._ui().dark); this._render(); return true;
+      case "hy-search":
+        this._menu = null; this._hySearch = true; this._render();
+        setTimeout(() => { const s = this.shadowRoot.querySelector(".hy-search"); if (s) s.focus(); }, 0); return true;
+      case "hy-more": { const r = el.getBoundingClientRect(); this._openMenu("more", null, r.left, r.bottom + 6); return true; }
+      case "hy-menu": { const r = el.getBoundingClientRect(); this._openMenu(el.dataset.kind, id, r.right - 220, r.bottom + 4); return true; }
+      case "menu-close": this._menu = null; this._render(); return true;
+      case "m-back": this._menu.step = "main"; this._render(); return true;
+      case "m-move": this._menu.step = "move"; this._render(); return true;
+      case "m-moveto": { this._menu = null; await this._moveFlow(id, el.dataset.folder); return true; }
+      case "m-delete": {
+        this._menu = null;
+        const f = this._flows.find((x) => x.id === id);
+        if (!f || !window.confirm(`Slet flowet "${f.name}"? Det kan ikke fortrydes.`)) { this._render(); return true; }
+        await this._ws({ type: `${WS}/delete`, flow_id: id });
+        this._flows = this._flows.filter((x) => x.id !== id); this._render(); this._toast("Flowet er slettet"); return true;
+      }
+      case "area": this._area = el.dataset.area; this._render(); return true;
+      case "dev-tap": this._menu = null; this._render(); await this._devToggle(id); return true;
+      case "dev-info": this._menu = null; this._render(); this._moreInfo(el.dataset.eid); return true;
+      default: return this._hyClick2(a, el, e);
+    }
+  }
+
+  _snapshot() {
+    if (this._view !== "edit" || !this._draft) { this._snapFor = null; this._undo = []; this._redo = []; return; }
+    const key = this._draft.id || "__new";
+    if (this._snapFor !== key) { this._snapFor = key; this._undo = []; this._redo = []; this._snap = JSON.stringify(this._draft); return; }
+    if (this._ptr) return;
+    const cur = JSON.stringify(this._draft);
+    if (cur !== this._snap) { this._undo.push(this._snap); if (this._undo.length > 80) this._undo.shift(); this._redo = []; this._snap = cur; }
+  }
+
+  async _hyClick2(a, el) {
+    switch (a) {
+      case "cv-addmenu": this._addMenu = !this._addMenu; this._render(); return true;
+      case "cv-setmenu": this._setMenu = !this._setMenu; this._render(); return true;
+      case "cv-close-pop": this._render(); return true;
+      case "cv-undo": case "cv-redo": {
+        const from = a === "cv-undo" ? this._undo : this._redo;
+        const to = a === "cv-undo" ? this._redo : this._undo;
+        if (!from || !from.length) return true;
+        to.push(JSON.stringify(this._draft));
+        const prev = from.pop();
+        this._draft = JSON.parse(prev); this._snap = prev; this._connect = null;
+        this._markDirty(); this._render(); return true;
+      }
+      case "cv-quick": {
+        const def = appDefs(this._ctx()).find((d) => d.id === el.dataset.def);
+        if (!def) return true;
+        this._connect = null;
+        this._openPicker(el.dataset.sec);
+        this._chooseDef(def, null);
+        return true;
+      }
+      case "vars": this._vars = true; this._render(); return true;
+      case "vars-close": this._vars = false; this._render(); return true;
+      case "var-toggle":
+        try { await this._hass.callService("input_boolean", "toggle", { entity_id: el.dataset.eid }); } catch (err) { this._toast(err.message || String(err), true); }
+        setTimeout(() => this._safeRender(), 300); return true;
+      case "var-press":
+        try { await this._hass.callService("input_button", "press", { entity_id: el.dataset.eid }); this._toast("Trykket"); } catch (err) { this._toast(err.message || String(err), true); }
+        return true;
+      case "var-info": this._moreInfo(el.dataset.eid); return true;
+      case "hy-open": {
+        const f = this._flows.find((x) => x.id === el.dataset.id);
+        if (!f || (this._draft && this._draft.id === f.id)) return true;
+        if (!this._confirmLeave()) return true;
+        this._stopListen(); this._clearStash();
+        this._draft = clone(f); this._tf = null; this._dirty = false; this._view = "edit"; this._render(); return true;
+      }
+      default: return false;
+    }
+  }
+
+  _navigate(path) {
+    history.pushState(null, "", path);
+    window.dispatchEvent(new CustomEvent("location-changed", { detail: { replace: false } }));
+  }
+
+  async _moveFlow(id, folder) {
+    const f = this._flows.find((x) => x.id === id);
+    if (!f || (f.folder || "") === (folder || "")) { this._render(); return; }
+    const copy = { ...f, folder: folder || "" }; delete copy.status;
+    f.folder = folder || ""; this._render();
+    await this._ws({ type: `${WS}/save`, flow: copy });
+    this._toast(folder ? `Flyttet til "${fLabel(folder)}"` : "Flyttet til Uden mappe");
+  }
+
+  _hyContext(e) {
+    if (this._view === "edit") return;
+    const t = e.composedPath().find((n) => n.dataset && n.dataset.menu);
+    if (!t) return;
+    e.preventDefault();
+    this._openMenu(t.dataset.menu, t.dataset.id, e.clientX, e.clientY);
+  }
+  _hyLongDown(e) {
+    if (this._view === "edit" || e.pointerType === "mouse") return;
+    const t = e.composedPath().find((n) => n.dataset && n.dataset.menu);
+    if (!t) return;
+    clearTimeout(this._lpT);
+    const x = e.clientX, y = e.clientY;
+    this._lpAt = [x, y];
+    this._lpT = setTimeout(() => { this._suppressClick = true; this._openMenu(t.dataset.menu, t.dataset.id, x, y); }, 550);
+  }
+  _hyLongMove(e) { if (this._lpT && this._lpAt && Math.hypot(e.clientX - this._lpAt[0], e.clientY - this._lpAt[1]) > 10) { clearTimeout(this._lpT); this._lpT = null; } }
+  _hyLongUp() { clearTimeout(this._lpT); this._lpT = null; }
+
 
   _renderEditor() {
     const f = this._draft;
@@ -1359,7 +1895,7 @@ class FlowCardsPanel extends HTMLElement {
         <span class="chip unsaved" ${this._dirty ? "" : "hidden"}>Ikke gemt</span>
         <button class="btn primary" data-action="save" ${this._dirty || !f.id ? "" : "disabled"}><ha-icon icon="mdi:content-save"></ha-icon><span class="hide-sm">Gem</span></button>`)}
       <div class="meta">
-        <label>Mappe <select data-field="draft-folder"><option value="">Ingen</option>${this._folders.map((fo) => `<option ${f.folder === fo ? "selected" : ""}>${esc(fo)}</option>`).join("")}</select></label>
+        <label>Mappe <select data-field="draft-folder"><option value="">Ingen</option>${this._folderTree().map((t) => `<option value="${esc(t.path)}" ${f.folder === t.path ? "selected" : ""}>${esc(fLabel(t.path))}</option>`).join("")}</select></label>
         <label>Ved ny udløsning <select data-field="draft-mode">${MODES.map(([k, l]) => `<option value="${k}" ${f.mode === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
         <span class="grow"></span>
         <button class="btn ghost ${this._listen ? "on" : ""}" data-action="listen" title="Tryk på en knap, tænd noget eller sæt noget i stikket – så foreslår Flows et NÅR-kort"><ha-icon icon="mdi:ear-hearing"></ha-icon><span class="hide-sm">${this._listen ? "Lytter…" : "Lyt"}</span></button>
@@ -1392,7 +1928,7 @@ class FlowCardsPanel extends HTMLElement {
       const key = dev ? `d:${r.device_id}` : `e:${eid}`;
       const area = areas[r.area_id || (dev && dev.area_id)];
       if (!groups.has(key)) {
-        groups.set(key, { key, name: dev ? dev.name_by_user || dev.name || eid : st.attributes.friendly_name || eid, area: area ? area.name : "", entities: [], icon: this._entityIcon(eid) });
+        groups.set(key, { key, name: dev ? dev.name_by_user || dev.name || eid : st.attributes.friendly_name || eid, area: area ? area.name : "", areaId: area ? r.area_id || (dev && dev.area_id) : "", entities: [], icon: this._entityIcon(eid) });
       }
       groups.get(key).entities.push(eid);
     }
@@ -1400,7 +1936,7 @@ class FlowCardsPanel extends HTMLElement {
       for (const [id, dev] of Object.entries(devs)) {
         if (groups.has(`d:${id}`) || dev.entry_type === "service" || dev.disabled_by) continue;
         const area = areas[dev.area_id];
-        groups.set(`d:${id}`, { key: `d:${id}`, name: dev.name_by_user || dev.name || id, area: area ? area.name : "", entities: [], icon: "mdi:devices" });
+        groups.set(`d:${id}`, { key: `d:${id}`, name: dev.name_by_user || dev.name || id, area: area ? area.name : "", areaId: area ? dev.area_id : "", entities: [], icon: "mdi:devices" });
       }
     }
     for (const g of groups.values()) if (g.key.startsWith("d:")) g.deviceId = g.key.slice(2);
@@ -1408,6 +1944,55 @@ class FlowCardsPanel extends HTMLElement {
     if (q) list = list.filter((g) => `${g.name} ${g.area} ${g.entities.join(" ")} ${g.entities.map((e) => this._entityName(e)).join(" ")}`.toLowerCase().includes(q));
     list.sort((a, b) => (!a.area - !b.area) || a.area.localeCompare(b.area, "da") || a.name.localeCompare(b.name, "da"));
     return list;
+  }
+
+  _renderPicker3(p, cardsContent) {
+    const cat = catOf(p.section);
+    const ctx = this._ctx();
+    const apps = APPS.filter((a) => appDefs(ctx).some((d) => d.app === a.id && d.cat === cat && !d.hidden));
+    const appSel = p.source && p.source.type === "app" ? p.source.id : null;
+    const zone = p.zone || "home";
+    const item = (action, attrs, icon, bg, label, sel) => `<button class="pk ${sel ? "sel" : ""}" data-action="${action}" ${attrs}><span class="pc" style="background:${bg}"><ha-icon icon="${esc(icon)}"></ha-icon></span><span class="pn">${esc(label)}</span><ha-icon class="chev" icon="mdi:chevron-right"></ha-icon></button>`;
+    const left = `<div class="sub">Zoner</div>${item("pick-zone", 'data-zone="home"', "mdi:home", "#0a84ff", "Hjem", !appSel)}
+      <div class="sub">System</div>${apps.map((a) => item("pick-app", `data-app="${a.id}"`, a.icon, APP_COLORS[a.id] || "#5e5ce6", a.name, appSel === a.id)).join("")}`;
+    let mid = "";
+    let third = "";
+    if (appSel) {
+      mid = `<div class="sub">Kort</div>${cardsContent}`;
+    } else {
+      const src = this._sources(cat);
+      const areas = this._hass.areas || {}, floors = this._hass.floors || {};
+      const devItem = (g) => item("pick-source", `data-key="${esc(g.key)}"`, g.icon, "#0a84ff", g.name, p.srcKey === g.key);
+      const zitem = (z, icon, label) => item("pick-zone", `data-zone="${esc(z)}"`, icon, "#48484a", label, false);
+      const floorOf = (aid) => { const fid = (areas[aid] || {}).floor_id; return fid && floors[fid] ? fid : ""; };
+      const areaList = Object.entries(areas).sort((x, y) => (x[1].name || "").localeCompare(y[1].name || "", "da"));
+      if (p.search) {
+        mid = `<div class="sub">Resultater</div>${src.slice(0, 200).map(devItem).join("") || `<div class="empty">Intet fundet</div>`}`;
+      } else {
+        let zones = [], devs = [], crumb = "";
+        if (zone === "home") {
+          const fl = Object.entries(floors).sort((x, y) => (y[1].level ?? -99) - (x[1].level ?? -99) || (x[1].name || "").localeCompare(y[1].name || "", "da"));
+          zones = [...fl.map(([id, f]) => zitem(`floor:${id}`, f.icon || "mdi:home-floor-1", f.name || id)), ...areaList.filter(([id]) => !floorOf(id)).map(([id, a]) => zitem(`area:${id}`, a.icon || "mdi:texture-box", a.name || id))];
+          devs = src.filter((g) => !g.areaId || !areas[g.areaId]);
+        } else if (zone.startsWith("floor:")) {
+          const fid = zone.slice(6);
+          crumb = `<button class="pk back" data-action="pick-zone" data-zone="home"><ha-icon icon="mdi:chevron-left"></ha-icon><span class="pn">${esc((floors[fid] || {}).name || "")}</span></button>`;
+          zones = areaList.filter(([id]) => floorOf(id) === fid).map(([id, a]) => zitem(`area:${id}`, a.icon || "mdi:texture-box", a.name || id));
+        } else {
+          const aid = zone.slice(5);
+          const fid = floorOf(aid);
+          crumb = `<button class="pk back" data-action="pick-zone" data-zone="${fid ? `floor:${esc(fid)}` : "home"}"><ha-icon icon="mdi:chevron-left"></ha-icon><span class="pn">${esc((areas[aid] || {}).name || "")}</span></button>`;
+          devs = src.filter((g) => g.areaId === aid);
+        }
+        mid = `${crumb}${zones.length ? `<div class="sub">Zoner</div>${zones.join("")}` : ""}${devs.length ? `<div class="sub">Enheder</div>${devs.map(devItem).join("")}` : ""}` || `<div class="empty">Ingen enheder her</div>`;
+      }
+      mid += `<label class="check unav"><input type="checkbox" data-field="picker-unavail" ${p.showUnavailable ? "checked" : ""}>Vis utilgængelige</label>`;
+      if (p.step === "cards" && p.source && p.source.type === "device") third = `<div class="sub">${esc(p.source.name)}</div>${cardsContent}`;
+    }
+    return `<div class="scrim" data-action="scrim"><div class="modal hpick" role="dialog"><header><h3>${{ t: "Når…", c: "Og…", a: "Så…" }[cat]}</h3>
+      <div class="hsearch"><ha-icon icon="mdi:magnify"></ha-icon><input type="search" data-field="picker-search" placeholder="Søg…" value="${esc(p.search || "")}" autofocus></div>
+      <button class="icon-btn" data-action="close-picker"><ha-icon icon="mdi:close"></ha-icon></button></header>
+      <div class="cols"><div>${left}</div><div>${mid}</div><div>${third}</div></div></div></div>`;
   }
 
   _renderPicker() {
@@ -1477,7 +2062,8 @@ class FlowCardsPanel extends HTMLElement {
         ${cat === "a" ? `<label class="check field"><input type="checkbox" data-field="card-disabled" ${p.disabled ? "checked" : ""}>Slå kortet fra (springes over)</label>` : ""}`;
       footer = `<footer><button class="btn ghost" data-action="close-picker">Annullér</button><button class="btn primary" data-action="confirm-card">${p.editIdx === undefined ? "Tilføj" : "Gem kort"}</button></footer>`;
     }
-    return `<div class="scrim" data-action="scrim"><div class="modal" role="dialog">
+    if (p.section !== "logic" && (p.step === "source" || p.step === "cards")) return this._renderPicker3(p, content);
+    return `<div class="scrim" data-action="scrim"><div class="modal hym" role="dialog">
       <header>${back ? `<button class="icon-btn" data-action="picker-back"><ha-icon icon="mdi:arrow-left"></ha-icon></button>` : `<span class="bar" style="width:6px;height:20px;border-radius:3px;background:var(--fc-${meta.cls})"></span>`}
       <h3>${esc(title)}</h3><button class="icon-btn" data-action="close-picker"><ha-icon icon="mdi:close"></ha-icon></button></header>
       <div class="content">${content}</div>${footer}</div></div>`;
@@ -1749,6 +2335,11 @@ class FlowCardsPanel extends HTMLElement {
       return;
     }
     e.stopPropagation();
+    if (this._suppressClick) { this._suppressClick = false; return; }
+    if (this._menu && !["m-move", "m-back", "hy-menu", "hy-more"].includes(a)) { this._menu = null; if (a === "menu-close") { this._render(); return; } }
+    if (a !== "cv-addmenu") this._addMenu = false;
+    if (a !== "cv-setmenu") this._setMenu = false;
+    if (await this._hyClick(a, el, e)) return;
     const flow = id && this._flows.find((f) => f.id === id);
     switch (a) {
       case "menu":
@@ -1756,25 +2347,35 @@ class FlowCardsPanel extends HTMLElement {
       case "folder":
         this._folder = el.dataset.folder; this._render(); break;
       case "new-folder": {
-        const name = (window.prompt("Navn på den nye mappe") || "").trim();
-        if (!name) return;
+        const parent = el.dataset.parent || "";
+        const leaf = (window.prompt(parent ? `Navn på ny undermappe i "${fLabel(parent)}"` : "Navn på den nye mappe") || "").trim().replace(/^\/+|\/+$/g, "");
+        if (!leaf) return;
+        const name = parent ? `${parent}/${leaf}` : leaf;
         if (!this._folders.includes(name)) await this._ws({ type: `${WS}/folders`, folders: [...this._folders, name] });
         this._folders = [...new Set([...this._folders, name])];
-        this._folder = name; this._render(); break;
+        this._folder = name; this._view = "list"; this._render(); break;
       }
       case "rename-folder": {
         const old = el.dataset.folder;
-        const name = (window.prompt("Nyt navn på mappen", old) || "").trim();
-        if (!name || name === old) return;
-        for (const f of this._flows.filter((x) => x.folder === old)) await this._ws({ type: `${WS}/save`, flow: { ...f, folder: name } });
-        await this._ws({ type: `${WS}/folders`, folders: this._folders.map((x) => (x === old ? name : x)) });
+        const parent = old.includes("/") ? old.slice(0, old.lastIndexOf("/") + 1) : "";
+        const leaf = (window.prompt("Nyt navn på mappen", fLeaf(old)) || "").trim().replace(/^\/+|\/+$/g, "");
+        const name = parent + leaf;
+        if (!leaf || name === old) return;
+        const re = (x) => (x === old ? name : x && x.startsWith(`${old}/`) ? name + x.slice(old.length) : x);
+        for (const f of this._flows.filter((x) => re(x.folder) !== x.folder)) { const c = { ...f, folder: re(f.folder) }; delete c.status; await this._ws({ type: `${WS}/save`, flow: c }); }
+        const known = new Set(this._folderTree().map((t) => t.path));
+        await this._ws({ type: `${WS}/folders`, folders: [...new Set([...this._folders, ...known].map(re))] });
         await this._load(); this._folder = name; this._render(); break;
       }
       case "delete-folder": {
         const fo = el.dataset.folder;
-        if (!window.confirm(`Slet mappen "${fo}"? Flowene i den flyttes til "Uden mappe".`)) return;
-        await this._ws({ type: `${WS}/folders`, folders: this._folders.filter((x) => x !== fo) });
-        await this._load(); this._folder = "__all"; this._render(); break;
+        const parent = fo.includes("/") ? fo.slice(0, fo.lastIndexOf("/")) : "";
+        const inside = (x) => x === fo || (x || "").startsWith(`${fo}/`);
+        const n = this._flows.filter((f) => inside(f.folder)).length;
+        if (!window.confirm(`Slet mappen "${fLabel(fo)}"${this._folderTree().some((t) => t.path.startsWith(`${fo}/`)) ? " og dens undermapper" : ""}?${n ? ` ${n} flow${n === 1 ? "" : "s"} flyttes til "${parent ? fLabel(parent) : "Uden mappe"}".` : ""}`)) return;
+        for (const f of this._flows.filter((x) => inside(x.folder))) { const c = { ...f, folder: parent }; delete c.status; await this._ws({ type: `${WS}/save`, flow: c }); }
+        await this._ws({ type: `${WS}/folders`, folders: this._folders.filter((x) => !inside(x)) });
+        await this._load(); this._folder = parent || "__all"; this._render(); break;
       }
       case "new":
         this._newOpts = { name: "", folder: ["__all", "__none"].includes(this._folder) ? "" : this._folder, newFolder: "" };
@@ -1866,10 +2467,13 @@ class FlowCardsPanel extends HTMLElement {
         p.error = null; this._render(); break;
       }
       case "pick-app":
-        Object.assign(this._picker, { step: "cards", source: { type: "app", id: el.dataset.app } }); this._render(); break;
+        Object.assign(this._picker, { step: "cards", source: { type: "app", id: el.dataset.app }, srcKey: null }); this._render(); break;
+      case "pick-zone":
+        Object.assign(this._picker, { step: "source", source: null, srcKey: null, zone: el.dataset.zone }); this._render(); break;
       case "pick-source": {
         const g = this._sources(catOf(this._picker.section)).find((x) => x.key === el.dataset.key);
         if (!g) return;
+        this._picker.srcKey = g.key;
         if (g.entities.length === 1 && !(g.deviceId && catOf(this._picker.section) === "t")) {
           const defs = entityDefs(g.entities[0], this._hass.states[g.entities[0]]).filter((d) => d.cat === catOf(this._picker.section) && !d.hidden);
           Object.assign(this._picker, { step: "cards", source: { type: "device", name: g.name, entities: g.entities } });
@@ -1946,7 +2550,9 @@ class FlowCardsPanel extends HTMLElement {
   _onInput(e) {
     const t = e.composedPath()[0];
     const field = t.dataset && t.dataset.field;
-    if (field === "search") { this._search = t.value; this._renderListOnly(); return; }
+    if (field === "search") { this._search = t.value; this._renderListOnly(field); return; }
+    if (field === "dsearch") { this._dsearch = t.value; this._renderListOnly(field); return; }
+    if (field === "tree-filter") { this._treeQ = t.value; this._renderListOnly(field); return; }
     if (field === "new-name") { this._newOpts.name = t.value; return; }
     if (t.dataset && t.dataset.entAdd && this._picker && (e.inputType === "insertReplacementText" || !e.inputType) && this._hass.states[t.value.trim()]) {
       this._onChange(e); return;
@@ -1975,6 +2581,7 @@ class FlowCardsPanel extends HTMLElement {
     const t = e.composedPath()[0];
     const field = t.dataset && t.dataset.field;
     if (field === "folder-select") { this._folder = t.value; this._render(); return; }
+    if (field === "area-select") { this._area = t.value; this._render(); return; }
     if (field === "new-folder") {
       this._newOpts.folder = t.value; this._render();
       if (t.value === "__new") setTimeout(() => { const n = this.shadowRoot.querySelector("[data-field=new-folder-name]"); if (n) n.focus(); }, 0);
@@ -2027,19 +2634,19 @@ class FlowCardsPanel extends HTMLElement {
     try { el.innerHTML = this._picker.def.text(this._picker.args); } catch (err) { /* ignore */ }
   }
 
-  _renderListOnly() {
-    const list = this.shadowRoot.querySelector(".list");
-    if (!list) return;
-    const s = this.shadowRoot.querySelector("[data-field=search]");
+  _renderListOnly(field = "search") {
+    const s = this.shadowRoot.querySelector(`[data-field=${field}]`);
     const pos = s ? s.selectionStart : 0;
     this._render();
-    const s2 = this.shadowRoot.querySelector("[data-field=search]");
+    const s2 = this.shadowRoot.querySelector(`[data-field=${field}]`);
     if (s2) { s2.focus(); s2.setSelectionRange(pos, pos); }
   }
 
   /* ---------------- drag & drop between/within columns */
 
   _onDragStart(e) {
+    const fl = e.composedPath().find((n) => n.dataset && n.dataset.dragFlow);
+    if (fl) { this._fdrag = fl.dataset.dragFlow; e.dataTransfer.effectAllowed = "move"; e.dataTransfer.setData("text/plain", "flow"); fl.classList.add("dragging"); return; }
     const card = e.composedPath().find((n) => n.classList && n.classList.contains("card"));
     if (!card) return;
     this._drag = { sec: card.dataset.sec, idx: Number(card.dataset.idx) };
@@ -2048,6 +2655,12 @@ class FlowCardsPanel extends HTMLElement {
     e.dataTransfer.setData("text/plain", "card");
   }
   _onDragOver(e) {
+    if (this._fdrag) {
+      const t = e.composedPath().find((n) => n.dataset && n.dataset.fdrop !== undefined);
+      this.shadowRoot.querySelectorAll(".hy-ti.drop").forEach((n) => n !== t && n.classList.remove("drop"));
+      if (t) { e.preventDefault(); t.classList.add("drop"); }
+      return;
+    }
     if (!this._drag) return;
     const col = e.composedPath().find((n) => n.dataset && n.dataset.drop);
     if (!col) return;
@@ -2055,6 +2668,12 @@ class FlowCardsPanel extends HTMLElement {
     if (ok) e.preventDefault();
   }
   _onDrop(e) {
+    if (this._fdrag) {
+      const t = e.composedPath().find((n) => n.dataset && n.dataset.fdrop !== undefined);
+      const id = this._fdrag; this._fdrag = null;
+      if (t) { e.preventDefault(); this._moveFlow(id, t.dataset.fdrop); } else this._render();
+      return;
+    }
     if (!this._drag) return;
     const path = e.composedPath();
     const col = path.find((n) => n.dataset && n.dataset.drop);
@@ -2387,7 +3006,7 @@ class FlowCardsPanel extends HTMLElement {
   _renderNewChooser() {
     const opt = (action, icon, title, text) => `<button class="choice" data-action="${action}"><span class="ic"><ha-icon icon="${icon}"></ha-icon></span><span><b>${title}</b><br><span class="s">${text}</span></span></button>`;
     const o = this._newOpts;
-    const folderOpts = `<option value="">Ingen mappe</option>${this._folders.map((fo) => `<option value="${esc(fo)}" ${o.folder === fo ? "selected" : ""}>${esc(fo)}</option>`).join("")}<option value="__new" ${o.folder === "__new" ? "selected" : ""}>+ Ny mappe…</option>`;
+    const folderOpts = `<option value="">Ingen mappe</option>${this._folderTree().map((t) => `<option value="${esc(t.path)}" ${o.folder === t.path ? "selected" : ""}>${esc(fLabel(t.path))}</option>`).join("")}<option value="__new" ${o.folder === "__new" ? "selected" : ""}>+ Ny mappe…</option>`;
     return `<div class="scrim" data-action="scrim"><div class="modal"><header><h3>Nyt flow</h3><button class="icon-btn" data-action="close-new"><ha-icon icon="mdi:close"></ha-icon></button></header>
       <div class="content">
         <div class="field"><label for="nf-name">Navn</label><input id="nf-name" data-field="new-name" value="${esc(o.name)}" placeholder="F.eks. Kontor: lys ved knaptryk" autofocus></div>
@@ -2431,35 +3050,73 @@ class FlowCardsPanel extends HTMLElement {
       if (n.sec === "logic" && (n.kind === "all" || n.kind === "any")) body += this._logicInputsHtml(n);
       const conn = this._connect && this._connect.node !== n.id && inPin ? "target" : "";
       return `<div class="node ${sec.cls} ${n.kind === "note" ? "note" : ""} ${n.disabled ? "disabled" : ""} ${conn} ${this._connect && this._connect.node === n.id ? "source" : ""}" data-nid="${n.id}" style="left:${n.x}px;top:${n.y}px;min-height:${this._nodeH(n)}px">
-        ${badge}${inPin}<div class="nhead"><ha-icon icon="${esc(src.icon)}" style="--mdc-icon-size:16px"></ha-icon><span class="src">${esc(src.name)}</span>${tools}</div>
+        ${badge}${inPin}${n.kind === "note" ? "" : `<span class="nic"><ha-icon icon="${esc(src.icon)}"></ha-icon></span>`}<div class="nhead"><span class="src">${esc(src.name)}</span>${tools}</div>
         <div class="nbody">${n.invert ? `<b class="notlbl">Ikke:</b> ` : ""}${body}</div>${outs}</div>`;
     }).join("");
     const empty = f.nodes.length ? "" : `<div class="cv-empty"><ha-icon icon="mdi:vector-polyline"></ha-icon><p><b>Tomt lærred</b></p><p>Start med et <b>NÅR</b>-kort. Træk derefter fra den runde udgang på et kort over til det næste kort, eller tryk på udgangen og så på kortet.</p></div>`;
     const banner = this._connect ? `<div class="cv-banner">Tryk på det kort, ledningen skal gå til <button class="btn ghost" data-action="cv-cancel">Annullér</button></div>` : "";
     const zoomPct = Math.round(tf.z * 100);
-    return `${this._topBar(`<button class="icon-btn" data-action="back" title="Tilbage"><ha-icon icon="mdi:arrow-left"></ha-icon></button>
-        <input class="name-input" data-field="name" value="${esc(f.name)}" placeholder="Navn på flow">
+    const addMenu = this._addMenu ? `<div class="hy-layer" data-action="cv-close-pop"></div><div class="cv-pop add">
+        <button data-action="cv-add" data-sec="triggers">Når…</button><button data-action="cv-add" data-sec="conditions">Og…</button><button data-action="cv-add" data-sec="actions">Så…</button><div class="sep"></div>
+        <button data-action="cv-quick" data-def="logic.delay" data-sec="actions">Vent</button><button data-action="cv-quick" data-def="logic.all" data-sec="logic">Alle</button><button data-action="cv-quick" data-def="logic.any" data-sec="logic">Én af</button><div class="sep"></div>
+        <button data-action="cv-quick" data-def="logic.note" data-sec="logic">Note</button></div>` : "";
+    const setMenu = this._setMenu ? `<div class="hy-layer" data-action="cv-close-pop"></div><div class="cv-pop set">
+        <label>Mappe<select data-field="draft-folder"><option value="">Ingen mappe</option>${this._folderTree().map((t) => `<option value="${esc(t.path)}" ${f.folder === t.path ? "selected" : ""}>${esc(fLabel(t.path))}</option>`).join("")}</select></label>
+        <label>Ved ny udløsning<select data-field="draft-mode">${MODES.map(([k, l]) => `<option value="${k}" ${f.mode === k ? "selected" : ""}>${l}</option>`).join("")}</select></label>
+        <div class="sep"></div>
+        ${f.id ? `<button data-action="history" data-id="${f.id}"><ha-icon icon="mdi:history"></ha-icon>Historik</button><button data-action="duplicate" data-id="${f.id}"><ha-icon icon="mdi:content-copy"></ha-icon>Dupliker</button><button class="danger" data-action="delete-flow"><ha-icon icon="mdi:delete-outline"></ha-icon>Slet flow</button>` : `<span class="muted">Gem flowet for flere valg</span>`}</div>` : "";
+    const canSave = this._dirty || !f.id;
+    const fl = `<div class="cv-float l">
+        ${this._narrow ? `<button class="pl" data-action="back" title="Tilbage"><ha-icon icon="mdi:arrow-left"></ha-icon></button>` : ""}
+        <button class="pl ${canSave ? "act" : ""}" data-action="save" ${canSave ? "" : "disabled"} title="Gem"><ha-icon icon="mdi:check"></ha-icon><span>Gem</span></button>
+        <span class="pl duo"><button data-action="cv-undo" ${(this._undo || []).length ? "" : "disabled"} title="Fortryd"><ha-icon icon="mdi:undo"></ha-icon></button><i></i><button data-action="cv-redo" ${(this._redo || []).length ? "" : "disabled"} title="Gentag"><ha-icon icon="mdi:redo"></ha-icon></button></span>
+        <button class="pl" data-action="vars" title="Hjælpere i Home Assistant"><ha-icon icon="mdi:variable"></ha-icon><span>Variabler</span></button>
+        <span class="pw"><button class="pl blue" data-action="cv-addmenu"><ha-icon icon="mdi:plus"></ha-icon><span>Tilføj</span></button>${addMenu}</span>
+        <button class="pl ${this._listen ? "rec" : ""}" data-action="listen" title="Tryk på en knap, tænd noget eller sæt noget i stikket – så foreslår Flows et Når-kort"><ha-icon icon="mdi:ear-hearing"></ha-icon><span>${this._listen ? "Lytter…" : "Lyt"}</span></button>
+</div>
+      <div class="cv-float r">
+        <input class="pl name" data-field="name" value="${esc(f.name)}" placeholder="Navn på flow">
         <button class="switch ${f.enabled ? "on" : ""}" data-action="draft-toggle" title="${f.enabled ? "Flowet er slået til" : "Flowet er slået fra"}"></button>
-        <button class="btn ghost" data-action="test" title="Gem og kør flowet nu"><ha-icon icon="mdi:play"></ha-icon><span class="hide-sm">Test</span></button>
         <span class="chip unsaved" ${this._dirty ? "" : "hidden"}>Ikke gemt</span>
-        <button class="btn primary" data-action="save" ${this._dirty || !f.id ? "" : "disabled"}><ha-icon icon="mdi:content-save"></ha-icon><span class="hide-sm">Gem</span></button>`)}
-      <div class="cv-tools">
-        <button class="tb when" data-action="cv-add" data-sec="triggers"><ha-icon icon="mdi:plus"></ha-icon>NÅR</button>
-        <button class="tb and" data-action="cv-add" data-sec="conditions"><ha-icon icon="mdi:plus"></ha-icon>OG</button>
-        <button class="tb then" data-action="cv-add" data-sec="actions"><ha-icon icon="mdi:plus"></ha-icon>SÅ</button>
-        <button class="tb logic" data-action="cv-add" data-sec="logic"><ha-icon icon="mdi:plus"></ha-icon>Logik</button>
-        <button class="tb listen ${this._listen ? "on" : ""}" data-action="listen" title="Tryk på en knap, tænd noget eller sæt noget i stikket – så foreslår Flows et NÅR-kort"><ha-icon icon="mdi:ear-hearing"></ha-icon>${this._listen ? "Lytter…" : "Lyt"}</button>
-        <span class="grow"></span>
-        <select data-field="draft-folder" title="Mappe"><option value="">Ingen mappe</option>${this._folders.map((fo) => `<option ${f.folder === fo ? "selected" : ""}>${esc(fo)}</option>`).join("")}</select>
-        <select data-field="draft-mode" title="Ved ny udløsning">${MODES.map(([k, l]) => `<option value="${k}" ${f.mode === k ? "selected" : ""}>${l}</option>`).join("")}</select>
-        ${f.id ? `<button class="icon-btn" data-action="history" data-id="${f.id}" title="Historik"><ha-icon icon="mdi:history"></ha-icon></button><button class="icon-btn danger" data-action="delete-flow" title="Slet flow"><ha-icon icon="mdi:delete-outline"></ha-icon></button>` : ""}
-      </div>
-      <div class="canvas" data-canvas>
+        <button class="pl" data-action="test" title="Gem og kør flowet nu"><ha-icon icon="mdi:play"></ha-icon><span>Test</span></button>
+        <span class="pw"><button class="pl round" data-action="cv-setmenu" title="Flere valg"><ha-icon icon="mdi:dots-horizontal"></ha-icon></button>${setMenu}</span></div>`;
+    const canvas = `<div class="canvas hyc" data-canvas>
         <div class="world" style="transform:translate(${tf.x}px,${tf.y}px) scale(${tf.z})">
           <svg class="wires" width="1" height="1"></svg>${nodes}
-        </div>${empty}${banner}
+        </div>${empty}${banner}${fl}
         <div class="cv-zoom"><button data-action="cv-zoom" data-dir="-1" title="Zoom ud">−</button><span>${zoomPct}%</span><button data-action="cv-zoom" data-dir="1" title="Zoom ind">+</button><button data-action="cv-fit" title="Tilpas"><ha-icon icon="mdi:fit-to-screen-outline" style="--mdc-icon-size:18px"></ha-icon></button></div>
       </div>`;
+    return this._hyShell({ title: "Flow", plus: "new", plusTitle: "Nyt flow", tree: this._editorTree(), main: canvas, active: "flows", mainCls: "cv" });
+  }
+
+  _editorTree() {
+    const q = (this._treeQ || "").trim().toLowerCase();
+    const cur = this._draft && this._draft.id;
+    const groups = [["", "Mine flows"], ...this._folderTree().map((t) => [t.path, t.leaf, t.depth])];
+    let html = `<div class="hy-filter"><ha-icon icon="mdi:magnify"></ha-icon><input type="search" data-field="tree-filter" placeholder="Filtrér…" value="${esc(this._treeQ || "")}"></div>`;
+    for (const [path, label, depth = 0] of groups) {
+      const list = this._flows.filter((f) => (f.folder || "") === path && (!q || f.name.toLowerCase().includes(q))).sort((a, b) => a.name.localeCompare(b.name, "da"));
+      if (q && !list.length) continue;
+      html += `<div class="hy-ti grp" style="--d:${depth}"><span class="bul"></span><span class="lb">${esc(label)}</span></div>`;
+      html += list.map((f) => `<div role="button" class="hy-ti ${f.id === cur ? "sel" : ""} ${f.enabled ? "" : "dim"}" style="--d:${depth + 1}" data-action="hy-open" data-id="${f.id}"><ha-icon icon="${f.type === "advanced" ? "mdi:vector-polyline" : "mdi:shuffle-variant"}"></ha-icon><span class="lb">${esc(f.name)}</span></div>`).join("");
+    }
+    if (this._draft && !this._draft.id) html += `<div class="hy-ti sel" style="--d:1"><ha-icon icon="mdi:vector-polyline"></ha-icon><span class="lb">${esc(this._draft.name || "Nyt flow")}</span></div>`;
+    return html;
+  }
+
+  _renderVars() {
+    const doms = ["input_boolean", "input_number", "input_text", "input_select", "input_datetime", "input_button", "counter", "timer"];
+    const list = Object.values(this._hass.states).filter((st) => doms.includes(st.entity_id.split(".")[0])).sort((a, b) => this._entityName(a.entity_id).localeCompare(this._entityName(b.entity_id), "da"));
+    const label = { input_boolean: "Ja/nej", input_number: "Tal", input_text: "Tekst", input_select: "Valg", input_datetime: "Dato/tid", input_button: "Knap", counter: "Tæller", timer: "Timer" };
+    const rows = list.map((st) => {
+      const eid = st.entity_id, dom = eid.split(".")[0];
+      const ctl = dom === "input_boolean" ? `<button class="switch ${st.state === "on" ? "on" : ""}" data-action="var-toggle" data-eid="${eid}"></button>`
+        : dom === "input_button" ? `<button class="btn ghost" data-action="var-press" data-eid="${eid}">Tryk</button>`
+        : `<button class="vval" data-action="var-info" data-eid="${eid}">${esc(st.state)}${st.attributes.unit_of_measurement ? ` ${esc(st.attributes.unit_of_measurement)}` : ""}</button>`;
+      return `<div class="vrow"><span class="vt"><b>${esc(this._entityName(eid))}</b><small>${label[dom]} · ${esc(eid)}</small></span>${ctl}</div>`;
+    }).join("");
+    return `<div class="scrim" data-action="scrim"><div class="modal hym"><header><h3>Variabler</h3><button class="btn ghost" data-action="hy-goto" data-path="/config/helpers"><ha-icon icon="mdi:plus"></ha-icon>Ny variabel</button><button class="icon-btn" data-action="vars-close"><ha-icon icon="mdi:close"></ha-icon></button></header>
+      <div class="content"><p class="dthint" style="margin:0 0 10px">Variabler er hjælpere i Home Assistant. Brug dem i kort som "${esc("Hvis … er tændt")}" eller "Sæt … til".</p>${rows || `<div class="empty">Ingen hjælpere endnu</div>`}</div></div></div>`;
   }
 
   _afterCanvasRender() {
@@ -2717,6 +3374,7 @@ class FlowCardsPanel extends HTMLElement {
   }
 
   _dragEnd() {
+    if (this._fdrag) { this._fdrag = null; this._render(); return; }
     if (this._drag) { this._drag = null; this._render(); }
   }
 }

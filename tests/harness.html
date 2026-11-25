@@ -47,7 +47,8 @@ const devices = {
   d4: { name: "Kontor kontakt", area_id: "kontor" }, d5: { name: "Presson sensor Kontor", area_id: "kontor" },
   d6: { name: "Gardin", area_id: "sove" }, d8: { name: "Ikea puk soveværelse", area_id: "sove" }, d9: { name: "Knap Jesper computer", area_id: "kontor" }, d7: { name: "Aqara Smart Lock U200", area_id: "gang" },
 };
-const areas = { kontor: { name: "Kontor" }, sove: { name: "Soveværelse" }, gang: { name: "Gang" } };
+const areas = { kontor: { name: "Kontor", floor_id: "f1" }, sove: { name: "Soveværelse", floor_id: "f1" }, gang: { name: "Gang", floor_id: "f0" } };
+const floors = { f1: { name: "Første sal", level: 1 }, f0: { name: "Stueetagen", level: 0 } };
 const services = { light: { turn_on: {}, turn_off: {}, toggle: {} }, notify: { mobile_app_jesper_iphone: {}, send_message: {} }, scene: { turn_on: {} }, persistent_notification: { create: {} } };
 
 // ---- fake backend
@@ -128,11 +129,12 @@ window.calls = [];
 window.HAEV = {};
 window.emitHA = (type, data) => (window.HAEV[type] || []).forEach((cb) => cb({ event_type: type, data }));
 const hass = {
-  states, entities, devices, areas, services, language: "da",
+  states, entities, devices, areas, floors, services, language: "da", user: { name: "Jesper Fløjborg" },
+  callService: async (d, sv, data) => { window.calls.push({ type: "call_service", d, sv, data }); },
   callWS: async (msg) => {
     window.calls.push(msg);
     const t = msg.type.split("/")[1];
-    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.5.10" };
+    if (t === "list") return { flows: flows.map((f) => ({ ...f, status: status(f) })), folders, version: window.SERVER_VERSION || "0.6.0" };
     if (t === "save") {
       const f = JSON.parse(JSON.stringify(msg.flow)); delete f.status;
       if (!f.name) throw new Error("Flowet skal have et navn");
