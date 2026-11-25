@@ -1,5 +1,5 @@
 /* Flow Cards – Homey-style WHEN / AND / THEN flows for Home Assistant. */
-const FC_VERSION = "0.6.0";
+const FC_VERSION = "0.6.1";
 const WS = "flow_cards";
 
 const WEEKDAYS = [["mon", "man"], ["tue", "tir"], ["wed", "ons"], ["thu", "tor"], ["fri", "fre"], ["sat", "lør"], ["sun", "søn"]];
@@ -1223,6 +1223,7 @@ svg.wires .wire.temp{stroke-dasharray:4 4}
 .vt{flex:1;min-width:0;display:flex;flex-direction:column}.vt small{color:#8e8e93;font-size:11px}
 .vval{padding:4px 10px;border-radius:999px;background:#f2f2f7;font-size:13px}
 @media (max-width:760px){.hpick .cols{display:block;overflow:auto}.hpick .cols>div{border-right:0;border-bottom:1px solid #e5e5ea;overflow:visible}.hpick .cols>div:empty{display:none}.hpick header h3{width:auto}}
+.badge.fresh{animation:pop .6s ease-out 2}@keyframes pop{0%{transform:scale(.2);opacity:0}60%{transform:scale(1.35);opacity:1}100%{transform:scale(1)}}
 `;
 
 /* ------------------------------------------------------------------ panel */
@@ -1327,6 +1328,12 @@ class FlowCardsPanel extends HTMLElement {
       if (list) {
         const i = list.findIndex((r) => r.id === run.id);
         if (i >= 0) list[i] = run; else list.unshift(run);
+      }
+      if (this._view === "edit" && this._draft && this._draft.id === msg.flow_id && run.status !== "running" && this._lastToastRun !== run.id) {
+        this._lastToastRun = run.id;
+        const t = new Date(run.end || run.start).toLocaleTimeString("da-DK", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+        const ok = run.status === "success";
+        this._toast(ok ? `✓ Kørt kl. ${t} – alle kort gik igennem` : `Kørt kl. ${t}: ${run.error || run.status}`, !ok);
       }
       const f = this._flows.find((x) => x.id === msg.flow_id);
       if (f) {
@@ -1472,6 +1479,7 @@ class FlowCardsPanel extends HTMLElement {
     if (sc && this._keepScroll) sc.scrollTop = top;
     this._keepScroll = false;
     if (this._view === "edit" && this._draft && this._draft.type === "advanced") this._afterCanvasRender();
+    else if (this._view === "edit" && this._draft) { const lr = this._latestRun[this._draft.id]; if (lr && lr.status !== "running") setTimeout(() => { this._seenRun = lr.id + lr.status; }, 0); }
   }
 
   _filteredFlows() {
@@ -1871,7 +1879,7 @@ class FlowCardsPanel extends HTMLElement {
       const cards = f[sec].map((c, i) => {
         const src = this._cardSource(c, sec);
         const b = badges[c.id];
-        const badge = b ? `<span class="badge ${b.status}" title="${esc(b.error || b.text || b.status)}">${b.status === "error" ? "!" : b.status === "false" ? "✕" : b.status === "skipped" || b.status === "cancelled" ? "–" : "✓"}</span>` : "";
+        const badge = b ? `<span class="badge ${b.status} ${run && this._seenRun !== run.id + run.status ? "fresh" : ""}" title="${esc(b.error || b.text || b.status)}">${b.status === "error" ? "!" : b.status === "false" ? "✕" : b.status === "skipped" || b.status === "cancelled" ? "–" : "✓"}</span>` : "";
         const not = sec === "conditions" ? `<button class="not ${c.invert ? "" : "off"}" data-action="invert" data-sec="${sec}" data-idx="${i}" title="Vend betingelsen om">IKKE</button>` : "";
         return `<div class="card ${c.disabled ? "disabled" : ""}" draggable="true" data-action="edit-card" data-sec="${sec}" data-idx="${i}">
           ${badge}<div class="head"><ha-icon icon="${esc(src.icon)}" style="--mdc-icon-size:16px"></ha-icon><span class="src">${esc(src.name)}</span>${not}
@@ -2433,7 +2441,7 @@ class FlowCardsPanel extends HTMLElement {
         const saved = this._dirty || !this._draft.id ? await this._saveDraft() : this._draft;
         if (!saved) return;
         await this._ws({ type: `${WS}/run`, flow_id: saved.id });
-        this._toast("Flowet kører – se markeringerne på kortene"); this._render(); break;
+        this._toast("Flowet kører…"); this._render(); break;
       }
       case "delete-flow":
         if (!window.confirm(`Slet flowet "${this._draft.name}"? Det kan ikke fortrydes.`)) return;
@@ -3039,7 +3047,7 @@ class FlowCardsPanel extends HTMLElement {
       const sec = SECTIONS[n.sec] || SECTIONS.logic;
       const src = n.sec === "logic" ? { name: n.kind === "note" ? "Note" : n.kind === "all" ? "Alle" : "Én af", icon: n.kind === "note" ? "mdi:note-text-outline" : n.kind === "all" ? "mdi:set-all" : "mdi:call-split" } : this._cardSource(n, n.sec);
       const b = badges[n.id];
-      const badge = b ? `<span class="badge ${b.status}" title="${esc(b.error || b.text || b.status)}">${b.status === "error" ? "!" : b.status === "false" ? "✕" : b.status === "skipped" || b.status === "cancelled" ? "–" : "✓"}</span>` : "";
+      const badge = b ? `<span class="badge ${b.status} ${run && this._seenRun !== run.id + run.status ? "fresh" : ""}" title="${esc(b.error || b.text || b.status)}">${b.status === "error" ? "!" : b.status === "false" ? "✕" : b.status === "skipped" || b.status === "cancelled" ? "–" : "✓"}</span>` : "";
       const inPin = n.sec !== "triggers" && n.kind !== "note" ? `<span class="pin in" data-in="${n.id}"></span>` : "";
       const outs = this._ports(n).map(([port, top]) => `<span class="pin out ${port}" data-pin="${port}" data-node="${n.id}" style="top:${top}px" title="${{ out: "Udgang", true: "Hvis sand", false: "Hvis falsk", error: "Hvis fejl" }[port]}">${{ true: "✓", false: "✕", error: "!" }[port] || ""}</span>`).join("");
       const tools = `${n.sec === "triggers" ? `<button data-action="node-run" data-node="${n.id}" title="Test fra dette kort"><ha-icon icon="mdi:play" style="--mdc-icon-size:16px"></ha-icon></button>` : ""}
@@ -3120,6 +3128,8 @@ class FlowCardsPanel extends HTMLElement {
   }
 
   _afterCanvasRender() {
+    const lr = this._draft && this._latestRun[this._draft.id];
+    if (lr && lr.status !== "running") setTimeout(() => { this._seenRun = lr.id + lr.status; }, 0);
     if (!this._tf) { this._tf = { x: 40, y: 40, z: 1 }; if (this._draft.nodes.length) { this._fit(); return; } }
     this._drawWires();
   }
